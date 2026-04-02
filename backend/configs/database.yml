@@ -1,0 +1,12 @@
+# 数据库配置
+database:
+  # 主数据库连接
+  url: sqlite+aiosqlite:///./database.db
+
+  # 连接池配置
+  pool_size: 5
+  max_overflow: 10
+
+  # SQLite 特定配置
+  sqlite:
+    check_same_thread: false

@@ -1,0 +1,14 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+repo_root="$(git rev-parse --show-toplevel)"
+
+echo "[pre-commit] Running frontend lint..."
+cd "$repo_root/frontend"
+npm run lint
+
+echo "[pre-commit] Running backend lint..."
+cd "$repo_root/backend"
+ruff check .
+
+echo "[pre-commit] All lint checks passed."

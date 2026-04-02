@@ -30,28 +30,37 @@ backend/
 
 ## 环境配置
 
-复制 `.env.example` 为 `.env` 并填写相关配置：
+### 1. 环境变量
+
+复制 `.env.example` 为 `.env` 并填写 API 密钥：
 
 ```bash
 cp .env.example .env
+# 编辑 .env，填入你的 LLM API Key
 ```
 
-`.env` 配置项说明：
+### 2. YAML 配置文件
 
-| 配置项 | 说明 | 默认值 |
-|--------|------|--------|
-| `OPENAI_API_KEY` | LLM API 密钥（硅基流动/ OpenAI） | - |
-| `OPENAI_BASE_URL` | LLM API 地址 | https://api.siliconflow.cn/v1 |
-| `OPENAI_MODEL` | 使用的模型名称 | Qwen/Qwen2.5-7B-Instruct（免费） |
-| `APP_HOST` | 服务监听地址 | 0.0.0.0 |
-| `APP_PORT` | 服务监听端口 | 8000 |
-| `DEBUG` | 调试模式 | True |
-| `DATABASE_URL` | 数据库连接地址 | sqlite+aiosqlite:///./database.db |
-| `CHROMA_PERSIST_DIR` | ChromaDB 持久化目录 | ./chroma_db |
+配置文件位于 `configs/` 目录，按功能分类：
+
+| 文件 | 说明 |
+|------|------|
+| `configs/llm.yml` | LLM 配置（模型、API 地址、参数） |
+| `configs/app.yml` | 应用配置（端口、CORS 等） |
+| `configs/database.yml` | 数据库配置 |
+| `configs/chroma.yml` | 向量数据库配置 |
+
+**修改 LLM 模型：** 编辑 `configs/llm.yml`
+```yaml
+llm:
+  model: Qwen/Qwen2.5-72B-Instruct  # 修改为其他模型
+  temperature: 0.7
+  max_tokens: 2000
+```
 
 **支持的 LLM 提供商：**
-- 硅基流动（默认）：兼容 OpenAI SDK，使用免费的 Qwen2.5-7B-Instruct 模型
-- OpenAI：修改 `OPENAI_BASE_URL` 为 `https://api.openai.com/v1`
+- 硅基流动（默认）：使用免费的 Qwen2.5-7B-Instruct 模型
+- OpenAI：修改 `configs/llm.yml` 中的 `base_url`
 
 **其他可用模型（硅基流动）：**
 - `Qwen/Qwen2.5-7B-Instruct` - 免费，轻量级
@@ -80,6 +89,14 @@ cp .env.example .env
 
 # 启动开发服务器 (http://0.0.0.0:8000)
 python main.py
+
+# 代码检查
+ruff check .              # 检查代码问题
+ruff check . --fix        # 自动修复问题
+
+# 代码格式化
+ruff format .             # 格式化代码
+ruff format . --check     # 检查格式（不修改）
 
 # 访问 API 文档
 # Swagger UI: http://localhost:8000/docs

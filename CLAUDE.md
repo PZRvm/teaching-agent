@@ -28,6 +28,7 @@ A teaching AI agent system (教学智能体) for educational scenarios with two 
 - `backend/dependencies/` - Dependency injection setup
 - `backend/middlewares/` - Custom FastAPI middleware
 - `backend/routers/` - API route definitions
+- `backend/configs/` - YAML configuration files (llm.yml, app.yml, database.yml, chroma.yml)
 - `frontend/src/apis/` - API client functions
 - `frontend/src/components/` - React components
 
@@ -45,7 +46,10 @@ npm run preview  # Preview production build
 ### Backend
 ```bash
 cd backend
-python main.py   # Start dev server (http://0.0.0.0:8000)
+python main.py       # Start dev server (http://0.0.0.0:8000)
+ruff check .         # Check code issues
+ruff check . --fix   # Auto-fix issues
+ruff format .        # Format code
 ```
 
 Install dependencies:
@@ -55,7 +59,9 @@ pip install -r requirements.txt
 
 ### Linting
 - Frontend: `npm run lint` in [frontend/](frontend/)
+- Backend: `ruff check .` in [backend/](backend/)
 - ESLint config: [frontend/eslint.config.js](frontend/eslint.config.js)
+- Ruff config: [backend/pyproject.toml](backend/pyproject.toml)
 - TypeScript strict mode enabled with no-unused-locals and no-unused-parameters
 
 ## Environment
@@ -63,6 +69,30 @@ pip install -r requirements.txt
 - Backend runs on port 8000 (uvicorn)
 - Frontend dev server runs on port 5173 (Vite default)
 - Python 3.12+ required
+
+## Configuration
+
+Backend uses YAML configuration files in `backend/configs/`:
+
+- `llm.yml` - LLM settings (model, API URL, temperature)
+- `app.yml` - Application settings (host, port, CORS)
+- `database.yml` - Database connection settings
+- `chroma.yml` - Vector database settings
+
+Sensitive data (API keys) goes in `backend/.env` (use `.env.example` as template).
+
+Access config in code:
+```python
+from configs.config import settings
+
+# LLM config
+api_key = settings.llm_api_key
+model = settings.llm_model
+
+# App config
+host = settings.app_host
+port = settings.app_port
+```
 
 ## Code Style Guide
 
@@ -113,6 +143,43 @@ const Wrapper = styled.div`
 - Component files: PascalCase (`UserProfile.tsx`)
 - Wrapper: Always named `Wrapper`
 - Classes: kebab-case (`header`, `content`, `user-name`)
+
+### Python Code Style
+
+Follow PEP 8 with these additional rules:
+
+```python
+# File: backend/routers/users.py
+
+from fastapi import APIRouter
+from typing import List
+
+router = APIRouter()
+
+
+@router.get("/users/", summary="获取用户列表")
+async def read_users() -> List[dict]:
+    """
+    获取所有用户列表
+
+    Returns:
+        List[dict]: 用户列表
+    """
+    return [{"username": "Rick"}, {"username": "Morty"}]
+```
+
+**Rules:**
+- Use type hints for all function parameters and returns
+- Add docstrings for all functions and classes
+- Use `async def` for async operations
+- Order imports: stdlib → third-party → local
+- Max line length: 100 characters
+
+**Naming:**
+- Files and modules: `snake_case`
+- Functions and variables: `snake_case`
+- Classes: `PascalCase`
+- Constants: `UPPER_SNAKE_CASE`
 
 ## gstack
 

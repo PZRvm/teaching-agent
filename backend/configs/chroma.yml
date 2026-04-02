@@ -1,0 +1,17 @@
+# 向量数据库配置（ChromaDB）
+chroma:
+  # 持久化目录
+  persist_dir: ./chroma_db
+
+  # 集合配置
+  collection:
+    # 默认集合名称
+    default: teaching_knowledge
+
+    # 嵌入模型
+    embedding_model: text-embedding-ada-002
+
+  # 检索配置
+  retrieval:
+    top_k: 5
+    score_threshold: 0.7

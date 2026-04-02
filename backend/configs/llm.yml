@@ -1,0 +1,23 @@
+# LLM 配置
+llm:
+  # API 密钥（从环境变量读取，或在此配置）
+  api_key: ${OPENAI_API_KEY}
+
+  # API 地址
+  base_url: https://api.siliconflow.cn/v1
+
+  # 模型名称
+  model: Qwen/Qwen2.5-7B-Instruct
+
+  # 其他参数
+  temperature: 0.7
+  max_tokens: 2000
+
+# 可用的模型选项
+models:
+  free:
+    - Qwen/Qwen2.5-7B-Instruct
+    - Qwen/Qwen2.5-72B-Instruct
+  paid:
+    - deepseek-ai/DeepSeek-V3
+    - THUDM/glm-4-9b-chat
