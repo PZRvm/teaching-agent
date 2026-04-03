@@ -16,16 +16,24 @@
 
 ```
 backend/
-├── agents/         # AI 智能体实现
-│   └── tools/      # 智能体会用到的工具
-├── configs/        # 需要用到的相关的配置项
-├── core/           # 核心业务逻辑
-├── dependencies/   # 依赖注入配置
-├── middlewares/    # 自定义中间件
-├── routers/        # API 路由
-├── tests/          # 测试文件
-├── main.py         # 应用入口
-└── requirements.txt # Python 依赖
+├── agents/              # AI 智能体实现
+│   ├── tools/           # 智能体工具
+│   ├── teacher_agent.py # 教师 agent
+│   └── student_agent.py # 学生 agent
+├── configs/             # 配置文件（YAML）
+│   ├── llm.yml          # LLM 配置
+│   ├── app.yml          # 应用配置
+│   ├── database.yml     # 数据库配置
+│   └── chroma.yml       # 向量数据库配置
+├── core/                # 核心业务逻辑
+├── dependencies/        # 依赖注入配置
+├── middlewares/         # 自定义中间件
+├── routers/             # API 路由
+├── tests/               # 测试文件
+├── main.py              # 应用入口
+├── .env.example         # 环境变量模板
+├── pyproject.toml       # Ruff 配置
+└── requirements.txt     # Python 依赖
 ```
 
 ## 环境配置
