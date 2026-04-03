@@ -4,33 +4,77 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Project Overview
 
-A teaching AI agent system (教学智能体) for educational scenarios with two modes:
+A teaching AI agent system (教学智能体) for educational scenarios with two primary modes:
 1. **Teacher mode**: User acts as teacher controlling multiple student AI agents
-2. **Student mode**: User acts as student interacting with a teacher AI agent
+2. **Observation mode**: User watches teacher and student agents interact automatically for educational research
+
+The system supports three teaching modes:
+- **灌输式** (Didactic): Lecture-based with minimal interaction
+- **启发式** (Heuristic): Lecture with periodic checkpoint questions
+- **讨论式** (Discussion): Frequent questions and guided discussion
 
 ## Architecture
 
-### Frontend ([frontend/](frontend/))
-- React 19 + TypeScript + Vite
-- Styled-components for styling
-- React Compiler enabled (via `@rolldown/plugin-babel`)
+### Backend Architecture
 
-### Backend ([backend/](backend/))
-- FastAPI web framework
-- LangChain ecosystem for AI/agent orchestration
-- ChromaDB for vector storage (RAG, knowledge base)
-- SQLAlchemy + Alembic for database migrations
-- OpenAI SDK for LLM integration
+The backend follows a modular structure organized by feature:
 
-### Key Directories
-- `backend/agents/` - AI agent implementations (teacher, student agents)
-- `backend/core/` - Core business logic and services
-- `backend/dependencies/` - Dependency injection setup
-- `backend/middlewares/` - Custom FastAPI middleware
-- `backend/routers/` - API route definitions
-- `backend/configs/` - YAML configuration files (llm.yml, app.yml, database.yml, chroma.yml)
-- `frontend/src/apis/` - API client functions
-- `frontend/src/components/` - React components
+**Backend Directory Structure:**
+```
+backend/
+├── models/              # Feature modules (router + service + schemas)
+│   ├── user/           # User-related endpoints
+│   └── session/        # Teaching session management
+├── agents/             # AI agent implementations
+│   ├── tools/          # LangChain tools for agents
+│   ├── teacher_agent.py
+│   └── student_agent.py
+├── core/               # Core business logic
+│   └── memory_manager.py  # Agent memory and context management
+├── configs/            # YAML configuration (no hardcoded values)
+│   ├── llm.yml         # LLM model settings
+│   ├── app.yml         # Application config (host, port, CORS)
+│   └── database.yml    # Database (SQLite in datas/ directory)
+├── datas/              # Data files (database.db, chroma/ vector store)
+├── dependencies/       # Dependency injection
+├── middlewares/        # Custom FastAPI middleware
+├── schemas/            # Pydantic models for API validation
+└── tests/              # Unit and integration tests
+```
+
+**Key Design Patterns:**
+
+1. **Modular Router Structure**: Each feature (user, session) has its own directory with `router.py`, `service.py`, and related schemas. Import as `from models.{feature}.router import {router}`.
+
+2. **YAML Configuration**: All configuration is in `configs/` directory. Access via:
+   ```python
+   from configs.config import settings
+   api_key = settings.llm_api_key
+   model = settings.llm_model
+   ```
+
+3. **Agent Memory System**: Uses Summary Buffer Memory pattern (see docs/design.md):
+   - Session-level memory maintains message history and teaching summary
+   - Teacher agent memory tracks covered topics and student participation
+   - Student agent memory simulates learning curve with `learned_concepts` and `knowledge_level`
+
+4. **StudentFactory Pattern**: Three modes for student creation:
+   - Manual: Individual student configuration
+   - Random: Generate entire class with distribution parameters
+   - JSON import: Export/import for experiment reproducibility
+
+### Frontend Architecture
+
+**Frontend Directory Structure:**
+```
+frontend/
+├── src/
+│   ├── apis/          # API client functions (backend/ endpoints)
+│   ├── components/    # React components (one Wrapper styled component per file)
+│   ├── assets/        # Static resources
+│   ├── App.tsx        # Root component
+│   └── main.tsx       # Entry point
+```
 
 ## Development Commands
 
@@ -69,30 +113,8 @@ pip install -r requirements.txt
 - Backend runs on port 8000 (uvicorn)
 - Frontend dev server runs on port 5173 (Vite default)
 - Python 3.12+ required
-
-## Configuration
-
-Backend uses YAML configuration files in `backend/configs/`:
-
-- `llm.yml` - LLM settings (model, API URL, temperature)
-- `app.yml` - Application settings (host, port, CORS)
-- `database.yml` - Database connection settings
-- `chroma.yml` - Vector database settings
-
-Sensitive data (API keys) goes in `backend/.env` (use `.env.example` as template).
-
-Access config in code:
-```python
-from configs.config import settings
-
-# LLM config
-api_key = settings.llm_api_key
-model = settings.llm_model
-
-# App config
-host = settings.app_host
-port = settings.app_port
-```
+- SQLite database in `backend/datas/database.db`
+- Environment variables in `backend/.env` (use `.env.example` as template)
 
 ## Code Style Guide
 
@@ -149,8 +171,6 @@ const Wrapper = styled.div`
 Follow PEP 8 with these additional rules:
 
 ```python
-# File: backend/routers/users.py
-
 from fastapi import APIRouter
 from typing import List
 
@@ -181,11 +201,14 @@ async def read_users() -> List[dict]:
 - Classes: `PascalCase`
 - Constants: `UPPER_SNAKE_CASE`
 
-## gstack
+## Important Architecture Decisions
 
-Use the `/browse` skill from gstack for all web browsing. Never use `mcp__claude-in-chrome__*` tools.
+1. **No Knowledge Base System (v1)**: The system uses LLM's native capabilities for teaching. Knowledge base (ChromaDB, RAG) was removed from v1 scope. Future enhancement may add structured course content.
 
-Available gstack skills:
-`/office-hours`, `/plan-ceo-review`, `/plan-eng-review`, `/plan-design-review`, `/design-consultation`, `/design-shotgun`, `/design-html`, `/review`, `/ship`, `/land-and-deploy`, `/canary`, `/benchmark`, `/browse`, `/connect-chrome`, `/qa`, `/qa-only`, `/design-review`, `/setup-browser-cookies`, `/setup-deploy`, `/retro`, `/investigate`, `/document-release`, `/codex`, `/cso`, `/autoplan`, `/careful`, `/freeze`, `/guard`, `/unfreeze`, `/gstack-upgrade`, `/learn`
+2. **Models/ over Routers/**: Backend uses `models/` directory with feature-based organization instead of flat `routers/`. Each feature module contains its own router, service, and related logic.
 
-If gstack skills aren't working, run `cd .claude/skills/gstack && ./setup` to build the binary and register skills.
+3. **Database in datas/**: All data files (SQLite database, ChromaDB vector store) go in `backend/datas/` directory for centralized management and easier cleanup.
+
+4. **LLM Evaluation of Homework**: Students' homework is evaluated by LLM, not keyword matching. This allows for more nuanced feedback.
+
+5. **Teacher Can Reject Student Questions**: In reply_to_teacher message type, teachers may choose not to respond to certain student questions based on teaching context.

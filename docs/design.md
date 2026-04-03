@@ -46,13 +46,13 @@ Mode: Builder
 ## Approaches Considered
 
 ### Approach A: Minimal — 单模式深度演示
-只构建一种教学模式（如启发式），单一主题（如"二叉树遍历"），1个教师agent + 2-3个学生agent，仅文本交互，单次会话。
+只构建一种教学模式（如启发式），单一主题（如"二叉树遍历"），1个教师agent + 4-5个学生agent，仅文本交互，单次会话。
 
 - 优点：最快交付，证明核心概念
 - 缺点：不能验证3模式切换的核心需求
 
 ### Approach B: Balanced — 三模式完整实现（已选择）
-一个教师智能体，支持3种教学模式切换，2-3名学生agent，单一主题，完整消息流（讲座/问答/作业/反馈），可见agent状态。
+一个教师智能体，支持3种教学模式切换，4-5名学生agent，单一主题，完整消息流（讲座/问答/作业/反馈），可见agent状态。
 
 - 优点：完全匹配原始需求，清晰展示教学模式差异化，架构更简单
 - 缺点：耗时较长（1-2周）
@@ -68,10 +68,10 @@ Mode: Builder
 用户作为隐形观察者，观看教师agent和学生agent的自动互动，获得量化分析报告。这是为了满足教育研究人员的场景：研究不同教学模式对教学效果的影响。
 
 **核心特性**：
-- 配置课程/教学模式/学生群体 → 自动运行教学会话
+- 配置教学主题/教学模式/学生 → 自动运行教学会话
 - 实时观看agent对话（只读模式，无法干预）
 - 会话结束后生成量化分析报告：参与度、正确率、互动频率、知识掌握度等
-- 支持教学模式对比研究（相同课程/学生，不同教学模式）
+- 支持教学模式对比研究（相同主题/学生，不同教学模式）
 
 **与核心模式的区别**：
 - 教师模式：用户控制教学过程，agent响应用户输入
@@ -88,28 +88,79 @@ Mode: Builder
 4. 为未来扩展（用户角色扮演）打下基础
 5. **新增**：满足教育研究场景，提供量化分析能力
 
+## System Flow Overview
+
+```mermaid
+flowchart TB
+    Start([用户进入应用]) --> Mode{选择模式}
+    
+    Mode -->|教师模式| TeacherFlow[教师模式流程]
+    Mode -->|观察模式| ObservationFlow[观察模式流程]
+    
+    subgraph TeacherFlow [教师模式：用户扮演教师]
+        T1[配置教学会话<br/>- 输入教学主题<br/>- 选择教学模式<br/>- 配置学生] --> 
+        T2[开始教学<br/>教师与Students互动]
+        T2 --> 
+        T3{教学模式}
+        T3 -->|灌输式| Didactic[连续讲授<br/>无互动提问]
+        T3 -->|启发式| Heuristic[讲授+提问<br/>checkpoint检查]
+        T3 -->|讨论式| Discussion[频繁提问<br/>引导讨论]
+        Didactic --> T4[布置作业]
+        Heuristic --> T4
+        Discussion --> T4
+        T4 --> T5[学生提交作业]
+        T5 --> T6[教师评分反馈]
+        T6 --> T7[课程结束反馈]
+        T7 --> EndTeaching([教师模式结束])
+    end
+    
+    subgraph ObservationFlow [观察模式：用户观看agent互动]
+        O1[配置观察会话<br/>- 输入教学主题<br/>- 选择教学模式<br/>- 配置学生] -->
+        O2[开始观察<br/>Agents自动互动]
+        O2 -->
+        O3[实时观看对话<br/>只读模式]
+        O3 -->
+        O4[会话结束<br/>教学完成]
+        O4 -->
+        O5[生成分析报告<br/>量化指标]
+        O5 -->
+        EndObservation([观察模式结束])
+    end
+    
+    style TeacherFlow fill:#e1f5ff
+    style ObservationFlow fill:#fff3e0
+```
+
 ## Observation Mode Architecture
 
 ### User Flow
 
-```
-1. 用户进入应用，选择「观察模式」标签
-   ↓
-2. 配置观察会话：
-   - 选择课程（二次函数、二叉树遍历、牛顿第二定律）
-   - 选择教学模式（灌输式/启发式/讨论式）
-   - 配置学生群体（使用现有的 StudentGroupConfig 机制）
-   ↓
-3. 点击「开始观察」
-   ↓
-4. 系统创建只读会话，agent 自动互动
-   - 前端实时显示对话（只读）
-   - 用户可暂停/继续（不影响 agent 逻辑，只是暂停前端显示）
-   - 显示当前会话状态：当前模式、已进行时间、消息数量
-   ↓
-5. 会话结束（达到时长或教学完成）
-   ↓
-6. 生成并展示分析报告
+```mermaid
+flowchart TB
+    Start([用户进入应用]) --> SelectTab[选择「观察模式」标签]
+    SelectTab --> Config[配置观察会话]
+    
+    Config --> InputTopic[输入教学主题<br/>一次方程/一次函数/二叉树遍历等]
+    Config --> SelectMode[选择教学模式<br/>灌输式/启发式/讨论式]
+    Config --> ConfigStudents[配置学生<br/>StudentFactory: 手动/随机/JSON]
+    
+    InputTopic --> ClickStart
+    SelectMode --> ClickStart
+    ConfigStudents --> ClickStart[点击「开始观察」]
+    
+    ClickStart --> CreateSession[系统创建只读会话<br/>agents自动互动]
+    CreateSession --> WatchRealtime[前端实时显示对话<br/>只读模式]
+    
+    WatchRealtime --> ShowStatus[显示会话状态<br/>当前模式/已进行时间/消息数量]
+    ShowStatus --> TeachingEnd{会话结束?}
+    
+    TeachingEnd -->|教学完成| GenerateReport[生成并展示分析报告<br/>量化指标: 参与度/正确率/互动频率等]
+    GenerateReport --> End([结束])
+    
+    style Start fill:#e1f5ff
+    style End fill:#c8e6c9
+    style ClickStart fill:#ffd8b1
+    style GenerateReport fill:#d4edda
 ```
 
 ### Observation Metrics Schema
@@ -123,7 +174,7 @@ class ObservationMetrics:
     topic: str
 
     # 时间指标
-    duration_seconds: int
+    duration_seconds: Optional[int]  # 会话持续时长（秒），会话结束后计算
     message_count: int
     teacher_message_count: int
     student_message_count: int
@@ -136,35 +187,37 @@ class ObservationMetrics:
     average_knowledge_gain: float  # 平均知识掌握度提升
     average_correct_rate: float    # 平均回答正确率
 
-    # 学生群体维度统计
-    group_metrics: Dict[str, GroupMetrics]
+    # 学生个体维度统计
+    student_metrics: Dict[str, StudentMetrics]
 
-class GroupMetrics:
-    """学生群体维度统计"""
-    group_id: str
-    group_name: str
-    avg_level: StudentLevel
-    avg_attitude: StudentAttitude
-    avg_knowledge_gain: float
-    avg_participation: float
-    avg_correct_rate: float
+class StudentMetrics:
+    """学生个体维度统计"""
+    student_id: str
+    name: str
+    level: StudentLevel
+    attitude: StudentAttitude
+    knowledge_gain: float
+    participation: float
+    correct_rate: float
+    message_count: int
 ```
 
 ### UI Components
 
 **1. 观察模式配置界面** (`ObservationConfig.tsx`)
-- 复用：`CourseSelector`、`TeachingModeSelector`、`StudentGroupConfig`
+- 复用：`CourseSelector`、`TeachingModeSelector`
+- 复用：StudentFactory 的学生配置组件（手动创建/随机生成/JSON导入）
 - 新增：「开始观察」按钮
 
 **2. 观察界面** (`ObservationView.tsx`)
-- 顶部状态栏：当前教学模式徽章、已进行时间、暂停/继续按钮
+- 顶部状态栏：当前教学模式徽章、已进行时间
 - 主内容区：消息列表（只读，复用 `MessageList`）
 - 侧边栏（可选）：学生状态概览、实时指标
 
 **3. 分析报告界面** (`AnalysisReport.tsx`)
 - 课程和配置摘要
 - 量化指标卡片：总消息数、互动频率、学生参与率、平均知识掌握度、平均正确率
-- 学生群体对比：按群体分组的指标对比
+- 学生个体统计：按学生分组的指标对比
 - 教学模式对比（如有历史数据）
 
 ### Backend API Extensions
@@ -177,9 +230,6 @@ async def start_observation_session(config: ObservationConfig) -> SessionID
 
 @router.get("/observation/{session_id}/stream")
 async def stream_observation_messages(session_id: str)
-
-@router.post("/observation/{session_id}/pause")
-async def pause_observation(session_id: str)
 
 @router.get("/observation/{session_id}/report")
 async def get_analysis_report(session_id: str) -> ObservationMetrics
@@ -205,6 +255,65 @@ class ObservationAnalyzer:
         pass
 ```
 
+## Agent Interaction Flow
+
+### Teacher-Student Message Sequence
+
+教师和学生 agent 之间通过以下消息类型进行交互，展示一个完整的教学互动循环：
+
+```mermaid
+sequenceDiagram
+    participant T as 教师Agent
+    participant S1 as 学生Agent 1
+    participant S2 as 学生Agent 2
+    participant All as 所有Students
+
+    Note over T,All: Phase 1: 讲授阶段
+    T->>All: lecture(讲授)<br/>输出知识点
+    
+    rect rgb(240, 248, 255)
+    Note over T,All: Phase 2: 互动阶段（启发式/讨论式）
+    T->>All: interactive_question(互动提问)<br/>提出checkpoint问题
+    S1->>T: answer_question(回答问题)<br/>基于已学内容回答
+    S2->>T: answer_question(回答问题)<br/>不同质量回答
+    T->>S1: reply_to_student(回复反馈)<br/>评价回答质量
+    end
+    
+    rect rgb(255, 243, 224)
+    Note over S1,T: Phase 2.5: 学生主动提问（讨论式）
+    S2->>T: reply_to_teacher(主动提问)<br/>基于困惑点提问
+    T->>S2: reply_to_student(回复)<br/>可选: 判断是否回复
+    end
+    
+    rect rgb(237, 242, 244)
+    Note over T,All: Phase 3: 作业阶段
+    T->>All: assign_homework(布置作业)<br/>会话结束时
+    S1->>T: do_homework(提交作业)
+    S2->>T: do_homework(提交作业)
+    T->>S1: grade_homework(评分)<br/>LLM评价作业
+    T->>S2: grade_homework(评分)
+    end
+    
+    rect rgb(252, 243, 216)
+    Note over T,All: Phase 4: 结束阶段
+    T->>All: end_feedback(请求反馈)
+    S1->>T: course_feedback(课程反馈)
+    S2->>T: course_feedback(课程反馈)
+    end
+```
+
+### Message Type Flow Matrix
+
+| 教师消息类型 | 学生响应消息类型 | 发生条件 |
+|-------------|---------------|---------|
+| `lecture` | 无（被动接收） | 所有模式 |
+| `interactive_question` | `answer_question` | 启发式、讨论式 |
+| `reply_to_student` | 无（被动接收反馈） | 所有模式 |
+| `assign_homework` | `do_homework` | 所有模式（会话结束） |
+| `grade_homework` | 无（被动接收评分） | 所有模式 |
+| `end_feedback` | `course_feedback` | 所有模式（会话最后） |
+| 无（学生主动） | `reply_to_teacher` | 讨论式（积极学生） |
+
 ## Agent Message Types
 
 ### Teacher Message Types (6种)
@@ -220,12 +329,13 @@ class ObservationAnalyzer:
 
 3. **回复学生 (reply_to_student)**: 针对学生回答/提问的反馈
    - 所有模式：支持，但频率不同
+   - 对于学生的问题，可以判断是否拒绝回复
 
 4. **布置作业 (assign_homework)**: 会话结束时发布作业
    - 所有模式：会话结束前触发
 
 5. **作业评分 (grade_homework)**: 评价学生提交的作业
-   - v1简化：基于关键词匹配，不依赖LLM评分
+   - 使用LLM评价学生提交的作业
 
 6. **课程结束反馈 (end_feedback)**: 请求学生对课程进行反馈
    - 所有模式：会话最后一步
@@ -270,56 +380,37 @@ class TeacherAgentState:
     agent_id: str
     name: str
     teaching_mode: TeachingMode
-    
+
     # 当前教学状态
-    current_knowledge_point: Optional[str]  #当前讲授的知识点
-    question_queue: List[str]          #待提问的问题队列
+    question_queue: List[str]          # 待提问的问题队列
     
 class StudentAgentState:
     agent_id: str
     name: str
-    group_id: str               # 所属学生群体
-    
+
     # 可配置参数
     level: StudentLevel          #基础/中等/优秀
     attitude: StudentAttitude    #积极/中性/消极
     learning_ability: int        #1-10
-    
-    # 新增：学生名字和个性化（支持手动创建和导入）
-    avatar: Optional[str]        # 头像
+
+    # 个性化（支持手动创建和导入）
     gender: Optional[str]        # 性别
     background: Optional[str]    # 背景故事
-    
+
     # 运行时状态
     knowledge_level: float       #0-1, 动态更新
     attention: float             #0-1, 注意力
     confidence: float            #0-1, 自信度
     misconception_count: int     #错误理解次数
-    
+
     current_message: Optional[Message]
     last_interaction: Optional[datetime]
 
-class StudentGroupConfig:
-    group_id: str
-    group_name: str             # 如"前排优等生"、"后排中等生"
-    
-    # 群体参数模板（用于批量生成学生）
-    level: StudentLevel          #基础/中等/优秀
-    attitude: StudentAttitude    #积极/中性/消极
-    learning_ability: int        #1-10
-    
-    # 学生数量
-    count: int                  # 该群体生成几个学生
-    
-    # 可选：每个学生的个性化覆盖
-    individual_overrides: List[Dict] = field(default_factory=list)
-
-# 新增：灵活学生配置系统（StudentFactory）
+# 灵活学生配置系统（StudentFactory）
 class StudentProfile:
     """学生配置文件 - 支持手动创建、随机生成、JSON导入"""
     student_id: str
     name: str                    # 学生名字（必填，1-20字符）
-    avatar: Optional[str]        # 头像（可选）
     gender: Optional[str]        # 性别（可选）
     
     # 学习参数
@@ -329,7 +420,6 @@ class StudentProfile:
     
     # 可选扩展字段
     background: Optional[str]
-    special_traits: List[str]
 
 class StudentCreateRequest:
     """统一的学生创建请求"""
@@ -359,131 +449,690 @@ class Message:
     timestamp: datetime
 ```
 
-## Knowledge Base System
+## Agent Memory & Context Management
 
-### Purpose
+### Problem
 
-教学智能体需要**领域知识**才能进行有效教学。知识库系统为特定课程提供结构化知识，让教师agent知道教什么、怎么教。
+在教学场景中，agent 需要维护课堂内容的记忆以实现连贯的教学互动：
 
-### Architecture
+- **教师 agent**：需要记住已讲授的知识点、学生的问题和回答，以避免重复内容并确保教学连贯性
+- **学生 agent**：需要模拟真实学生的学习记忆，能够引用之前学过的内容并逐渐掌握知识
+
+LLM 本身是无状态的，每次调用都是独立的。如果没有良好的上下文管理：
+- 教师会重复讲解相同内容
+- 学生无法记住之前学过的知识点
+- 教学过程会显得不自然、不连贯
+- 无法模拟真实的学习曲线
+
+### Architecture Overview
+
+采用 **Summary Buffer Memory** 模式：在维护完整消息历史的同时，定期生成教学摘要并更新到 system prompt 中。
+
+**核心思想**：
+- 保留最近 N 条消息的完整历史（确保短期连贯性）
+- 维护一个动态更新的教学摘要（确保长期记忆）
+- 每次调用 agent 时，将完整历史和摘要组合成上下文
 
 ```
 ┌─────────────────────────────────────────────────────────┐
-│                    Knowledge Base System                │
+│                    Agent Memory System                   │
 ├─────────────────────────────────────────────────────────┤
-│  Course Config                                          │
-│  ├── course_id: "二次函数"                               │
-│  ├── knowledge_points: [...]                            │
-│  ├── difficulty: "高中数学"                              │
-│  └── teaching objectives: [...]                         │
+│  Teaching Session Memory                                │
+│  ├── message_history: List[Message] (完整历史)           │
+│  ├── teaching_summary: str (动态教学摘要)                │
+│  └── knowledge_points: List[str] (已讲授知识点)          │
 │                                                         │
-│  ChromaDB (Vector Store)                                │
-│  ├── 知识点向量 embeddings                               │
-│  ├── 案例库 (for启发式/讨论式)                            │
-│  └── 常见错误理解 (for学生agent生成misconception)          │
-│                                                        │
-│  Retrieval Layer                                       │
-│  ├── RAG: 根据当前教学进度检索相关知识                      │
-│  ├── Context: 为teacher agent提供授课素材                 │
-│  └── Examples: 为student agent生成案例内容                │
+│  Teacher Agent Memory                                   │
+│  ├── covered_topics: List[str] (已讲授主题)             │
+│  ├── student_questions: List[str] (学生提出的问题)       │
+│  └── teaching_progress: float (教学进度 0-1)            │
+│                                                         │
+│  Student Agent Memories (per student)                  │
+│  ├── learned_concepts: List[str] (已学概念)             │
+│  ├── confused_points: List[str] (困惑点)                │
+│  └── knowledge_level: float (当前掌握度 0-1)             │
 └─────────────────────────────────────────────────────────┘
 ```
 
-### Course Configuration Schema
+### Memory Schema
 
 ```python
-class CourseConfig:
-    course_id: str
-    title: str
-    description: str
-    difficulty: str              #初中/高中/大学
+class SessionMemory:
+    """会话级别的记忆管理"""
+    session_id: str
+    topic: str
     
-    # 知识点结构
-    knowledge_points: List[KnowledgePoint]
+    # 消息历史（完整保留，用于短期上下文）
+    message_history: List[Message]
+    max_history_messages: int = 50  # 保留最近50条消息
     
-    # 教学资源
-    examples: List[CaseExample]  # 启发式/讨论式用
-    common_misconceptions: List[str]  # 常见错误理解
+    # 教学摘要（动态更新，用于长期记忆）
+    teaching_summary: str = ""
+    covered_knowledge_points: List[str] = field(default_factory=list)
     
-    # 教学目标
-    learning_objectives: List[str]
+    # 摘要更新触发器
+    summary_update_interval: int = 10  # 每10条消息更新一次摘要
+    last_summary_update: int = 0
+    
+    def should_update_summary(self) -> bool:
+        """判断是否需要更新摘要"""
+        return len(self.message_history) - self.last_summary_update >= self.summary_update_interval
+    
+    def get_agent_context(self) -> str:
+        """获取 agent 完整上下文"""
+        recent_messages = self.message_history[-self.max_history_messages:]
+        context_parts = [
+            f"教学主题: {self.topic}",
+            f"教学摘要: {self.teaching_summary}",
+            f"已讲授知识点: {', '.join(self.covered_knowledge_points)}",
+            "最近的对话:",
+            self._format_messages(recent_messages)
+        ]
+        return "\n".join(context_parts)
 
-class KnowledgePoint:
-    id: str
-    title: str
-    content: str               # 知识点内容
-    prerequisites: List[str]   # 前置知识点
-    difficulty: int            # 1-10
+class TeacherAgentMemory:
+    """教师 agent 的专用记忆"""
+    agent_id: str
     
-    # 向量检索用
-    embedding: List[float]     # 文本embedding
-    metadata: Dict[str, Any]   # 额外元数据
+    # 教学状态追踪
+    covered_topics: List[str] = field(default_factory=list)
+    student_questions: Dict[str, List[str]] = field(default_factory=dict)  # student_id -> questions
+    teaching_progress: float = 0.0  # 0-1，教学完成度
+    
+    # 学生状态追踪
+    student_participation: Dict[str, int] = field(default_factory=dict)  # 发言次数
+    student_misconceptions: Dict[str, List[str]] = field(default_factory=dict)  # 误解点
+    
+    def get_system_prompt_addition(self) -> str:
+        """生成教师 system prompt 的附加内容"""
+        return f"""你是教师 agent，正在教授"{self.topic}"相关内容。
 
-class CaseExample:
-    id: str
-    title: str
-    scenario: str             # 案例描述
-    related_knowledge_points: List[str]
-    discussion_prompts: List[str]  # 讨论引导问题
+已讲授内容: {', '.join(self.covered_topics)}
+教学进度: {self.teaching_progress*100:.0f}%
+
+学生参与情况:
+{self._format_student_status()}
+
+重要提醒:
+1. 避免重复讲授已覆盖的知识点
+2. 根据学生的参与度和理解程度调整教学节奏
+3. 对于困惑的学生，提供更详细的解释
+"""
+
+class StudentAgentMemory:
+    """学生 agent 的专用记忆"""
+    agent_id: str
+    
+    # 学习状态追踪
+    learned_concepts: List[str] = field(default_factory=list)  # 已掌握概念
+    confused_points: List[str] = field(default_factory=list)  # 困惑点
+    questions_asked: List[str] = field(default_factory=list)  # 已问问题
+    
+    # 模拟学习曲线
+    initial_knowledge_level: float = 0.0  # 初始水平
+    current_knowledge_level: float = 0.0   # 当前水平
+    learning_rate: float = 0.1            # 学习速率
+    
+    def should_remember_concept(self, concept: str) -> bool:
+        """判断是否应该记住这个概念（基于学习参数）"""
+        # 基础学生可能记不住复杂概念
+        # 优秀学生更容易记住
+        return random.random() < (self.current_knowledge_level + 0.5)
+    
+    def get_system_prompt_addition(self) -> str:
+        """生成学生 system prompt 的附加内容"""
+        memory_context = f"""你是学生 agent，正在学习"{self.topic}"相关内容。
+
+已学习内容: {', '.join(self.learned_concepts) if self.learned_concepts else '尚未开始学习'}
+当前知识掌握度: {self.current_knowledge_level*100:.0f}%
+
+你的学习特征:
+- 学习能力: {self.learning_ability}/10
+- 学习态度: {self.attitude}
+- 学习进度: 你正在逐渐掌握新知识，但可能会遗忘一些内容
+
+行为准则:
+1. 回答问题时，基于你已学习的内容
+2. 如果不确定，可以表示困惑或提问
+3. 积极({StudentAttitude.POSITIVE})的学生更主动回答问题
+4. 你的回答质量应该与当前知识水平相符
+"""
+        return memory_context
 ```
 
-### Integration with Agents
+### Memory Update Flow Diagram
 
-**Teacher Agent流程**:
-1. 用户选择课程（如"二次函数"）
-2. 系统加载CourseConfig + ChromaDB向量
-3. 教师开始讲授时，RAG检索相关知识点内容
-4. 根据教学模式调整检索策略：
-   - 灌输式：检索知识点的**标准解释**
-   - 启发式：检索**案例 + 引导性问题**
-   - 讨论式：检索**争议话题 + 多角度观点**
+```mermaid
+flowchart TB
+    Message[新消息产生<br/>Message] --> MemoryManager[MemoryManager.process_message]
+    
+    MemoryManager --> AddToHistory[1. 添加到消息历史<br/>SessionMemory.message_history]
+    
+    MemoryManager --> CheckType{2. 检查消息类型}
+    
+    CheckType -->|lecture| ProcessLecture[_process_lecture<br/>处理讲授内容]
+    CheckType -->|interactive_question| ProcessQuestion[_process_question<br/>处理提问]
+    CheckType -->|answer_question| ProcessAnswer[_process_answer<br/>处理回答]
+    CheckType -->|reply_to_teacher| ProcessStudentQ[_process_student_question<br/>处理学生提问]
+    
+    ProcessLecture --> ExtractKP[提取知识点<br/>_extract_knowledge_points]
+    ExtractKP --> UpdateSession[更新SessionMemory<br/>covered_knowledge_points]
+    UpdateSession --> UpdateTeacher[更新TeacherMemory<br/>covered_topics]
+    UpdateTeacher --> UpdateStudents[更新StudentMemories<br/>基于学习参数]
+    
+    ProcessQuestion --> TrackQ[记录问题到<br/>question_queue]
+    ProcessAnswer --> TrackParticipation[记录学生参与<br/>student_participation]
+    ProcessStudentQ --> RecordQ[记录学生问题<br/>student_questions]
+    
+    ProcessLecture --> CheckSummary
+    ProcessQuestion --> CheckSummary
+    ProcessAnswer --> CheckSummary
+    ProcessStudentQ --> CheckSummary
+    
+    CheckSummary{3. 需要更新摘要?} 
+    CheckSummary -->|是<br/>每10条消息| UpdateSummary[_update_summary<br/>LLM生成教学摘要]
+    CheckSummary -->|否| End[结束]
+    
+    UpdateSummary --> SaveSummary[保存teaching_summary<br/>更新last_summary_update]
+    SaveSummary --> End
+    
+    UpdateStudents --> MemoryCheck[学生记忆检查<br/>should_remember_concept]
+    MemoryCheck -->|记住| LearnConcept[添加到learned_concepts<br/>更新knowledge_level]
+    MemoryCheck -->|遗忘| IgnoreConcept[不添加<br/>模拟遗忘]
+    
+    LearnConcept --> End
+    IgnoreConcept --> End
+    
+    style Message fill:#e3f2fd
+    style MemoryManager fill:#fff3e0
+    style UpdateSummary fill:#f3e5f5
+    style LearnConcept fill:#e8f5e9
+    style End fill:#eceff1
+```
 
-**Student Agent流程**:
-1. 回答问题时，RAG检索**相关知识点**
-2. 生成回答时，根据`level`参数决定：
-   - 基础学生：可能引入`common_misconceptions`中的错误
-   - 优秀学生：准确理解知识点
+**记忆更新关键决策点**：
 
-### Initial Course Catalog (v1)
+1. **知识点提取**: 从教师讲授内容中提取 3-5 个关键知识点
+2. **学生记忆判断**: 基于 `level` + `learning_ability` 决定学生是否记住
+3. **摘要更新触发**: 每 10 条消息触发一次摘要更新（可配置）
+4. **Token 控制**: 保留最近 50 条消息 + 500 tokens 摘要
 
-**支持课程**:
-1. **二次函数** (高中数学)
-   - 知识点：定义、图像、性质、应用
-   - 案例：抛物线轨迹、最优化问题
-
-2. **二叉树遍历** (计算机科学)
-   - 知识点：前序、中序、后序遍历
-   - 案例：表达式树、文件系统
-
-3. **牛顿第二定律** (高中物理)
-   - 知识点：F=ma、惯性、加速度
-   - 案例：汽车加速、电梯问题
-
-### Data Loading Strategy
+### Context Update Strategy
 
 ```python
-# backend/core/knowledge_base.py
+class MemoryManager:
+    """记忆管理器 - 负责更新和维持 agent 记忆"""
+    
+    def __init__(self, session_memory: SessionMemory):
+        self.session_memory = session_memory
+        self.teacher_memory = TeacherAgentMemory()
+        self.student_memories: Dict[str, StudentAgentMemory] = {}
+    
+    async def process_message(self, message: Message):
+        """处理新消息并更新记忆"""
+        # 1. 添加到消息历史
+        self.session_memory.message_history.append(message)
+        
+        # 2. 根据消息类型更新记忆
+        if message.message_type == "lecture":
+            await self._process_lecture(message)
+        elif message.message_type == "interactive_question":
+            await self._process_question(message)
+        elif message.message_type == "answer_question":
+            await self._process_answer(message)
+        elif message.message_type == "reply_to_teacher":
+            await self._process_student_question(message)
+        
+        # 3. 检查是否需要更新摘要
+        if self.session_memory.should_update_summary():
+            await self._update_summary()
+    
+    async def _process_lecture(self, message: Message):
+        """处理教师讲授内容"""
+        # 提取关键知识点
+        knowledge_points = await self._extract_knowledge_points(message.content)
+        
+        # 更新教师记忆
+        for kp in knowledge_points:
+            if kp not in self.session_memory.covered_knowledge_points:
+                self.session_memory.covered_knowledge_points.append(kp)
+                self.teacher_memory.covered_topics.append(kp)
+        
+        # 更新学生记忆（基于学习参数决定是否记住）
+        for student_id, student_memory in self.student_memories.items():
+            for kp in knowledge_points:
+                if student_memory.should_remember_concept(kp):
+                    if kp not in student_memory.learned_concepts:
+                        student_memory.learned_concepts.append(kp)
+                        # 更新知识水平
+                        student_memory.current_knowledge_level = min(
+                            1.0, 
+                            student_memory.current_knowledge_level + student_memory.learning_rate * 0.1
+                        )
+    
+    async def _update_summary(self):
+        """更新教学摘要"""
+        recent_messages = self.session_memory.message_history[-20:]
+        
+        summary_prompt = f"""请总结以下教学对话，提炼关键教学内容：
 
-class KnowledgeBaseLoader:
-    """加载课程配置到ChromaDB"""
+教学主题: {self.session_memory.topic}
+
+最近对话:
+{self._format_messages(recent_messages)}
+
+请提供:
+1. 已讲授的主要知识点（3-5个）
+2. 学生普遍掌握的内容
+3. 学生普遍困惑的内容（如有）
+4. 下一步教学建议
+
+摘要格式：简洁明了，便于 agent 理解当前教学状态。
+"""
+        
+        # 调用 LLM 生成摘要
+        summary = await self._call_llm_for_summary(summary_prompt)
+        self.session_memory.teaching_summary = summary
+        self.session_memory.last_summary_update = len(self.session_memory.message_history)
     
-    def load_course(self, course_id: str) -> CourseConfig:
-        # 1. 从YAML/JSON加载CourseConfig
-        # 2. 为每个KnowledgePoint生成embedding
-        # 3. 存入ChromaDB (collection: course_id)
-        # 4. 返回CourseConfig供agent使用
-        pass
+    async def _extract_knowledge_points(self, content: str) -> List[str]:
+        """从讲授内容中提取知识点"""
+        # 可以使用 NLP 技术，这里简化为关键词提取
+        # v1 实现可以基于规则或简单的 LLM 调用
+        prompt = f"""从以下讲授内容中提取 3-5 个关键知识点：
+
+{content}
+
+只返回知识点列表，每行一个。
+"""
+        response = await self._call_llm_for_summary(prompt)
+        return [line.strip() for line in response.split('\n') if line.strip()]
     
-    def retrieve_context(
-        self, 
-        course_id: str, 
-        query: str, 
-        mode: TeachingMode
-    ) -> List[str]:
-        # 根据mode调整检索策略
-        # 返回相关知识点/案例
-        pass
+    async def _call_llm_for_summary(self, prompt: str) -> str:
+        """调用 LLM 生成摘要"""
+        # 使用 LangChain 的 LLM 调用
+        from langchain_openai import ChatOpenAI
+        llm = ChatOpenAI(model="Qwen/Qwen2.5-72B-Instruct", temperature=0.3)
+        response = await llm.ainvoke(prompt)
+        return response.content
 ```
+
+### Integration with LangChain Agents
+
+```python
+# backend/agents/memory_aware_agent.py
+
+from langchain.agents import AgentExecutor, create_openai_functions_agent
+from langchain.prompts import ChatPromptTemplate, MessagesPlaceholder
+
+class MemoryAwareTeacherAgent:
+    """带记忆的教师 agent"""
+    
+    def __init__(self, memory_manager: MemoryManager, llm):
+        self.memory_manager = memory_manager
+        self.llm = llm
+        self.agent = self._create_agent()
+    
+    def _create_agent(self):
+        """创建带记忆的 agent"""
+        # 动态生成 system prompt
+        system_prompt = self.memory_manager.teacher_memory.get_system_prompt_addition()
+        
+        prompt = ChatPromptTemplate.from_messages([
+            ("system", system_prompt),
+            MessagesPlaceholder(variable_name="chat_history"),
+            ("human", "{input}"),
+            MessagesPlaceholder(variable_name="agent_scratchpad"),
+        ])
+        
+        agent = create_openai_functions_agent(self.llm, tools, prompt)
+        return AgentExecutor(agent=agent, tools=tools, verbose=True)
+    
+    async def teach(self, topic: str, teaching_mode: TeachingMode):
+        """执行教学"""
+        # 获取当前上下文
+        context = self.memory_manager.session_memory.get_agent_context()
+        
+        # 构建教学提示
+        teaching_prompt = self._build_teaching_prompt(topic, teaching_mode, context)
+        
+        # 执行 agent
+        response = await self.agent.ainvoke({
+            "input": teaching_prompt,
+            "chat_history": self._get_chat_history()
+        })
+        
+        # 处理响应并更新记忆
+        await self.memory_manager.process_message(
+            Message(
+                sender="teacher",
+                receiver="all",
+                message_type="lecture",
+                content=response["output"],
+                timestamp=datetime.now()
+            )
+        )
+        
+        return response["output"]
+
+class MemoryAwareStudentAgent:
+    """带记忆的学生 agent"""
+    
+    def __init__(self, student_memory: StudentAgentMemory, llm):
+        self.memory = student_memory
+        self.llm = llm
+    
+    async def answer_question(self, question: str, teacher_context: str):
+        """回答教师问题"""
+        # 获取学生记忆上下文
+        student_prompt = self.memory.get_system_prompt_addition()
+        
+        # 构建回答提示
+        answer_prompt = f"""{student_prompt}
+
+教师问题: {question}
+教学内容上下文: {teacher_context}
+
+基于你已学习的内容回答这个问题。如果不确定，可以说"我有点困惑"。
+"""
+        
+        # 调用 LLM 生成回答
+        response = await self.llm.ainvoke(answer_prompt)
+        
+        # 更新记忆
+        self.memory.questions_asked.append(question)
+        
+        return response.content
+```
+
+### Memory Persistence
+
+**ORM 模型定义** (使用 SQLAlchemy):
+
+```python
+# backend/models/session_memory.py
+
+from sqlalchemy import Column, String, Integer, Float, DateTime, Text, JSON
+from sqlalchemy.ext.asyncio import AsyncAttrs
+from sqlalchemy.orm import Mapped, mapped_column
+from datetime import datetime
+
+from core.database import Base
+
+class SessionMemoryModel(Base, AsyncAttrs):
+    """会话记忆 ORM 模型"""
+    __tablename__ = "session_memories"
+    
+    id: Mapped[int] = mapped_column(primary_key=True)
+    session_id: Mapped[str] = mapped_column(String(50), unique=True, index=True)
+    topic: Mapped[str] = mapped_column(String(200))
+    teaching_summary: Mapped[str] = mapped_column(Text)
+    covered_knowledge_points: Mapped[dict] = mapped_column(JSON)
+    message_count: Mapped[int] = mapped_column(Integer)
+    last_updated: Mapped[datetime] = mapped_column(DateTime)
+    created_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.now)
+
+class TeacherMemoryModel(Base, AsyncAttrs):
+    """教师记忆 ORM 模型"""
+    __tablename__ = "teacher_memories"
+    
+    id: Mapped[int] = mapped_column(primary_key=True)
+    session_id: Mapped[str] = mapped_column(String(50), foreign_key="session_memories.session_id")
+    covered_topics: Mapped[dict] = mapped_column(JSON)
+    student_questions: Mapped[dict] = mapped_column(JSON)  # {student_id: [questions]}
+    teaching_progress: Mapped[float] = mapped_column(Float)
+    student_participation: Mapped[dict] = mapped_column(JSON)  # {student_id: count}
+    student_misconceptions: Mapped[dict] = mapped_column(JSON)  # {student_id: [misconceptions]}
+
+class StudentMemoryModel(Base, AsyncAttrs):
+    """学生记忆 ORM 模型"""
+    __tablename__ = "student_memories"
+    
+    id: Mapped[int] = mapped_column(primary_key=True)
+    session_id: Mapped[str] = mapped_column(String(50), foreign_key="session_memories.session_id")
+    agent_id: Mapped[str] = mapped_column(String(50))
+    learned_concepts: Mapped[dict] = mapped_column(JSON)  # list[str]
+    confused_points: Mapped[dict] = mapped_column(JSON)  # list[str]
+    questions_asked: Mapped[dict] = mapped_column(JSON)  # list[str]
+    current_knowledge_level: Mapped[float] = mapped_column(Float)
+    last_updated: Mapped[datetime] = mapped_column(DateTime, default=datetime.now)
+```
+
+**持久化服务** (使用 SQLAlchemy ORM):
+
+```python
+# backend/core/memory_persistence.py
+
+from sqlalchemy.ext.asyncio import AsyncSession
+from sqlalchemy import select
+from sqlalchemy.orm import selectinload
+
+from models.session_memory import SessionMemoryModel, TeacherMemoryModel, StudentMemoryModel
+
+class MemoryPersistence:
+    """记忆持久化服务 - 使用 SQLAlchemy ORM"""
+    
+    def __init__(self, async_session: AsyncSession):
+        self.async_session = async_session
+    
+    async def save_session_memory(self, session_id: str, memory: SessionMemory):
+        """保存会话记忆到数据库"""
+        # 检查是否已存在
+        result = await self.async_session.execute(
+            select(SessionMemoryModel).where(SessionMemoryModel.session_id == session_id)
+        )
+        existing = result.scalar_one_or_none()
+        
+        if existing:
+            # 更新现有记录
+            existing.teaching_summary = memory.teaching_summary
+            existing.covered_knowledge_points = memory.covered_knowledge_points
+            existing.message_count = len(memory.message_history)
+            existing.last_updated = datetime.now()
+        else:
+            # 创建新记录
+            db_record = SessionMemoryModel(
+                session_id=session_id,
+                topic=memory.topic,
+                teaching_summary=memory.teaching_summary,
+                covered_knowledge_points=memory.covered_knowledge_points,
+                message_count=len(memory.message_message_history),
+                last_updated=datetime.now()
+            )
+            self.async_session.add(db_record)
+        
+        await self.async_session.commit()
+    
+    async def load_session_memory(self, session_id: str) -> Optional[SessionMemory]:
+        """从数据库加载会话记忆"""
+        result = await self.async_session.execute(
+            select(SessionMemoryModel)
+            .options(selectinload(SessionMemoryModel.teacher_memory))
+            .options(selectinload(SessionMemoryModel.student_memories))
+            .where(SessionMemoryModel.session_id == session_id)
+        )
+        db_record = result.scalar_one_or_none()
+        
+        if db_record:
+            return SessionMemory(
+                session_id=db_record.session_id,
+                topic=db_record.topic,
+                teaching_summary=db_record.teaching_summary,
+                covered_knowledge_points=db_record.covered_knowledge_points or [],
+                message_history=await self._load_message_history(session_id)
+            )
+        return None
+    
+    async def save_teacher_memory(self, session_id: str, teacher_memory: TeacherAgentMemory):
+        """保存教师记忆"""
+        result = await self.async_session.execute(
+            select(TeacherMemoryModel).where(TeacherMemoryModel.session_id == session_id)
+        )
+        existing = result.scalar_one_or_none()
+        
+        if existing:
+            existing.covered_topics = teacher_memory.covered_topics
+            existing.student_questions = teacher_memory.student_questions
+            existing.teaching_progress = teacher_memory.teaching_progress
+            existing.student_participation = teacher_memory.student_participation
+            existing.student_misconceptions = teacher_memory.student_misconceptions
+        else:
+            db_record = TeacherMemoryModel(
+                session_id=session_id,
+                covered_topics=teacher_memory.covered_topics,
+                student_questions=teacher_memory.student_questions,
+                teaching_progress=teacher_memory.teaching_progress,
+                student_participation=teacher_memory.student_participation,
+                student_misconceptions=teacher_memory.student_misconceptions
+            )
+            self.async_session.add(db_record)
+        
+        await self.async_session.commit()
+    
+    async def save_student_memory(self, session_id: str, agent_id: str, student_memory: StudentAgentMemory):
+        """保存学生记忆"""
+        result = await self.async_session.execute(
+            select(StudentMemoryModel)
+            .where(
+                (StudentMemoryModel.session_id == session_id) &
+                (StudentMemoryModel.agent_id == agent_id)
+            )
+        )
+        existing = result.scalar_one_or_none()
+        
+        if existing:
+            existing.learned_concepts = student_memory.learned_concepts
+            existing.confused_points = student_memory.confused_points
+            existing.questions_asked = student_memory.questions_asked
+            existing.current_knowledge_level = student_memory.current_knowledge_level
+            existing.last_updated = datetime.now()
+        else:
+            db_record = StudentMemoryModel(
+                session_id=session_id,
+                agent_id=agent_id,
+                learned_concepts=student_memory.learned_concepts,
+                confused_points=student_memory.confused_points,
+                questions_asked=student_memory.questions_asked,
+                current_knowledge_level=student_memory.current_knowledge_level
+            )
+            self.async_session.add(db_record)
+        
+        await self.async_session.commit()
+    
+    async def _load_message_history(self, session_id: str) -> List[Message]:
+        """加载消息历史"""
+        # 从 Message ORM 模型加载
+        from models.message import MessageModel
+        
+        result = await self.async_session.execute(
+            select(MessageModel)
+            .where(MessageModel.session_id == session_id)
+            .order_by(MessageModel.timestamp)
+        )
+        db_records = result.scalars().all()
+        
+        return [
+            Message(
+                id=record.id,
+                sender=record.sender,
+                receiver=record.receiver,
+                message_type=record.message_type,
+                content=record.content,
+                timestamp=record.timestamp
+            )
+            for record in db_records
+        ]
+```
+
+**数据库初始化** (Alembic 迁移):
+
+```python
+# alembic/versions/001_create_memory_tables.py
+
+from alembic import op
+import sqlalchemy as sa
+from sqlalchemy.dialects import sqlite
+
+def upgrade():
+    op.create_table(
+        'session_memories',
+        sa.Column('id', sa.Integer(), autoincrement=True, primary_key=True),
+        sa.Column('session_id', sa.String(50), unique=True, nullable=False),
+        sa.Column('topic', sa.String(200), nullable=False),
+        sa.Column('teaching_summary', sa.Text(), nullable=False),
+        sa.Column('covered_knowledge_points', sa.JSON(), nullable=False),
+        sa.Column('message_count', sa.Integer(), nullable=False),
+        sa.Column('last_updated', sa.DateTime(), nullable=False),
+        sa.Column('created_at', sa.DateTime(), nullable=False),
+    )
+    
+    op.create_index('ix_session_memories_session_id', 'session_memories', ['session_id'])
+    
+    # 创建 teacher_memories 和 student_memories 表...
+```
+
+**依赖注入配置**:
+
+```python
+# backend/dependencies/database.py
+
+from sqlalchemy.ext.asyncio import create_async_engine, AsyncSession
+from sqlalchemy.orm import sessionmaker
+
+from configs.config import settings
+
+engine = create_async_engine(
+    settings.database_url,
+    echo=False
+)
+
+async_session_maker = sessionmaker(
+    engine,
+    class_=AsyncSession,
+    expire_on_commit=False
+)
+
+async def get_db_session() -> AsyncSession:
+    async with async_session_maker() as session:
+        yield session
+```
+
+**使用示例**:
+
+```python
+# 在服务中使用 ORM
+from dependencies.database import get_db_session
+from core.memory_persistence import MemoryPersistence
+
+@router.post("/sessions/{session_id}/memory/save")
+async def save_memory(session_id: str, memory: SessionMemory):
+    async for db in get_db_session():
+        persistence = MemoryPersistence(db)
+        await persistence.save_session_memory(session_id, memory)
+```
+
+
+### Implementation Notes
+
+**Token 成本控制**:
+- 保留最近 50 条消息的完整历史（约 2000-3000 tokens）
+- 教学摘要压缩到 500 tokens 以内
+- 总上下文控制在 4000 tokens 以内（适合 Qwen2.5-7B）
+
+**性能优化**:
+- 每 10 条消息更新一次摘要（平衡准确性和性能）
+- 使用异步 LLM 调用避免阻塞
+- 摘要生成可以后台进行
+
+**学习曲线模拟**:
+- 学生记忆基于 `learning_ability` 和 `level` 参数
+- 低水平学生可能"忘记"部分内容
+- 高水平学生更容易记住复杂概念
+
+**错误处理**:
+- LLM 调用失败时保留旧摘要
+- 摘要更新失败不影响主要功能
+- 记忆损坏时从消息历史重建
 
 ## Parameter-Behavior Mapping
 
@@ -499,74 +1148,111 @@ class KnowledgeBaseLoader:
 - `level=基础, attitude=消极`: 很少主动回答，回答正确率<50%
 - `level=优秀, attitude=积极`: 主动提问，回答正确率>80%
 
-### Student Groups Configuration
+### Student Configuration System
 
-系统支持通过**学生群体**批量生成多个学生agent，每个课堂可配置多个学生群体。
+系统通过 **StudentFactory** 服务提供灵活的学生配置能力，支持三种学生创建方式：
 
-**方式一：学生群体配置（现有方式）**
-1. 用户创建学生群体，设置群体参数模板 (level, attitude, learning_ability)
-2. 设置该群体的学生数量 (count)
-3. 可选：为个别学生设置个性化参数覆盖 (individual_overrides)
-4. 系统根据配置生成对应数量的学生agent实例
-
-**方式二：灵活学生配置（新增）**
-
-系统新增 **StudentFactory** 服务，支持三种学生创建方式：
+**三种创建方式**：
 
 1. **手动创建**：逐个添加学生，设置名字和详细参数
    - 适用于：需要精确控制每个学生的场景
    - 学生字段：名字（必填）、性别、头像、学习参数等
+   - UI：学生列表界面，支持添加/编辑/删除
 
 2. **随机生成**：基于真实分布自动生成整个班级
    - 适用于：快速创建大规模班级模拟
    - 配置项：班级人数、学生分布（优等/中等/基础比例）、随机种子（可复现）
    - 名字分配：从内置名字库随机分配（无重复）
+   - UI：分布滑块、预览功能
 
 3. **JSON 导入**：从 JSON 文件导入学生配置
    - 适用于：复用实验配置、分享研究结果
    - 支持导出当前配置为 JSON 文件
    - 错误验证：字段缺失、格式错误、值超出范围
+   - UI：文件上传、文本输入、验证反馈
 
 **数据流程**：
-```
-StudentProfile → StudentAgentState（兼容现有系统）
-                ↓
-        存储到 TeachingSession
-                ↓
-        创建学生 Agent 实例
+
+```mermaid
+flowchart TB
+    Start([StudentFactory.create]) --> Method{选择创建方式}
+    
+    subgraph Manual [手动创建模式]
+        direction TB
+        M1[逐个添加学生] --> M2[设置详细参数<br/>name, level, attitude, learning_ability]
+        M2 --> M3[实时预览<br/>验证有效性]
+        M3 --> ManualProfile[生成StudentProfile列表]
+    end
+    
+    subgraph Random [随机生成模式]
+        direction TB
+        R1[配置班级规模<br/>total_students: int] --> R2[设置分布比例<br/>优秀/中等/基础]
+        R2 --> R3[可选随机种子<br/>random_seed: 可复现]
+        R3 --> R4[NamePool随机分配<br/>~100个常用名字]
+        R4 --> RandomProfile[生成StudentProfile列表]
+    end
+    
+    subgraph JSON [JSON导入模式]
+        direction TB
+        J1[上传JSON文件<br/>或粘贴文本] --> J2[验证字段<br/>缺失/格式/范围]
+        J2 --> J3{验证通过?}
+        J3 -->|否| JError[返回错误信息<br/>具体问题]
+        J3 -->|是| J4[预览配置<br/>显示学生列表]
+        J4 --> JSONProfile[生成StudentProfile列表]
+    end
+    
+    Method -->|manual| Manual
+    Method -->|random| Random
+    Method -->|json| JSON
+    
+    ManualProfile --> Validate[统一验证<br/>StudentCreateRequest]
+    RandomProfile --> Validate
+    JSONProfile --> Validate
+    
+    Validate --> Conversion[StudentProfile → StudentAgentState<br/>数据迁移函数]
+    Conversion --> Store[存储到TeachingSession<br/>session.student_agents]
+    Store --> CreateAgent[创建学生Agent实例<br/>MemoryAwareStudentAgent]
+    CreateAgent --> End([完成])
+    
+    style Manual fill:#e3f2fd
+    style Random fill:#fff3e0
+    style JSON fill:#e8f5e9
+    style CreateAgent fill:#f3e5f5
+    style End fill:#eceff1
 ```
 
-**API 端点**（新增）：
+**三种创建方式对比**：
+
+| 创建方式 | 输入 | 适用场景 | UI组件 |
+|---------|------|---------|--------|
+| 手动创建 | 逐个添加学生参数 | 精确控制每个学生 | 学生列表界面<br/>添加/编辑/删除 |
+| 随机生成 | 班级人数 + 分布比例 | 快速创建大规模班级 | 分布滑块<br/>预览功能 |
+| JSON导入 | JSON文件/文本 | 复用实验配置 | 文件上传<br/>文本输入<br/>验证反馈 |
+
+**API 端点**：
 - `POST /students/create` - 统一学生创建接口
 - `POST /students/export` - 导出学生配置（JSON）
 - `GET /students/templates` - 获取导入模板和示例
 
-**示例配置**:
-```yaml
-student_groups:
-  - group_id: "front_row_excellent"
-    group_name: "前排优等生"
-    level: "优秀"
-    attitude: "积极"
-    learning_ability: 8
-    count: 3  # 生成3个优秀学生
-
-  - group_id: "back_row_average"
-    group_name: "后排中等生"
-    level: "中等"
-    attitude: "中性"
-    learning_ability: 5
-    count: 5  # 生成5个中等学生
-    individual_overrides:
-      - student_index: 0  # 第1个学生特殊配置
-        level: "优秀"
-        attitude: "积极"
+**示例 JSON 配置**：
+```json
+{
+  "students": [
+    {
+      "name": "张三",
+      "level": "优秀",
+      "attitude": "积极",
+      "learning_ability": 8
+    },
+    {
+      "name": "李四",
+      "level": "中等",
+      "attitude": "中性",
+      "learning_ability": 5
+    }
+  ]
+}
 ```
-
-**UI呈现**:
-- 群体卡片式配置界面，每个群体独立设置参数
-- 显示每个群体将生成的学生数量
-- 支持展开/收起个性化覆盖设置
 
 ### Teaching Mode → Agent Behavior
 
@@ -587,17 +1273,79 @@ student_groups:
 
 ### Phase Transitions
 
+```mermaid
+flowchart TB
+    Start([Parameter Setting<br/>配置完成]) --> ClickStart[用户点击「开始教学」]
+    ClickStart --> Teaching{教学模式}
+    
+    subgraph Didactic [灌输式模式 - Didactic]
+        Teaching -->|灌输式| D1[教师连续讲授<br/>单向输出知识点]
+        D1 --> D_Check{达到时长?}
+        D_Check -->|否| D1
+        D_Check -->|是| AssignHomework[布置作业]
+    end
+    
+    subgraph Heuristic [启发式模式 - Heuristic]
+        Teaching -->|启发式| H1[教师讲授3-5个知识点]
+        H1 --> H2[教师提出checkpoint问题]
+        H2 --> H3[学生思考后回答]
+        H3 --> H4[教师给予反馈]
+        H4 --> H_Check{达到时长?}
+        H_Check -->|否| H1
+        H_Check -->|是| AssignHomework
+    end
+    
+    subgraph Discussion [讨论式模式 - Discussion]
+        Teaching -->|讨论式| Disc1[教师简述案例]
+        Disc1 --> Disc2[引导讨论<br/>频繁提问]
+        Disc2 --> Disc3[学生积极发言]
+        Disc3 --> Disc4[教师总结]
+        Disc4 --> Disc_Check{达到时长?}
+        Disc_Check -->|否| Disc1
+        Disc_Check -->|是| AssignHomework
+    end
+    
+    AssignHomework[布置作业] --> Submit[学生提交作业]
+    Submit --> Grade[教师评分<br/>使用LLM评价]
+    Grade --> Feedback[课程结束反馈<br/>请求学生反馈]
+    Feedback --> End([会话结束])
+    
+    style Didactic fill:#ffe6e6
+    style Heuristic fill:#e6f3ff
+    style Discussion fill:#e6ffe6
+    style Start fill:#fff4e6
+    style End fill:#e8f5e9
 ```
-Phase 1: Parameter Setting
-  ↓ (用户点击"开始教学")
-Phase 2: Teaching
-  ├─灌输式模式 → 连续讲授 → 不提问 → [达到时长] → 布置作业
-  ├─启发式模式 → 讲授3-5个知识点 → checkpoint问题 → 学生回答 → 教师反馈 → [循环]
-  └─讨论式模式 → 简述案例 → 引导讨论 → 学生发言 → 总结 → [循环]
-  ↓ (达到预设时长或教学完成)
-布置作业 → 学生提交作业 → 简单评分
-  ↓
-课程结束反馈 → 会话结束
+
+**三种教学模式的交互循环详情**：
+
+```mermaid
+flowchart LR
+    subgraph 灌输式[灌输式 - 纯讲授模式]
+        direction TB
+        D1[教师讲授] --> D2[继续讲授<br/>无提问互动]
+        D2 --> D3[达到时长]
+    end
+    
+    subgraph 启发式[启发式 - 讲授+提问模式]
+        direction TB
+        H1[讲授3-5个知识点] --> H2[提出checkpoint问题]
+        H2 --> H3[学生回答]
+        H3 --> H4[教师反馈<br/>调整教学]
+        H4 --> H5[继续讲授<br/>或提问]
+    end
+    
+    subgraph 讨论式[讨论式 - 互动讨论模式]
+        direction TB
+        Disc1[简述案例] --> Disc2[引导提问<br/>每1-2个知识点]
+        Disc2 --> Disc3[学生发言]
+        Disc3 --> Disc4[教师总结<br/>引导深入]
+        Disc4 --> Disc5[继续讨论]
+    end
+    
+    style 灌输式 fill:#ffe6e6
+    style 启发式 fill:#e6f3ff
+    style 讨论式 fill:#e6ffe6
 ```
 
 ### Mode-Specific Behavior
@@ -635,7 +1383,7 @@ FALLBACK_RESPONSES = {
 
 ### State Recovery
 
-- 会话状态定期保存到ChromaDB
+- 会话状态定期保存到数据库
 - 异常中断后可从上次保存点恢复
 - 前端显示"会话已保存，可随时恢复"
 
@@ -650,22 +1398,21 @@ FALLBACK_RESPONSES = {
 **可观测的成功标准**:
 1. **教学模式可区分**: 用户能在3秒内通过UI识别当前教学模式（如：顶部显示"当前模式：启发式教学"，agent发言频率明显不同）
 2. **Agent协作可见**: 前端显示"当前发言agent"和"发言历史"，用户能清楚看到哪个agent在说话、说什么
-3. **学生群体可配置**: UI支持创建多个学生群体，每个群体独立设置参数，清晰显示将生成的学生数量
-4. **灵活学生配置**: 支持手动创建、随机生成、JSON导入三种方式
+3. **灵活学生配置**: 支持手动创建、随机生成、JSON导入三种方式
    - 手动：支持添加/编辑/删除学生，实时预览
    - 随机：输入班级人数 → 生成学生列表，显示分布统计
    - JSON：上传/粘贴 → 验证 → 预览 → 导入
-5. **学生有名字**: 每个学生都有名字（1-20字符），显示在界面上易于识别
-6. **随机生成符合分布**: 随机生成的班级学生水平符合设定分布（误差 ±5%）
-7. **完整消息流**: Parameter Setting → 讲授 → 互动提问 → 学生回答 → 布置作业 → 学生提交 → 课程反馈 → 结束（所有步骤均可执行）
-8. **可演示**: 3分钟内完成：选模式 → 配置学生群体 → 开始教学 → 观看2-3轮对话 → 结束会话
-9. **参数有效**: 设置不同学生参数后，学生的回答质量和行为有明显差异
+4. **学生有名字**: 每个学生都有名字（1-20字符），显示在界面上易于识别
+5. **随机生成符合分布**: 随机生成的班级学生水平符合设定分布（误差 ±5%）
+6. **完整消息流**: Parameter Setting → 讲授 → 互动提问 → 学生回答 → 布置作业 → 学生提交 → 课程反馈 → 结束（所有步骤均可执行）
+7. **可演示**: 3分钟内完成：选模式 → 配置学生 → 开始教学 → 观看2-3轮对话 → 结束会话
+8. **参数有效**: 设置不同学生参数后，学生的回答质量和行为有明显差异
 
 **观察模式成功标准**:
 7. **观察模式可进入**: 用户能在3步内进入观察模式（选模式 → 配置 → 开始）
 8. **实时对话可见**: 前端实时显示agent对话，流畅无延迟
 9. **只读性保证**: 观察者无法干预agent行为（无输入框、无控制按钮）
-10. **分析报告量化**: 结束后显示至少5个量化指标，支持群体维度对比
+10. **分析报告量化**: 结束后显示至少5个量化指标，支持学生个体维度对比
 11. **可演示观察模式**: 2分钟内完成：进入观察模式 → 观看1-2轮对话 → 查看报告
 
 ## Distribution Plan
@@ -681,39 +1428,33 @@ CI/CD：暂不需要，本地开发即可
 
 - LLM API: 硅基流动（需配置OPENAI_API_KEY）
 - 前端：React 19, Vite, styled-components
-- 后端：FastAPI, LangChain, ChromaDB
+- 后端：FastAPI, LangChain
 - 配置文件：backend/configs/*.yml
-- **课程配置**: backend/data/courses/*.yml
 - **分析服务**: backend/services/analyzer.py (观察模式新增)
 
 ## Next Steps
 
-### Week 1: Backend Foundation + Knowledge Base
-1. **数据模型定义**: `TeachingSession`, `TeacherAgentState`, `StudentAgentState`, `StudentGroupConfig`, `Message`, `CourseConfig`, `ObservationMetrics`, `GroupMetrics` (Pydantic models)
-2. **知识库系统**:
-   - 设计CourseConfig schema
-   - 创建3个示例课程YAML配置（二次函数、二叉树遍历、牛顿第二定律）
-   - 实现ChromaDB embeddings和检索
-   - KnowledgeBaseLoader服务
-3. **学生群体生成器**: 根据StudentGroupConfig批量创建学生agent实例，应用个性化覆盖
-4. **教师Agent实现**: LangChain agent，支持3种教学模式切换
-5. **Prompt工程**: 为3种教学模式设计不同的system prompt，确保教学风格明显不同
-6. **会话管理API**: FastAPI路由 — 创建会话、更新状态、获取历史
+### Week 1: Backend Foundation
+1. **数据模型定义**: `TeachingSession`, `TeacherAgentState`, `StudentAgentState`, `StudentProfile`, `Message`, `ObservationMetrics`, `StudentMetrics` (Pydantic models)
+2. **学生生成器**: 实现StudentFactory服务，支持三种创建方式（手动/随机/JSON导入）
+3. **教师Agent实现**: LangChain agent，支持3种教学模式切换
+4. **Prompt工程**: 为3种教学模式设计不同的system prompt，确保教学风格明显不同
+5. **会话管理API**: FastAPI路由 — 创建会话、更新状态、获取历史
 
 ### Week 2: Frontend & Integration
-7. **参数配置UI**: 教学模式选择（单选）、课程选择、学生群体配置（卡片式界面，支持添加/删除群体）
-8. **实时展示界面**: Agent发言列表、当前模式显示、学生状态面板（按群体分组展示）
+7. **参数配置UI**: 教学模式选择（单选）、教学主题输入、学生配置（StudentFactory三种模式切换）
+8. **实时展示界面**: Agent发言列表、当前模式显示、学生状态面板
 9. **消息流实现**: 前端轮询(2秒间隔)获取新消息、展示agent发言
-10. **完整流程测试**: 选课程 → 选模式 → 配置学生群体 → 教学 → 作业 → 反馈 → 结束
+10. **完整流程测试**: 输入主题 → 选模式 → 配置学生 → 教学 → 作业 → 反馈 → 结束
 
 ### Week 3: Observation Mode（观察模式）
-11. **观察模式数据模型**: `ObservationMetrics`, `GroupMetrics` 实现
+11. **观察模式数据模型**: `ObservationMetrics`, `StudentMetrics` 实现
 12. **分析器服务**: `ObservationAnalyzer` - 计算量化指标（参与度、正确率、互动频率等）
 13. **观察模式API**: `/observation/start`, `/observation/stream`, `/observation/report`, `/observation/compare`
 14. **观察模式UI**:
     - 观察配置界面（复用现有组件）
-    - 观察界面（实时消息显示、暂停/继续）
-    - 分析报告界面（指标卡片、群体对比可视化）
+    - 观察界面（实时消息显示）
+    - 分析报告界面（指标卡片、学生个体对比可视化）
 
 ### Week 4: Student Factory（灵活学生配置）
 15. **学生配置数据模型**: `StudentProfile`, `StudentCreateRequest`, `RandomClassConfig` (Pydantic models)
@@ -727,27 +1468,23 @@ CI/CD：暂不需要，本地开发即可
 20. **数据迁移**: `StudentProfile` → `StudentAgentState` 转换函数
 
 ### Critical Path Items
-- **知识库集成**(Week 1): Agent需要有教的内容，这是基础依赖
-- **学生群体生成**(Week 1): 学生群体配置到agent实例的映射逻辑
+- **StudentFactory 实现**(Week 1): 统一学生创建入口，支持三种模式
 - **Prompt工程**(Week 1): 确保3种教学模式的教学风格明显不同
 - **会话状态管理**(Week 1): 教师控制会话节奏，轮询学生回答
 - **前端实时更新**(Week 2): Turn-based消息流的UI展示
 - **分析器逻辑**(Week 3): 如何量化"教学效果"是观察模式的核心难点
-- **StudentFactory 核心**(Week 4): 统一入口和分发逻辑，名字库管理
-- **数据转换**(Week 4): `StudentProfile` → `StudentAgentState` 兼容性转换
+- **名字库管理**(Week 4): 中文名字库和随机选择逻辑
+- **数据转换**(Week 4): `StudentProfile` → `StudentAgentState` 转换函数
 
 ### v1 Simplifications
-- 作业评分: 关键词匹配，不使用LLM评分
 - 实时性: 使用轮询(2秒间隔)，不实现WebSocket
-- 学生人数: 通过学生群体配置，建议总数2-8个
-- 课程数量: 固定3个示例课程，不支持动态添加
+- 学生人数: 建议2-8个学生
 - **单一教师智能体**: 不使用多个辅助agent，通过教学模式切换实现差异化
 - **观察模式简化**:
-  - 暂停功能: 仅暂停前端显示，不中断agent逻辑
   - 历史对比: v1不保存历史报告，仅显示当次
   - 数据导出: v1不支持导出研究数据
   - 实时图表: v1使用静态数字，未来支持实时图表更新
-- **学生配置简化**(Student Factory):
+- **学生配置简化**(StudentFactory):
   - 名字池: v1 使用内置名字库（~100个常用名字），不支持自定义
   - 导入格式: v1 仅支持 JSON 格式，不支持 CSV
   - 高级分布: v1 仅支持三级分布（优秀/中等/基础），不支持更细粒度控制

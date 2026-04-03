@@ -30,6 +30,7 @@ backend/
 │   ├── app.yml          # 应用配置
 │   ├── database.yml     # 数据库配置
 │   └── chroma.yml       # 向量数据库配置
+├── datas/               # 数据文件（数据库、向量数据库等）
 ├── core/                # 核心业务逻辑
 ├── dependencies/        # 依赖注入配置
 ├── middlewares/         # 自定义中间件
@@ -60,8 +61,20 @@ cp .env.example .env
 |------|------|
 | `configs/llm.yml` | LLM 配置（模型、API 地址、参数） |
 | `configs/app.yml` | 应用配置（端口、CORS 等） |
-| `configs/database.yml` | 数据库配置 |
+| `configs/database.yml` | 数据库配置（SQLite 数据库文件位于 `datas/` 目录） |
 | `configs/chroma.yml` | 向量数据库配置 |
+
+**数据库文件位置**：
+
+数据库文件（SQLite）和数据存储统一放在 `datas/` 目录下：
+
+- `datas/database.db` - SQLite 主数据库文件
+- `datas/chroma/` - ChromaDB 向量数据库存储（持久化知识库）
+
+这种组织方式的优点：
+- 数据文件集中管理，便于备份和清理
+- 与配置文件和代码分离，避免版本控制包含大文件
+- 符合 `.gitignore` 配置（已忽略 `*.db` 和 `*.sqlite*` 文件）
 
 **修改 LLM 模型：** 编辑 `configs/llm.yml`
 ```yaml

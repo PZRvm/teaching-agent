@@ -1,7 +1,7 @@
 # 数据库配置
 database:
-  # 主数据库连接
-  url: sqlite+aiosqlite:///./database.db
+  # 主数据库连接（数据库文件存储在 datas/ 目录）
+  url: sqlite+aiosqlite:///./datas/database.db
 
   # 连接池配置
   pool_size: 5
