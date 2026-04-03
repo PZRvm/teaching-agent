@@ -1,0 +1,19 @@
+# gstack 项目配置 - 教学智能体
+# 这些设置会覆盖全局配置
+
+# 项目标识
+slug: teaching-ai-agent
+
+# 技能命名前缀（可选）
+# skill_prefix: false
+
+# 是否自动升级
+auto_upgrade: false
+update_check: true
+
+# 遥测设置
+telemetry: off
+
+# 技能路由（可选，控制技能自动调用）
+# proactive: true
+# routing_declined: false
