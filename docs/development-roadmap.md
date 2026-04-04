@@ -43,35 +43,35 @@
 
 **任务列表**:
 1. StudentProfile schema + Field验证
-   - [ ] name: `Field(min_length=1, max_length=20)`
-   - [ ] learning_ability: `Field(ge=1, le=10)`
-   - [ ] level, attitude枚举定义
+   - [✓] name: `Field(min_length=1, max_length=20)`
+   - [✓] learning_ability: `Field(ge=1, le=10)`
+   - [✓] level, attitude枚举定义
 
 2. NamePool服务
-   - [ ] `backend/services/name_pool.py` - ~100个常用中文名字
-   - [ ] 随机选择无重复
+   - [✓] `backend/core/name_pool.py` - ~100个常用中文名字
+   - [✓] 随机选择无重复
 
 3. StudentFactory核心逻辑
-   - [ ] `backend/services/student_factory.py`
-   - [ ] `create_students(source="manual")` - 手动创建
-   - [ ] `create_students(source="random")` - 随机生成
-   - [ ] `create_students(source="json")` - JSON导入
+   - [✓] `backend/core/student_factory.py`
+   - [✓] `create_students(source="manual")` - 手动创建
+   - [✓] `create_students(source="random")` - 随机生成
+   - [✓] `create_students(source="json")` - JSON导入
 
 4. RandomClassConfig + 随机生成逻辑
-   - [ ] 按分布比例生成学生
-   - [ ] 支持random_seed可复现
+   - [✓] 按分布比例生成学生
+   - [✓] 支持random_seed可复现
 
 5. JSON导入/导出 + 验证
-   - [ ] Pydantic schema验证
-   - [ ] 导出功能
+   - [✓] Pydantic schema验证
+   - [✓] 导出功能
 
 **验收标准**:
-- [ ] 手动创建：能添加2-8个学生，验证生效
-- [ ] 随机生成：输入班级人数30，分布"优秀30%/中等50%/基础20%"，实际分布符合
-- [ ] JSON导入：能导入JSON文件，验证错误字段
-- [ ] 验证：通过API手动测试三种创建方式
+- [✓] 手动创建：能添加2-8个学生，验证生效
+- [✓] 随机生成：输入班级人数30，分布"优秀30%/中等50%/基础20%"，实际分布符合
+- [✓] JSON导入：能导入JSON文件，验证错误字段
+- [ ] 验证：通过API手动测试三种创建方式（待 API 层实现）
 
-**预计时间**: 3-4小时
+**完成时间**: 2026-04-04
 
 ---
 
@@ -460,26 +460,15 @@ Phase 13 (测试)
 
 ## 快速开始
 
-**当前进度**: Phase 1 已完成 ✅
+**当前进度**: Phase 2 已完成 ✅
 
 ✅ **已完成**:
-- ORM 模型已创建在 `backend/orm/` 目录：
-  - `backend/orm/teaching_session.py` - TeachingSessionModel
-  - `backend/orm/session_memory.py` - SessionMemoryModel
-  - `backend/orm/teacher_memory.py` - TeacherMemoryModel
-  - `backend/orm/message.py` - MessageModel
-- Alembic 迁移已配置：
-  - `backend/alembic/` 目录和配置文件
-  - 初始迁移脚本 `backend/alembic/versions/2c224e826c17_创建初始表结构.py`
-  - 数据库文件 `backend/datas/database.db` 已创建
-- Pydantic schemas 已创建在 `backend/schemas/` 目录（按业务模块拆分）：
-  - `backend/schemas/teaching_session.py` - TeachingSessionCreate, TeachingSessionResponse
-  - `backend/schemas/student.py` - StudentProfile, StudentCreateRequest, RandomClassConfig
-  - `backend/schemas/message.py` - Message, MessageCreate, MessageResponse, MessageType
-- 测试文档已创建在 `docs/tests/` 目录
-- 时区已设置为中国时区 (Asia/Shanghai)
-- 31 个测试全部通过（7 个迁移测试 + 24 个原有测试）
-- README.md 已添加 Alembic 使用文档
+- Phase 1: 基础设施与数据层
+- Phase 2: 学生创建系统
+  - `backend/core/name_pool.py` - 中文名字池（50个姓氏 + 80个名字 = 4000+组合）
+  - `backend/core/student_factory.py` - StudentFactory（三种创建模式）
+  - 完整测试覆盖（20个新测试：3个NamePool + 17个StudentFactory）
+  - 所有边界情况、可复现性、分布准确性测试通过
 
-📋 **下一步**: Phase 2 - 学生创建系统
+📋 **下一步**: Phase 3 - Memory 系统
 
