@@ -34,6 +34,7 @@ async def test_engine():
     # Import all ORM models so they register with Base.metadata
     from orm.message import MessageModel  # noqa: F401
     from orm.session_memory import SessionMemoryModel  # noqa: F401
+    from orm.student_memory import StudentMemoryModel  # noqa: F401
     from orm.teacher_memory import TeacherMemoryModel  # noqa: F401
     from orm.teaching_session import TeachingSessionModel  # noqa: F401
 
