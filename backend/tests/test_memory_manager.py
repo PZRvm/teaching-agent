@@ -143,3 +143,85 @@ class TestSessionMemory:
         memory.add_message(msg)
         assert len(memory.message_history) == 1
         assert memory.message_history[0].content == "测试内容"
+
+
+class TestTeacherAgentMemory:
+    """TeacherAgentMemory 测试."""
+
+    def test_init_default_values(self):
+        """测试默认初始化."""
+        from agents.memories.memory_manager import TeacherAgentMemory
+
+        memory = TeacherAgentMemory()
+        assert memory.covered_topics == []
+        assert memory.student_questions == {}
+        assert memory.student_participation == {}
+        assert memory.teaching_progress == 0.0
+        assert memory.student_misconceptions == {}
+
+    def test_record_covered_topic(self):
+        """测试记录已讲授主题."""
+        from agents.memories.memory_manager import TeacherAgentMemory
+
+        memory = TeacherAgentMemory()
+        memory.record_covered_topic("变量与数据类型")
+        assert "变量与数据类型" in memory.covered_topics
+
+    def test_record_covered_topic_no_duplicates(self):
+        """测试不重复记录相同主题."""
+        from agents.memories.memory_manager import TeacherAgentMemory
+
+        memory = TeacherAgentMemory()
+        memory.record_covered_topic("变量与数据类型")
+        memory.record_covered_topic("变量与数据类型")
+        assert memory.covered_topics == ["变量与数据类型"]
+
+    def test_record_student_question(self):
+        """测试记录学生提问."""
+        from agents.memories.memory_manager import TeacherAgentMemory
+
+        memory = TeacherAgentMemory()
+        memory.record_student_question("张三", "什么是变量?")
+        assert memory.student_questions == {"张三": ["什么是变量?"]}
+
+    def test_record_student_question_accumulates(self):
+        """测试学生提问累积."""
+        from agents.memories.memory_manager import TeacherAgentMemory
+
+        memory = TeacherAgentMemory()
+        memory.record_student_question("张三", "什么是变量?")
+        memory.record_student_question("张三", "那函数呢?")
+        assert len(memory.student_questions["张三"]) == 2
+
+    def test_record_student_participation(self):
+        """测试记录学生参与."""
+        from agents.memories.memory_manager import TeacherAgentMemory
+
+        memory = TeacherAgentMemory()
+        memory.record_student_participation("张三")
+        memory.record_student_participation("张三")
+        memory.record_student_participation("李四")
+        assert memory.student_participation == {"张三": 2, "李四": 1}
+
+    def test_record_misconception(self):
+        """测试记录学生误解."""
+        from agents.memories.memory_manager import TeacherAgentMemory
+
+        memory = TeacherAgentMemory()
+        memory.record_misconception("张三", "认为变量不需要声明")
+        assert memory.student_misconceptions == {"张三": ["认为变量不需要声明"]}
+
+    def test_get_system_prompt_addition(self):
+        """测试生成教师 system prompt 附加内容."""
+        from agents.memories.memory_manager import TeacherAgentMemory
+
+        memory = TeacherAgentMemory()
+        memory.record_covered_topic("变量与数据类型")
+        memory.record_covered_topic("条件语句")
+        memory.record_student_participation("张三")
+
+        prompt = memory.get_system_prompt_addition(topic="Python基础")
+        assert "Python基础" in prompt
+        assert "变量与数据类型" in prompt
+        assert "条件语句" in prompt
+        assert "张三" in prompt
