@@ -18,9 +18,9 @@
    - [✓] `backend/orm/message.py` - MessageModel
 
 2. Alembic迁移脚本
-   - [ ] 创建 `backend/alembic/versions/001_create_tables.py`
-   - [ ] 定义所有表结构
-   - [ ] 运行 `alembic upgrade head`
+   - [✓] 创建 `backend/alembic/versions/001_create_tables.py`
+   - [✓] 定义所有表结构
+   - [✓] 运行 `alembic upgrade head`
 
 3. 基础Pydantic schemas
    - [✓] `backend/schemas/teaching_session.py` - TeachingSession
@@ -28,7 +28,7 @@
    - [✓] `backend/schemas/message.py` - Message, MessageType
 
 **验收标准**:
-- [ ] 数据库表创建成功（5张表：teaching_sessions, session_memories, teacher_memories, messages）
+- [✓] 数据库表创建成功（5张表：teaching_sessions, session_memories, teacher_memories, messages, alembic_version）
 - [✓] 能通过代码创建TeachingSession并保存到数据库
 - [✓] 能从数据库读取TeachingSession
 - [✓] 验证：手动插入一条测试数据，读取确认
@@ -460,7 +460,7 @@ Phase 13 (测试)
 
 ## 快速开始
 
-**当前进度**: Phase 1 部分完成
+**当前进度**: Phase 1 已完成 ✅
 
 ✅ **已完成**:
 - ORM 模型已创建在 `backend/orm/` 目录：
@@ -468,15 +468,18 @@ Phase 13 (测试)
   - `backend/orm/session_memory.py` - SessionMemoryModel
   - `backend/orm/teacher_memory.py` - TeacherMemoryModel
   - `backend/orm/message.py` - MessageModel
+- Alembic 迁移已配置：
+  - `backend/alembic/` 目录和配置文件
+  - 初始迁移脚本 `backend/alembic/versions/2c224e826c17_创建初始表结构.py`
+  - 数据库文件 `backend/datas/database.db` 已创建
 - Pydantic schemas 已创建在 `backend/schemas/` 目录（按业务模块拆分）：
   - `backend/schemas/teaching_session.py` - TeachingSessionCreate, TeachingSessionResponse
   - `backend/schemas/student.py` - StudentProfile, StudentCreateRequest, RandomClassConfig
   - `backend/schemas/message.py` - Message, MessageCreate, MessageResponse, MessageType
 - 测试文档已创建在 `docs/tests/` 目录
 - 时区已设置为中国时区 (Asia/Shanghai)
-- 24 个测试全部通过
+- 31 个测试全部通过（7 个迁移测试 + 24 个原有测试）
+- README.md 已添加 Alembic 使用文档
 
-📋 **下一步**: Alembic 迁移脚本
-- 创建 `backend/alembic/versions/001_create_tables.py`
-- 定义所有表结构
-- 运行 `alembic upgrade head`
+📋 **下一步**: Phase 2 - 学生创建系统
+
