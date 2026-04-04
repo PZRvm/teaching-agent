@@ -192,3 +192,61 @@ class TestTeacherAgentLecture:
         system_msg = messages[0]["content"]
 
         assert "讨论" in system_msg.lower()
+
+
+class TestTeacherAgentContentComplete:
+    """TeacherAgent 内容完成判断测试."""
+
+    def _make_agent(self, covered_topics: list[str] | None = None):
+        """辅助方法：创建 TeacherAgent."""
+        from agents.memories import SessionMemory, TeacherAgentMemory
+        from agents.memories.memory_manager import MemoryManager
+        from agents.teacher_agent import TeacherAgent
+
+        session_mem = SessionMemory(session_id=1, topic="Python基础变量")
+        teacher_mem = TeacherAgentMemory()
+        if covered_topics:
+            for t in covered_topics:
+                teacher_mem.record_covered_topic(t)
+
+        mm = MemoryManager(session_memory=session_mem, teacher_memory=teacher_mem)
+
+        mock_llm = MagicMock()
+        mock_llm.invoke.return_value = "未完成"
+
+        return TeacherAgent(
+            session_memory=session_mem,
+            llm=mock_llm,
+            memory_manager=mm,
+        )
+
+    def test_content_complete_no_topics_returns_false(self):
+        """测试无已讲授知识点时返回 False."""
+        agent = self._make_agent()
+
+        assert agent.is_content_complete() is False
+
+    def test_content_complete_with_partial_topics(self):
+        """测试部分知识点时返回 False."""
+        agent = self._make_agent(covered_topics=["变量"])
+
+        assert agent.is_content_complete() is False
+
+    def test_content_complete_with_all_topics_returns_true(self):
+        """测试知识点完整覆盖时返回 True."""
+        agent = self._make_agent(covered_topics=["变量", "数据类型", "条件语句", "循环"])
+
+        agent.llm.invoke.return_value = "完成"
+
+        assert agent.is_content_complete() is True
+
+    def test_content_complete_sends_topic_and_topics(self):
+        """测试 LLM 调用包含教学主题和知识点列表."""
+        agent = self._make_agent(covered_topics=["变量"])
+
+        agent.is_content_complete()
+
+        prompt = agent.llm.invoke.call_args[0][0]
+
+        assert "Python基础变量" in prompt
+        assert "变量" in prompt

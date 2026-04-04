@@ -168,4 +168,4 @@ class TeacherAgent:
         )
 
         response = self.llm.invoke(prompt, temperature=0.1)
-        return "完成" in response
+        return response.strip() == "完成"
