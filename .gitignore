@@ -50,6 +50,7 @@ htmlcov/
 .claude/memory/
 .claude/tasks/
 .claude/teams/
+.worktrees/
 
 # Misc
 *.tmp
