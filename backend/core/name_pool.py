@@ -1,5 +1,6 @@
 """中文名字池 - 用于随机生成学生姓名."""
 
+import random
 
 
 class NamePool:
@@ -143,7 +144,6 @@ class NamePool:
     def __init__(self) -> None:
         """初始化名字池，生成完整姓名列表."""
         self.names: list[str] = []
-        self._used_indices: set = set()
         self._generate_full_names()
 
     def _generate_full_names(self) -> None:
@@ -152,20 +152,23 @@ class NamePool:
             for given_name in self.GIVEN_NAMES:
                 self.names.append(f"{surname}{given_name}")
 
-    def get_random_name(self, exclude: list[str] | None = None) -> str:
+    def get_random_name(
+        self, exclude: list[str] | None = None, rng: "random.Random | None" = None
+    ) -> str:
         """随机获取一个未使用的名字.
 
         Args:
             exclude: 要排除的名字列表
+            rng: 随机数生成器（可选，默认使用全局 random）
 
         Returns:
             随机选择的名字
         """
-        import random
-
         available = [name for name in self.names if name not in (exclude or [])]
 
         if not available:
             raise ValueError("名字池已耗尽，请提供更多名字")
 
+        if rng is not None:
+            return rng.choice(available)
         return random.choice(available)

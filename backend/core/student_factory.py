@@ -88,9 +88,8 @@ class StudentFactory:
         level_dist = config.level_distribution
         attitude_dist = config.attitude_distribution
 
-        # 设置随机种子以支持可复现
-        if config.random_seed is not None:
-            random.seed(config.random_seed)
+        # 使用本地随机生成器，避免污染全局状态
+        rng = random.Random(config.random_seed)
 
         # 生成学生
         students = []
@@ -100,16 +99,16 @@ class StudentFactory:
         # 按分布生成各水平学生
         for _ in range(total):
             # 随机选择水平
-            level = StudentFactory._random_choice_by_distribution(level_dist)
-            attitude = StudentFactory._random_choice_by_distribution(attitude_dist)
-            learning_ability = StudentFactory._generate_learning_ability(level)
+            level = StudentFactory._random_choice_by_distribution(level_dist, rng)
+            attitude = StudentFactory._random_choice_by_distribution(attitude_dist, rng)
+            learning_ability = StudentFactory._generate_learning_ability(level, rng)
 
             # 随机选择名字（不重复）
-            name = name_pool.get_random_name(used_names)
+            name = name_pool.get_random_name(used_names, rng)
             used_names.append(name)
 
             # 随机性别
-            gender = random.choice(["男", "女"])
+            gender = rng.choice(["男", "女"])
 
             students.append(
                 {
@@ -178,16 +177,17 @@ class StudentFactory:
         return students
 
     @staticmethod
-    def _random_choice_by_distribution(distribution: dict) -> str:
+    def _random_choice_by_distribution(distribution: dict, rng: random.Random) -> str:
         """根据分布比例随机选择.
 
         Args:
             distribution: 分布字典，如 {"excellent": 0.3, "average": 0.5, "basic": 0.2}
+            rng: 随机数生成器
 
         Returns:
             选中的键值
         """
-        rand_val = random.random()
+        rand_val = rng.random()
         cumulative = 0.0
 
         for key, prob in distribution.items():
@@ -199,11 +199,12 @@ class StudentFactory:
         return list(distribution.keys())[-1]
 
     @staticmethod
-    def _generate_learning_ability(level: str) -> int:
+    def _generate_learning_ability(level: str, rng: random.Random) -> int:
         """根据学生水平生成学习能力.
 
         Args:
             level: 学生水平
+            rng: 随机数生成器
 
         Returns:
             学习能力值 (1-10)
@@ -211,7 +212,7 @@ class StudentFactory:
         base_range = {"excellent": (7, 10), "average": (4, 7), "basic": (1, 4)}
 
         min_val, max_val = base_range.get(level, (4, 7))
-        return random.randint(min_val, max_val)
+        return rng.randint(min_val, max_val)
 
     @staticmethod
     def export_students(students: list[dict]) -> str:
