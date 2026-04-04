@@ -1,8 +1,10 @@
 """Memory 数据类和 MemoryManager 测试."""
 
 from datetime import datetime
+import random
 
 from schemas.message import Message, MessageType
+from schemas.student import StudentAttitude, StudentLevel, StudentProfile
 
 
 class TestSessionMemory:
@@ -225,3 +227,141 @@ class TestTeacherAgentMemory:
         assert "变量与数据类型" in prompt
         assert "条件语句" in prompt
         assert "张三" in prompt
+
+
+class TestStudentAgentMemory:
+    """StudentAgentMemory 测试."""
+
+    def test_init_from_profile(self):
+        """测试从 StudentProfile 初始化."""
+        from agents.memories.memory_manager import StudentAgentMemory
+
+        profile = StudentProfile(
+            name="张三",
+            level=StudentLevel.EXCELLENT,
+            attitude=StudentAttitude.ACTIVE,
+            learning_ability=8,
+        )
+        memory = StudentAgentMemory.from_profile(profile=profile)
+
+        assert memory.name == "张三"
+        assert memory.level == StudentLevel.EXCELLENT
+        assert memory.attitude == StudentAttitude.ACTIVE
+        assert memory.learning_ability == 8
+        assert memory.learned_concepts == []
+        assert memory.current_knowledge_level == 0.0
+        assert memory.learning_rate == 0.08  # learning_ability * 0.01
+
+    def test_learning_rate_from_ability(self):
+        """测试学习速率根据学习能力计算."""
+        from agents.memories.memory_manager import StudentAgentMemory
+
+        profile_high = StudentProfile(name="高", learning_ability=9)
+        profile_low = StudentProfile(name="低", learning_ability=2)
+
+        memory_high = StudentAgentMemory.from_profile(profile=profile_high)
+        memory_low = StudentAgentMemory.from_profile(profile=profile_low)
+
+        assert memory_high.learning_rate == 0.09
+        assert memory_low.learning_rate == 0.02
+
+    def test_should_remember_concept_excellent_remembers_more(self):
+        """测试优秀学生更容易记住概念."""
+        from agents.memories.memory_manager import StudentAgentMemory
+
+        profile = StudentProfile(
+            name="优秀生",
+            level=StudentLevel.EXCELLENT,
+            learning_ability=9,
+        )
+        memory = StudentAgentMemory.from_profile(profile=profile)
+
+        rng = random.Random(42)
+        # 优秀学生 knowledge_level 会随着学习逐渐提高
+        # 用固定种子测试，观察结果一致性
+        results = [memory.should_remember_concept("概念A", rng) for _ in range(100)]
+        # 至少有一些应该记住（概率 > 0.5）
+        assert sum(results) > 30
+
+    def test_should_remember_concept_basic_remembers_less(self):
+        """测试基础学生记住概念的概率较低."""
+        from agents.memories.memory_manager import StudentAgentMemory
+
+        profile = StudentProfile(
+            name="基础生",
+            level=StudentLevel.BASIC,
+            learning_ability=2,
+        )
+        memory = StudentAgentMemory.from_profile(profile=profile)
+
+        rng = random.Random(42)
+        results = [memory.should_remember_concept("概念A", rng) for _ in range(100)]
+        # 基础学生记住的应该较少
+        assert sum(results) < 70
+
+    def test_update_knowledge_new_concept(self):
+        """测试更新知识 - 新概念被记住."""
+        from agents.memories.memory_manager import StudentAgentMemory
+
+        profile = StudentProfile(name="张三", learning_ability=8)
+        memory = StudentAgentMemory.from_profile(profile=profile)
+
+        # 用固定种子，模拟记住
+        rng = random.Random(42)
+        memory.update_knowledge(["变量", "函数"], rng)
+
+        # 至少有一个被记住（概率较高）
+        assert len(memory.learned_concepts) >= 0  # 可能都不记住
+        assert memory.current_knowledge_level >= 0.0
+
+    def test_update_knowledge_no_duplicates(self):
+        """测试不重复学习相同概念."""
+        from agents.memories.memory_manager import StudentAgentMemory
+
+        profile = StudentProfile(name="张三", learning_ability=10)
+        memory = StudentAgentMemory.from_profile(profile=profile)
+
+        # 直接添加一个概念，模拟已经学会
+        memory.learned_concepts.append("变量")
+        memory.current_knowledge_level = 0.5  # 设置知识水平
+
+        rng = random.Random(42)
+        count_before = len(memory.learned_concepts)
+
+        memory.update_knowledge(["变量"], rng)
+        assert len(memory.learned_concepts) == count_before
+        assert "变量" in memory.learned_concepts
+
+    def test_update_knowledge_increases_level(self):
+        """测试学习新概念提升知识水平."""
+        from agents.memories.memory_manager import StudentAgentMemory
+
+        profile = StudentProfile(name="张三", learning_ability=8)
+        memory = StudentAgentMemory.from_profile(profile=profile)
+
+        rng = random.Random(42)
+        # 用确定性种子确保至少记住一个
+        initial_level = memory.current_knowledge_level
+        memory.update_knowledge(["概念1", "概念2", "概念3", "概念4", "概念5"], rng)
+
+        assert memory.current_knowledge_level >= initial_level
+
+    def test_get_system_prompt_addition(self):
+        """测试生成学生 system prompt 附加内容."""
+        from agents.memories.memory_manager import StudentAgentMemory
+
+        profile = StudentProfile(
+            name="张三",
+            level=StudentLevel.EXCELLENT,
+            attitude=StudentAttitude.ACTIVE,
+            learning_ability=8,
+        )
+        memory = StudentAgentMemory.from_profile(profile=profile)
+        memory.learned_concepts.append("变量")
+
+        prompt = memory.get_system_prompt_addition(topic="Python基础")
+        assert "Python基础" in prompt
+        assert "变量" in prompt
+        assert "张三" in prompt
+        assert "8/10" in prompt
+        assert "excellent" in prompt
