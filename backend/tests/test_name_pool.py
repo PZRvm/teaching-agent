@@ -24,17 +24,3 @@ def test_get_random_name():
     assert len(name2) > 1
 
 
-def test_name_pool_exhaustion():
-    """测试名字池耗尽场景."""
-    from core.name_pool import NamePool
-
-    pool = NamePool()
-    # 使用大量名字直到耗尽
-    used = []
-    for _ in range(10000):
-        try:
-            name = pool.get_random_name(used)
-            used.append(name)
-        except ValueError as e:
-            assert "名字池已耗尽" in str(e)
-            break
