@@ -1,0 +1,94 @@
+"""TeacherAgent 真实 LLM 集成测试.
+
+使用真实 LLM API 测试 TeacherAgent 的讲授功能。
+运行方式: pytest tests/integration/test_teacher_agent_real.py -v -s
+"""
+
+from dotenv import load_dotenv
+
+load_dotenv()  # noqa: E402
+
+import pytest  # noqa: E402
+
+from agents.memories import SessionMemory  # noqa: E402
+from agents.teacher_agent import TeacherAgent  # noqa: E402
+from core.llm_client import LLMClient  # noqa: E402
+
+
+@pytest.fixture(scope="module")
+def real_llm():
+    """创建真实 LLM 客户端."""
+    return LLMClient.from_config()
+
+
+class TestTeacherAgentRealLecture:
+    """使用真实 LLM 测试 TeacherAgent 讲授功能."""
+
+    @pytest.mark.integration
+    def test_deliver_lecture_didactic(self, real_llm):
+        """测试灌输式模式讲授（真实 LLM）."""
+        session_mem = SessionMemory(session_id=9991, topic="Python变量与数据类型")
+
+        agent = TeacherAgent(
+            session_memory=session_mem,
+            llm=real_llm,
+            teaching_mode="didactic",
+        )
+
+        content = agent.deliver_lecture()
+
+        print(f"\n{'='*60}")
+        print("[灌输式] Python变量与数据类型")
+        print(f"{'='*60}")
+        print(content)
+        print(f"{'='*60}\n")
+
+        assert isinstance(content, str)
+        assert len(content) > 50
+        assert len(agent.session_memory.message_history) == 1
+
+    @pytest.mark.integration
+    def test_deliver_lecture_heuristic(self, real_llm):
+        """测试启发式模式讲授（真实 LLM）."""
+        session_mem = SessionMemory(session_id=9992, topic="Python条件语句")
+
+        agent = TeacherAgent(
+            session_memory=session_mem,
+            llm=real_llm,
+            teaching_mode="heuristic",
+        )
+
+        content = agent.deliver_lecture()
+
+        print(f"\n{'='*60}")
+        print("[启发式] Python条件语句")
+        print(f"{'='*60}")
+        print(content)
+        print(f"{'='*60}\n")
+
+        assert isinstance(content, str)
+        assert len(content) > 50
+        assert len(agent.session_memory.message_history) == 1
+
+    @pytest.mark.integration
+    def test_deliver_lecture_discussion(self, real_llm):
+        """测试讨论式模式讲授（真实 LLM）."""
+        session_mem = SessionMemory(session_id=9993, topic="Python循环结构")
+
+        agent = TeacherAgent(
+            session_memory=session_mem,
+            llm=real_llm,
+            teaching_mode="discussion",
+        )
+
+        content = agent.deliver_lecture()
+
+        print(f"\n{'='*60}")
+        print("[讨论式] Python循环结构")
+        print(f"{'='*60}")
+        print(content)
+        print(f"{'='*60}\n")
+
+        assert isinstance(content, str)
+        assert len(content) > 50
+        assert len(agent.session_memory.message_history) == 1

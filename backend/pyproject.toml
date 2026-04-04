@@ -54,3 +54,8 @@ quote-style = "double"
 indent-style = "space"
 skip-magic-trailing-comma = false
 line-ending = "auto"
+
+[tool.pytest.ini_options]
+markers = [
+    "integration: 真实 LLM API 集成测试（需要网络和 API key）",
+]
