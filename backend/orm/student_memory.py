@@ -3,11 +3,10 @@
 from datetime import datetime
 
 import sqlalchemy as sa
-from schemas.student import StudentAttitude, StudentLevel
-from sqlalchemy import orm
 from sqlalchemy.orm import Mapped, mapped_column
 
 from core.database import Base
+from schemas.student import StudentAttitude, StudentLevel
 
 
 class StudentMemoryModel(Base):

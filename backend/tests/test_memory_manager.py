@@ -1,7 +1,7 @@
 """Memory 数据类和 MemoryManager 测试."""
 
-from datetime import datetime
 import random
+from datetime import datetime
 
 from schemas.message import Message, MessageType
 from schemas.student import StudentAttitude, StudentLevel, StudentProfile

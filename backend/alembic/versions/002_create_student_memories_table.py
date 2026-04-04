@@ -8,9 +8,9 @@ Create Date: 2026-04-04
 from collections.abc import Sequence
 
 import sqlalchemy as sa
-from schemas.student import StudentAttitude, StudentLevel
 
 from alembic import op
+from schemas.student import StudentAttitude, StudentLevel
 
 # revision identifiers, used by Alembic.
 revision: str = '002'

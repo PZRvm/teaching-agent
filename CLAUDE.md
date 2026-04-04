@@ -140,6 +140,47 @@ pip install -r requirements.txt
 - Ruff config: [backend/pyproject.toml](backend/pyproject.toml)
 - TypeScript strict mode enabled with no-unused-locals and no-unused-parameters
 
+### Testing
+
+**Backend tests (pytest)**:
+```bash
+cd backend
+
+# Run all tests
+pytest tests/ -v
+
+# Run specific test file
+pytest tests/test_memory_manager.py -v
+
+# Run specific test class
+pytest tests/test_memory_manager.py::TestSessionMemory -v
+
+# Run specific test
+pytest tests/test_memory_manager.py::TestSessionMemory::test_init_default_values -v
+
+# Run tests by keyword
+pytest tests/ -k "student_memory" -v
+
+# Show print statements
+pytest tests/ -v -s
+```
+
+**Frontend tests (vitest)**:
+```bash
+cd frontend
+
+# Run all tests
+npm run test
+
+# Run tests in watch mode
+npm run test -- --watch
+```
+
+**Test Fixtures**:
+- `test_engine` - In-memory SQLite engine with all tables created
+- `db_session` - Async database session for testing
+- Async tests require `@pytest.mark.asyncio` or class marked `@pytest.mark.asyncio`
+
 ## Environment
 
 - Backend runs on port 8000 (uvicorn)
@@ -147,6 +188,64 @@ pip install -r requirements.txt
 - Python 3.12+ required
 - SQLite database in `backend/datas/database.db`
 - Environment variables in `backend/.env` (use `.env.example` as template)
+
+## Database Migrations (Alembic)
+
+**Initialize migrations** (first time setup):
+```bash
+cd backend
+alembic upgrade head
+```
+
+**Create new migration** (after modifying ORM models):
+```bash
+cd backend
+alembic revision --autogenerate -m "描述变更内容"
+```
+
+**Apply migrations**:
+```bash
+cd backend
+alembic upgrade head
+```
+
+**Rollback migration**:
+```bash
+cd backend
+alembic downgrade -1
+```
+
+**Check migration status**:
+```bash
+cd backend
+alembic current        # Current version
+alembic history        # Migration history
+```
+
+**Database location**: `backend/datas/database.db`
+
+## Current Development Progress
+
+**Phase 1: 基础设施与数据层** ✅ 完成
+- ORM models: TeachingSessionModel, SessionMemoryModel, TeacherMemoryModel, MessageModel
+- Alembic migrations: 001_create_tables.py
+- Pydantic schemas: TeachingSession, StudentProfile, Message
+
+**Phase 2: 学生创建系统** ✅ 完成
+- StudentFactory with three modes (manual/random/json)
+- NamePool service (~100 Chinese names)
+- RandomClassConfig with distribution support
+- JSON import/export with validation
+
+**Phase 3: Memory系统** 🚧 进行中 (Tasks 0-3 完成，6 任务剩余)
+- ✅ SessionMemory dataclass ([session_memory.py](backend/agents/memories/session_memory.py))
+- ✅ TeacherAgentMemory dataclass ([teacher_memory.py](backend/agents/memories/teacher_memory.py))
+- ✅ StudentAgentMemory dataclass ([student_memory.py](backend/agents/memories/student_memory.py))
+- ⏳ MemoryManager orchestrator (pending)
+- ⏳ MemoryPersistence service (pending)
+- ⏳ Integration tests (pending)
+
+**Phase 4-13**: 待开始
 
 ## Code Style Guide
 
