@@ -4,10 +4,14 @@ These tests are written FIRST (TDD) - they will fail because ORM models don't ex
 """
 
 from datetime import datetime
+from zoneinfo import ZoneInfo
 
 import pytest
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
+
+# 中国时区
+CHINA_TZ = ZoneInfo("Asia/Shanghai")
 
 
 class TestTeachingSessionModel:
@@ -27,7 +31,7 @@ class TestTeachingSessionModel:
             students_config=[{"name": "Alice"}],
             duration_seconds=3600,
             status="running",
-            start_time=datetime.utcnow(),
+            start_time=datetime.now(CHINA_TZ),
         )
         db_session.add(session)
         await db_session.commit()
@@ -48,7 +52,7 @@ class TestTeachingSessionModel:
             teaching_mode="heuristic",
             topic="Another Topic",
             students_config=[{"name": "Bob"}],
-            start_time=datetime.utcnow(),
+            start_time=datetime.now(CHINA_TZ),
         )
         db_session.add(session)
         await db_session.commit()
@@ -77,7 +81,7 @@ class TestMessageModel:
             teaching_mode="didactic",
             topic="Test",
             students_config=[],
-            start_time=datetime.utcnow(),
+            start_time=datetime.now(CHINA_TZ),
         )
         db_session.add(teaching_session)
         await db_session.commit()
@@ -89,7 +93,7 @@ class TestMessageModel:
             sender="teacher",
             message_type="lecture",
             content="Hello class!",
-            timestamp=datetime.utcnow(),
+            timestamp=datetime.now(CHINA_TZ),
         )
         db_session.add(message)
         await db_session.commit()
@@ -111,7 +115,7 @@ class TestMessageModel:
             teaching_mode="discussion",
             topic="Discussion Topic",
             students_config=[],
-            start_time=datetime.utcnow(),
+            start_time=datetime.now(CHINA_TZ),
         )
         db_session.add(teaching_session)
         await db_session.commit()
@@ -123,7 +127,7 @@ class TestMessageModel:
                 sender=f"student_{i}",
                 message_type="question_to_teacher",
                 content=f"Question {i}",
-                timestamp=datetime.utcnow(),
+                timestamp=datetime.now(CHINA_TZ),
             )
             db_session.add(message)
         await db_session.commit()
@@ -151,7 +155,7 @@ class TestSessionMemoryModel:
             teaching_mode="didactic",
             topic="Memory Test",
             students_config=[],
-            start_time=datetime.utcnow(),
+            start_time=datetime.now(CHINA_TZ),
         )
         db_session.add(teaching_session)
         await db_session.commit()
@@ -162,7 +166,7 @@ class TestSessionMemoryModel:
             session_id=teaching_session.id,
             message_history=[{"sender": "teacher", "content": "Welcome"}],
             teaching_summary="First class",
-            last_updated=datetime.utcnow(),
+            last_updated=datetime.now(CHINA_TZ),
         )
         db_session.add(memory)
         await db_session.commit()
@@ -187,7 +191,7 @@ class TestTeacherMemoryModel:
             teaching_mode="heuristic",
             topic="Teacher Memory Test",
             students_config=[],
-            start_time=datetime.utcnow(),
+            start_time=datetime.now(CHINA_TZ),
         )
         db_session.add(teaching_session)
         await db_session.commit()

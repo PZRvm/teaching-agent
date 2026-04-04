@@ -1,6 +1,7 @@
 """消息 ORM 模型"""
 
 from datetime import datetime
+from zoneinfo import ZoneInfo
 
 from sqlalchemy import DateTime, ForeignKey, String, Text
 from sqlalchemy.ext.asyncio import AsyncAttrs
@@ -19,4 +20,4 @@ class MessageModel(Base, AsyncAttrs):
     sender: Mapped[str] = mapped_column(String(50))
     message_type: Mapped[str] = mapped_column(String(50))
     content: Mapped[str] = mapped_column(Text)
-    timestamp: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow)
+    timestamp: Mapped[datetime] = mapped_column(DateTime, default=lambda: datetime.now(ZoneInfo("Asia/Shanghai")))
