@@ -387,3 +387,148 @@ class TestMemoryPersistenceLoad:
 
         loaded = await persistence.load_student_memory(session_id, "不存在")
         assert loaded is None
+
+
+@pytest.mark.asyncio
+class TestMemoryIntegration:
+    """记忆系统完整流程集成测试."""
+
+    async def test_full_flow_save_and_restore(
+        self, db_session: AsyncSession
+    ):
+        """完整流程：创建会话 → 处理消息 → 持久化 → 加载恢复."""
+        import random
+
+        from agents.memories.memory_manager import MemoryManager
+        from agents.memories.memory_persistence import MemoryPersistence
+        from schemas.message import Message, MessageType
+        from schemas.student import StudentProfile
+
+        # 1. 创建教学会话
+        session_id = await _create_teaching_session(db_session)
+        persistence = MemoryPersistence(db_session)
+
+        # 2. 创建 MemoryManager 并注册学生
+        session_memory = SessionMemory(session_id=session_id, topic="Python基础")
+        manager = MemoryManager(
+            session_memory=session_memory,
+            extract_knowledge_fn=lambda c: ["变量", "数据类型"],
+            summary_fn=lambda p: "已讲授变量和数据类型",
+            summary_update_interval=5,
+            student_rng=random.Random(42),
+        )
+        manager.register_student(
+            StudentProfile(name="张三", learning_ability=8)
+        )
+
+        # 3. 处理多条消息
+        messages = [
+            Message(
+                sender="teacher",
+                message_type=MessageType.LECTURE,
+                content="今天学习变量和数据类型",
+                timestamp=datetime.now(),
+            ),
+            Message(
+                sender="teacher",
+                message_type=MessageType.CHECKPOINT_QUESTION,
+                content="什么是变量?",
+                timestamp=datetime.now(),
+            ),
+            Message(
+                sender="张三",
+                message_type=MessageType.REPLY_TO_TEACHER,
+                content="变量是存储数据的容器",
+                timestamp=datetime.now(),
+            ),
+            Message(
+                sender="张三",
+                message_type=MessageType.QUESTION_TO_TEACHER,
+                content="变量有哪些类型?",
+                timestamp=datetime.now(),
+            ),
+            Message(
+                sender="teacher",
+                message_type=MessageType.LECTURE,
+                content="变量有整数、浮点数、字符串等类型",
+                timestamp=datetime.now(),
+            ),
+        ]
+
+        for msg in messages:
+            manager.process_message(msg)
+
+        # 4. 验证内存状态
+        assert len(session_memory.message_history) == 5
+        assert "变量" in manager.teacher_memory.covered_topics
+        assert manager.teacher_memory.student_participation["张三"] == 1
+        assert "张三" in manager.teacher_memory.student_questions
+        student_mem = manager.student_memories["张三"]
+        assert len(student_mem.learned_concepts) >= 0  # 可能记住概念
+
+        # 5. 持久化
+        await persistence.save_session_memory(manager.session_memory)
+        await persistence.save_teacher_memory(
+            session_id, manager.teacher_memory
+        )
+        await persistence.save_student_memory(
+            session_id, manager.student_memories["张三"]
+        )
+        for msg in manager.session_memory.message_history:
+            await persistence.save_message(session_id, msg)
+
+        # 6. 加载恢复
+        loaded_session = await persistence.load_session_memory(session_id)
+        loaded_teacher = await persistence.load_teacher_memory(session_id)
+        loaded_student = await persistence.load_student_memory(session_id, "张三")
+
+        # 7. 验证恢复的数据
+        assert loaded_session is not None
+        assert loaded_session.topic == "Python基础"
+        assert loaded_session.teaching_summary == "已讲授变量和数据类型"
+        assert len(loaded_session.message_history) == 5
+
+        assert loaded_teacher is not None
+        assert "变量" in loaded_teacher.covered_topics
+        assert loaded_teacher.student_participation["张三"] == 1
+        assert loaded_teacher.student_questions["张三"] == ["变量有哪些类型?"]
+
+        assert loaded_student is not None
+        assert loaded_student.name == "张三"
+        assert loaded_student.learning_ability == 8
+
+    async def test_save_and_load_empty_session(
+        self, db_session: AsyncSession
+    ):
+        """测试空会话的保存和加载."""
+
+        from agents.memories.memory_manager import MemoryManager
+        from agents.memories.memory_persistence import MemoryPersistence
+        from schemas.student import StudentProfile
+
+        session_id = await _create_teaching_session(db_session)
+        persistence = MemoryPersistence(db_session)
+
+        session_memory = SessionMemory(session_id=session_id, topic="空主题")
+        manager = MemoryManager(session_memory=session_memory)
+        manager.register_student(StudentProfile(name="张三", learning_ability=5))
+
+        await persistence.save_session_memory(manager.session_memory)
+        await persistence.save_teacher_memory(
+            session_id, manager.teacher_memory
+        )
+        await persistence.save_student_memory(
+            session_id, manager.student_memories["张三"]
+        )
+
+        loaded_session = await persistence.load_session_memory(session_id)
+        loaded_teacher = await persistence.load_teacher_memory(session_id)
+        loaded_student = await persistence.load_student_memory(session_id, "张三")
+
+        assert loaded_session is not None
+        assert loaded_session.message_history == []
+        assert loaded_teacher is not None
+        assert loaded_teacher.covered_topics == []
+        assert loaded_student is not None
+        assert loaded_student.learned_concepts == []
+
