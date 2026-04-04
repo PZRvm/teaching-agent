@@ -14,6 +14,13 @@ from sqlalchemy.pool import StaticPool
 sys.path.insert(0, str(Path(__file__).parent.parent))
 
 
+def pytest_configure(config: pytest.Config) -> None:
+    """注册自定义 marker."""
+    config.addinivalue_line(
+        "markers", "integration: 真实 LLM API 集成测试（需要网络和 API key）"
+    )
+
+
 # Test database URL (in-memory SQLite)
 TEST_DATABASE_URL = "sqlite+aiosqlite:///:memory:"
 
