@@ -57,7 +57,12 @@ class LLMClient:
         with open(config_path) as f:
             llm_config = yaml.safe_load(f)
 
-        api_key = os.environ.get("OPENAI_API_KEY", llm_config["llm"].get("api_key", ""))
+        api_key = os.environ.get("OPENAI_API_KEY", "")
+        if not api_key:
+            raise ValueError(
+                "未设置 OPENAI_API_KEY 环境变量。"
+                "请在 .env 文件中配置 OPENAI_API_KEY=your_api_key"
+            )
 
         return cls(
             base_url=llm_config["llm"]["base_url"],

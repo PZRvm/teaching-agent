@@ -9,6 +9,8 @@ from agents.memories.memory_manager import MemoryManager
 from schemas.message import Message, MessageType
 from schemas.student import StudentProfile
 
+VALID_TEACHING_MODES = ("didactic", "heuristic", "discussion")
+
 
 class TeacherAgent:
     """教师 Agent - 负责讲授内容生成和教学控制."""
@@ -30,7 +32,16 @@ class TeacherAgent:
             teaching_mode: 教学模式（didactic/heuristic/discussion）
             students: 学生配置列表
             memory_manager: 已有的 MemoryManager（可选）
+
+        Raises:
+            ValueError: teaching_mode 不在有效范围内
         """
+        if teaching_mode not in VALID_TEACHING_MODES:
+            raise ValueError(
+                f"无效的教学模式: {teaching_mode}，"
+                f"有效值为: {', '.join(VALID_TEACHING_MODES)}"
+            )
+
         self.session_memory = session_memory
         self.teaching_mode = teaching_mode
         self.llm = llm
@@ -104,24 +115,17 @@ class TeacherAgent:
 {context}
 """
 
-    def deliver_lecture(self) -> str:
-        """生成讲授内容.
-
-        Returns:
-            讲授内容文本
-        """
+    def _build_lecture_messages(self) -> list[dict]:
+        """构建讲授消息列表."""
         system_prompt = self._build_system_prompt()
         user_prompt = f"请继续讲授关于「{self.session_memory.topic}」的内容。"
+        return [
+            {"role": "system", "content": system_prompt},
+            {"role": "user", "content": user_prompt},
+        ]
 
-        content = self.llm.invoke(
-            [
-                {"role": "system", "content": system_prompt},
-                {"role": "user", "content": user_prompt},
-            ],
-            temperature=self._get_mode_temperature(),
-        )
-
-        # 通过 MemoryManager 处理消息
+    def _record_lecture(self, content: str) -> None:
+        """通过 MemoryManager 记录讲授消息."""
         message = Message(
             sender="teacher",
             message_type=MessageType.LECTURE,
@@ -129,6 +133,17 @@ class TeacherAgent:
             timestamp=datetime.now(),
         )
         self.memory_manager.process_message(message)
+
+    def deliver_lecture(self) -> str:
+        """生成讲授内容.
+
+        Returns:
+            讲授内容文本
+        """
+        messages = self._build_lecture_messages()
+
+        content = self.llm.invoke(messages, temperature=self._get_mode_temperature())
+        self._record_lecture(content)
 
         return content
 
@@ -138,30 +153,15 @@ class TeacherAgent:
         Yields:
             每个文本 chunk
         """
-        system_prompt = self._build_system_prompt()
-        user_prompt = f"请继续讲授关于「{self.session_memory.topic}」的内容。"
-
-        messages = [
-            {"role": "system", "content": system_prompt},
-            {"role": "user", "content": user_prompt},
-        ]
+        messages = self._build_lecture_messages()
 
         full_content = []
         for chunk in self.llm.stream(messages, temperature=self._get_mode_temperature()):
-            print(chunk, end="", flush=True)
             full_content.append(chunk)
             yield chunk
 
         content = "".join(full_content)
-
-        # 通过 MemoryManager 处理消息
-        message = Message(
-            sender="teacher",
-            message_type=MessageType.LECTURE,
-            content=content,
-            timestamp=datetime.now(),
-        )
-        self.memory_manager.process_message(message)
+        self._record_lecture(content)
 
     def _get_mode_temperature(self) -> float:
         """根据教学模式获取合适的温度值.
