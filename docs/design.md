@@ -24,16 +24,18 @@ Mode: Builder
 
 - 技术栈已选定：FastAPI + LangChain + React
 - 学习/黑客松项目，非创业方向
-- 注重深度优先，单一功能做到位
+- **观察模式是最高优先级的交付成果**（教育研究核心）
+- **数据库持久化必须实现**（实验数据用于研究报告）
 - 使用硅基流动免费模型（Qwen2.5-7B-Instruct）
 
 ## Premises
 
-1. 这是学习/探索项目，不是用户验证或创业
-2. 深度优先于广度 —— 一个功能做好胜过三个功能半成品
-3. 差异化在于教学MODES和可配置参数
-4. 已有技术栈（FastAPI + LangChain + React）不变
+1. **观察模式是核心交付成果**：满足教育研究人员的场景需求
+2. **三种教学模式是工程交付成果**：灌输式/启发式/讨论式必须全部实现
+3. **StudentFactory保持完整功能**：手动/随机/JSON三种创建方式全部保留（便于开发测试）
+4. 数据持久化用于实验数据收集和研究报告生成
 5. 多智能体协作应该对用户可见，不是黑盒魔法
+6. 已有技术栈（FastAPI + LangChain + React）不变
 
 ## Cross-Model Perspective
 
@@ -63,19 +65,19 @@ Mode: Builder
 - 优点：最独特，"教学回放"是其他人没做的
 - 缺点：分析逻辑复杂
 
-### Observation Mode Extension — 观察模式（新增）
+### Observation Mode Extension — 观察模式（最高优先级）
 
-用户作为隐形观察者，观看教师agent和学生agent的自动互动，获得量化分析报告。这是为了满足教育研究人员的场景：研究不同教学模式对教学效果的影响。
+用户作为隐形观察者，观看教师agent和学生agent的自动互动，获得量化分析报告。这是为了满足教育研究人员的场景：研究不同教学模式对教学效果的影响。**观察模式是本项目的最高优先级交付成果**。
 
 **核心特性**：
 - 配置教学主题/教学模式/学生 → 自动运行教学会话
 - 实时观看agent对话（只读模式，无法干预）
 - 会话结束后生成量化分析报告：参与度、正确率、互动频率、知识掌握度等
-- 支持教学模式对比研究（相同主题/学生，不同教学模式）
+- 数据库持久化：完整保存会话数据用于实验研究
 
 **与核心模式的区别**：
-- 教师模式：用户控制教学过程，agent响应用户输入
-- 观察模式：用户只读观看，agent全自动互动
+- 教师模式：用户控制教学过程，agent响应用户输入（辅助功能，用于开发测试）
+- 观察模式：用户只读观看，agent全自动互动（核心功能，教育研究工具）
 
 ## Recommended Approach
 
@@ -849,6 +851,8 @@ class MemoryAwareStudentAgent:
 
 **ORM 模型定义** (使用 SQLAlchemy):
 
+> **简化说明**: 学生状态（StudentAgentState）不单独持久化。学生的配置参数（level, attitude, learning_ability）保存在 TeachingSession 表中，运行时状态（knowledge_level等）从消息历史重建。
+
 ```python
 # backend/models/session_memory.py
 
@@ -862,7 +866,7 @@ from core.database import Base
 class SessionMemoryModel(Base, AsyncAttrs):
     """会话记忆 ORM 模型"""
     __tablename__ = "session_memories"
-    
+
     id: Mapped[int] = mapped_column(primary_key=True)
     session_id: Mapped[str] = mapped_column(String(50), unique=True, index=True)
     topic: Mapped[str] = mapped_column(String(200))
@@ -875,7 +879,7 @@ class SessionMemoryModel(Base, AsyncAttrs):
 class TeacherMemoryModel(Base, AsyncAttrs):
     """教师记忆 ORM 模型"""
     __tablename__ = "teacher_memories"
-    
+
     id: Mapped[int] = mapped_column(primary_key=True)
     session_id: Mapped[str] = mapped_column(String(50), foreign_key="session_memories.session_id")
     covered_topics: Mapped[dict] = mapped_column(JSON)
@@ -884,18 +888,7 @@ class TeacherMemoryModel(Base, AsyncAttrs):
     student_participation: Mapped[dict] = mapped_column(JSON)  # {student_id: count}
     student_misconceptions: Mapped[dict] = mapped_column(JSON)  # {student_id: [misconceptions]}
 
-class StudentMemoryModel(Base, AsyncAttrs):
-    """学生记忆 ORM 模型"""
-    __tablename__ = "student_memories"
-    
-    id: Mapped[int] = mapped_column(primary_key=True)
-    session_id: Mapped[str] = mapped_column(String(50), foreign_key="session_memories.session_id")
-    agent_id: Mapped[str] = mapped_column(String(50))
-    learned_concepts: Mapped[dict] = mapped_column(JSON)  # list[str]
-    confused_points: Mapped[dict] = mapped_column(JSON)  # list[str]
-    questions_asked: Mapped[dict] = mapped_column(JSON)  # list[str]
-    current_knowledge_level: Mapped[float] = mapped_column(Float)
-    last_updated: Mapped[datetime] = mapped_column(DateTime, default=datetime.now)
+# StudentMemoryModel 已移除 - 学生状态合并到 TeachingSession 的 students_config JSON 字段
 ```
 
 **持久化服务** (使用 SQLAlchemy ORM):
@@ -907,7 +900,8 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select
 from sqlalchemy.orm import selectinload
 
-from models.session_memory import SessionMemoryModel, TeacherMemoryModel, StudentMemoryModel
+from models.session_memory import SessionMemoryModel, TeacherMemoryModel
+# StudentMemoryModel 已移除 - 学生状态保存在 TeachingSession.students_config 中
 
 class MemoryPersistence:
     """记忆持久化服务 - 使用 SQLAlchemy ORM"""
@@ -948,7 +942,6 @@ class MemoryPersistence:
         result = await self.async_session.execute(
             select(SessionMemoryModel)
             .options(selectinload(SessionMemoryModel.teacher_memory))
-            .options(selectinload(SessionMemoryModel.student_memories))
             .where(SessionMemoryModel.session_id == session_id)
         )
         db_record = result.scalar_one_or_none()
@@ -986,39 +979,11 @@ class MemoryPersistence:
                 student_misconceptions=teacher_memory.student_misconceptions
             )
             self.async_session.add(db_record)
-        
+
         await self.async_session.commit()
-    
-    async def save_student_memory(self, session_id: str, agent_id: str, student_memory: StudentAgentMemory):
-        """保存学生记忆"""
-        result = await self.async_session.execute(
-            select(StudentMemoryModel)
-            .where(
-                (StudentMemoryModel.session_id == session_id) &
-                (StudentMemoryModel.agent_id == agent_id)
-            )
-        )
-        existing = result.scalar_one_or_none()
-        
-        if existing:
-            existing.learned_concepts = student_memory.learned_concepts
-            existing.confused_points = student_memory.confused_points
-            existing.questions_asked = student_memory.questions_asked
-            existing.current_knowledge_level = student_memory.current_knowledge_level
-            existing.last_updated = datetime.now()
-        else:
-            db_record = StudentMemoryModel(
-                session_id=session_id,
-                agent_id=agent_id,
-                learned_concepts=student_memory.learned_concepts,
-                confused_points=student_memory.confused_points,
-                questions_asked=student_memory.questions_asked,
-                current_knowledge_level=student_memory.current_knowledge_level
-            )
-            self.async_session.add(db_record)
-        
-        await self.async_session.commit()
-    
+
+    # save_student_memory 方法已移除 - 学生状态保存在 TeachingSession.students_config JSON 字段中
+
     async def _load_message_history(self, session_id: str) -> List[Message]:
         """加载消息历史"""
         # 从 Message ORM 模型加载
@@ -1054,6 +1019,7 @@ import sqlalchemy as sa
 from sqlalchemy.dialects import sqlite
 
 def upgrade():
+    # 创建 session_memories 表
     op.create_table(
         'session_memories',
         sa.Column('id', sa.Integer(), autoincrement=True, primary_key=True),
@@ -1065,10 +1031,22 @@ def upgrade():
         sa.Column('last_updated', sa.DateTime(), nullable=False),
         sa.Column('created_at', sa.DateTime(), nullable=False),
     )
-    
+
     op.create_index('ix_session_memories_session_id', 'session_memories', ['session_id'])
-    
-    # 创建 teacher_memories 和 student_memories 表...
+
+    # 创建 teacher_memories 表
+    op.create_table(
+        'teacher_memories',
+        sa.Column('id', sa.Integer(), autoincrement=True, primary_key=True),
+        sa.Column('session_id', sa.String(50), sa.ForeignKey('session_memories.session_id')),
+        sa.Column('covered_topics', sa.JSON(), nullable=False),
+        sa.Column('student_questions', sa.JSON(), nullable=False),
+        sa.Column('teaching_progress', sa.Float(), nullable=False),
+        sa.Column('student_participation', sa.JSON(), nullable=False),
+        sa.Column('student_misconceptions', sa.JSON(), nullable=False),
+    )
+
+    # student_memories 表已移除 - 学生状态保存在 teaching_sessions 表的 students_config 字段中
 ```
 
 **依赖注入配置**:
@@ -1412,8 +1390,9 @@ FALLBACK_RESPONSES = {
 7. **观察模式可进入**: 用户能在3步内进入观察模式（选模式 → 配置 → 开始）
 8. **实时对话可见**: 前端实时显示agent对话，流畅无延迟
 9. **只读性保证**: 观察者无法干预agent行为（无输入框、无控制按钮）
-10. **分析报告量化**: 结束后显示至少5个量化指标，支持学生个体维度对比
+10. **分析报告量化**: 结束后显示至少5个量化指标，支持学生个体维度统计
 11. **可演示观察模式**: 2分钟内完成：进入观察模式 → 观看1-2轮对话 → 查看报告
+12. **数据持久化**: 会话结束后可从数据库加载完整数据用于研究
 
 ## Distribution Plan
 
@@ -1434,63 +1413,59 @@ CI/CD：暂不需要，本地开发即可
 
 ## Next Steps
 
-### Week 1: Backend Foundation
+### Week 1: 数据模型 + Memory系统 + StudentFactory
 1. **数据模型定义**: `TeachingSession`, `TeacherAgentState`, `StudentAgentState`, `StudentProfile`, `Message`, `ObservationMetrics`, `StudentMetrics` (Pydantic models)
-2. **学生生成器**: 实现StudentFactory服务，支持三种创建方式（手动/随机/JSON导入）
-3. **教师Agent实现**: LangChain agent，支持3种教学模式切换
-4. **Prompt工程**: 为3种教学模式设计不同的system prompt，确保教学风格明显不同
-5. **会话管理API**: FastAPI路由 — 创建会话、更新状态、获取历史
+2. **Memory系统**: `SessionMemory`, `TeacherMemory`, `MemoryManager` 实现
+3. **StudentFactory服务**: 三种创建方式（手动/随机/JSON导入）的完整实现
+4. **NamePool服务**: 中文名字库（~100个常用名字）和随机选择
+5. **数据库ORM**: SQLAlchemy模型（session_memories, teacher_memories, messages）
+6. **Alembic迁移**: 数据库表创建
 
-### Week 2: Frontend & Integration
-7. **参数配置UI**: 教学模式选择（单选）、教学主题输入、学生配置（StudentFactory三种模式切换）
-8. **实时展示界面**: Agent发言列表、当前模式显示、学生状态面板
-9. **消息流实现**: 前端轮询(2秒间隔)获取新消息、展示agent发言
-10. **完整流程测试**: 输入主题 → 选模式 → 配置学生 → 教学 → 作业 → 反馈 → 结束
+### Week 2: 教师Agent + 三种教学模式
+7. **教师Agent实现**: LangChain agent，支持3种教学模式切换
+8. **Prompt工程**: 为3种教学模式设计不同的system prompt，确保教学风格明显不同
+9. **教学流程控制**: 灌输式/启发式/讨论式的不同交互循环实现
+10. **学生Agent实现**: 基于参数的行为差异化（level, attitude, learning_ability）
+11. **完整消息流**: lecture → question → answer → homework → feedback
 
-### Week 3: Observation Mode（观察模式）
-11. **观察模式数据模型**: `ObservationMetrics`, `StudentMetrics` 实现
-12. **分析器服务**: `ObservationAnalyzer` - 计算量化指标（参与度、正确率、互动频率等）
-13. **观察模式API**: `/observation/start`, `/observation/stream`, `/observation/report`, `/observation/compare`
-14. **观察模式UI**:
-    - 观察配置界面（复用现有组件）
-    - 观察界面（实时消息显示）
-    - 分析报告界面（指标卡片、学生个体对比可视化）
+### Week 3: 前端 + 教师模式
+12. **参数配置UI**: 教学模式选择、教学主题输入、学生配置（StudentFactory三种模式）
+13. **实时展示界面**: Agent发言列表、当前模式显示、学生状态面板
+14. **消息流实现**: 前端轮询(2秒间隔)获取新消息、展示agent发言
+15. **教师模式完整流程**: 输入主题 → 选模式 → 配置学生 → 教学 → 作业 → 反馈 → 结束
 
-### Week 4: Student Factory（灵活学生配置）
-15. **学生配置数据模型**: `StudentProfile`, `StudentCreateRequest`, `RandomClassConfig` (Pydantic models)
-16. **StudentFactory 服务**: 统一入口，三种创建方式的实现
-17. **NamePool 服务**: 中文名字库（~100个常用名字）和随机选择
-18. **学生配置API**: `/students/create`, `/students/export`, `/students/templates`
-19. **学生配置UI**:
-    - 手动创建界面（学生列表、添加/编辑/删除）
-    - 随机生成界面（班级规模、分布滑块、预览）
-    - JSON 导入导出（文件上传、文本输入、验证）
-20. **数据迁移**: `StudentProfile` → `StudentAgentState` 转换函数
+### Week 4: 观察模式（最高优先级）
+16. **观察模式配置界面**: 复用现有组件
+17. **观察界面**: 实时消息显示（只读模式）
+18. **Agents自动互动逻辑**: 无需用户干预的完整教学流程
+19. **分析器服务**: `ObservationAnalyzer` - 计算核心量化指标
+20. **分析报告界面**: 指标卡片、学生个体统计、数据持久化验证
 
 ### Critical Path Items
-- **StudentFactory 实现**(Week 1): 统一学生创建入口，支持三种模式
-- **Prompt工程**(Week 1): 确保3种教学模式的教学风格明显不同
-- **会话状态管理**(Week 1): 教师控制会话节奏，轮询学生回答
-- **前端实时更新**(Week 2): Turn-based消息流的UI展示
-- **分析器逻辑**(Week 3): 如何量化"教学效果"是观察模式的核心难点
-- **名字库管理**(Week 4): 中文名字库和随机选择逻辑
-- **数据转换**(Week 4): `StudentProfile` → `StudentAgentState` 转换函数
+- **观察模式**(Week 4): 最高优先级，教育研究核心功能
+- **数据持久化**(Week 1): 确保实验数据可保存和加载
+- **三种教学模式**(Week 2): 教学风格明显不同
+- **StudentFactory**(Week 1): 三种创建方式都能工作
+- **分析器逻辑**(Week 4): 如何量化"教学效果"是观察模式的核心
 
 ### v1 Simplifications
 - 实时性: 使用轮询(2秒间隔)，不实现WebSocket
 - 学生人数: 建议2-8个学生
 - **单一教师智能体**: 不使用多个辅助agent，通过教学模式切换实现差异化
 - **观察模式简化**:
-  - 历史对比: v1不保存历史报告，仅显示当次
-  - 数据导出: v1不支持导出研究数据
+  - 历史对比: v1不实现自动对比功能，用户可手动对比多次会话数据
+  - 数据导出: v1不支持导出研究数据（数据可直接从数据库读取）
   - 实时图表: v1使用静态数字，未来支持实时图表更新
-- **学生配置简化**(StudentFactory):
+- **学生配置保留完整功能**(StudentFactory):
   - 名字池: v1 使用内置名字库（~100个常用名字），不支持自定义
   - 导入格式: v1 仅支持 JSON 格式，不支持 CSV
   - 高级分布: v1 仅支持三级分布（优秀/中等/基础），不支持更细粒度控制
   - 混合模式: v1 不支持在同一个班级中混合使用多种创建方式
   - 扩展字段: v1 暂不使用 `background` 和 `special_traits` 字段
   - 导入验证: v1 基础字段验证（名字长度、数值范围），不支持复杂的业务规则验证
+- **Memory系统简化**:
+  - StudentMemory: 不单独持久化，运行时状态从消息历史重建
+  - 学生配置参数: 保存在 TeachingSession.students_config JSON 字段中
 
 ## What I noticed about how you think
 
@@ -1499,3 +1474,53 @@ CI/CD：暂不需要，本地开发即可
 - 你选择"保持简单"而非追求10x版本 —— 这是对项目范围的健康判断，很多学习者会陷入过度设计。
 
 这三个信号表明：你会成为一个优秀的builder，因为你既关心工艺深度，又能保持现实范围。
+
+---
+
+## Phase 1 范围确认
+
+**更新日期**: 2026-04-04
+**状态**: CEO Review - 方案B确认
+
+### 核心交付成果
+
+| 功能模块 | 优先级 | 说明 |
+|---------|-------|------|
+| **观察模式** | 🔴 最高 | 教育研究核心工具，自动agents互动 + 量化分析报告 |
+| **三种教学模式** | 🔴 高 | 灌输式/启发式/讨论式，教学风格明显不同 |
+| **数据库持久化** | 🔴 高 | 实验数据必需，支持研究报告生成 |
+| **StudentFactory** | 🟡 中 | 完整功能（手动/随机/JSON），便于开发测试 |
+| **教师模式** | 🟢 低 | 辅助功能，用于测试三种教学模式 |
+
+### 简化措施
+
+1. **Memory系统简化**:
+   - 移除 `StudentMemoryModel` ORM表
+   - 学生状态保存在 `TeachingSession.students_config` JSON字段中
+   - 运行时状态从消息历史重建
+
+2. **分析报告简化**:
+   - 核心指标即可（参与度、正确率、互动频率、知识掌握度等）
+   - 移除历史对比功能
+   - 移除数据导出功能
+
+### 数据库Schema
+
+```sql
+-- 保留的表
+teaching_sessions        -- 会话主表（包含学生配置JSON）
+session_memories         -- 会话记忆（消息历史摘要 + 教学摘要）
+teacher_memories         -- 教师记忆（已讲授主题 + 学生问题）
+messages                 -- 消息记录（完整历史）
+
+-- 移除的表
+student_memories         -- 学生单独记忆表（数据合并到teaching_sessions）
+```
+
+### 实现时间表（4周）
+
+- **Week 1**: 数据模型 + Memory系统 + StudentFactory + 数据库ORM
+- **Week 2**: 教师Agent + 三种教学模式 + 学生Agent + 完整消息流
+- **Week 3**: 前端UI + 教师模式完整流程
+- **Week 4**: 观察模式（最高优先级）+ 分析报告 + 数据持久化验证
+
