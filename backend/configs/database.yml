@@ -4,6 +4,8 @@ database:
   url: sqlite+aiosqlite:///./datas/database.db
 
   # 连接池配置
+  # 注意: SQLite 使用 NullPool，忽略 pool_size 和 max_overflow 设置
+  # 这些配置在迁移到 PostgreSQL 时生效
   pool_size: 5
   max_overflow: 10
 
