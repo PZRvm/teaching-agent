@@ -7,6 +7,7 @@ app = FastAPI()
 
 app.include_router(user_router)
 
+
 @app.get("/")
 async def root():
     return {"message": "Hello Bigger Applications!"}

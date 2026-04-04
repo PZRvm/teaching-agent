@@ -12,10 +12,10 @@
 
 **任务列表**:
 1. 数据库ORM模型
-   - [ ] `backend/models/session_memory.py` - TeachingSessionModel
-   - [ ] `backend/models/session_memory.py` - SessionMemoryModel
-   - [ ] `backend/models/session_memory.py` - TeacherMemoryModel
-   - [ ] `backend/models/session_memory.py` - MessageModel
+   - [ ] `backend/orm/teaching_session.py` - TeachingSessionModel
+   - [ ] `backend/orm/session_memory.py` - SessionMemoryModel
+   - [ ] `backend/orm/teacher_memory.py` - TeacherMemoryModel
+   - [ ] `backend/orm/message.py` - MessageModel
 
 2. Alembic迁移脚本
    - [ ] 创建 `backend/alembic/versions/001_create_tables.py`
@@ -462,7 +462,12 @@ Phase 13 (测试)
 
 现在开始 **Phase 1: 基础设施与数据层**
 
-创建文件：
-- `backend/models/session_memory.py` - ORM模型
+ORM 模型已创建在 `backend/orm/` 目录：
+- `backend/orm/teaching_session.py` - TeachingSessionModel
+- `backend/orm/session_memory.py` - SessionMemoryModel
+- `backend/orm/teacher_memory.py` - TeacherMemoryModel
+- `backend/orm/message.py` - MessageModel
+
+接下来需要创建：
 - `backend/alembic/versions/001_create_tables.py` - 迁移脚本
 - `backend/schemas/session.py` - Pydantic schemas

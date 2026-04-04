@@ -20,7 +20,18 @@ backend/
 │   ├── user/           # 用户模块
 │   │   ├── router.py
 │   │   └── service.py
-│   └── session/        # 教学会话模块
+│   ├── session/        # 教学会话模块
+│   │   ├── router.py
+│   │   └── service.py
+│   └── observation/    # 观察模式模块
+│       ├── router.py
+│       └── service.py
+├── orm/                # 数据库ORM模型
+│   ├── __init__.py
+│   ├── teaching_session.py    # TeachingSessionModel
+│   ├── session_memory.py      # SessionMemoryModel
+│   ├── teacher_memory.py      # TeacherMemoryModel
+│   └── message.py              # MessageModel
 ├── agents/              # AI 智能体实现
 │   ├── tools/           # 智能体工具
 │   ├── teacher_agent.py # 教师 agent
@@ -34,13 +45,19 @@ backend/
 ├── core/                # 核心业务逻辑
 ├── dependencies/        # 依赖注入配置
 ├── middlewares/         # 自定义中间件
-├── schemas/             # Pydantic 数据模型
+├── schemas/             # Pydantic 数据模型（API验证）
+├── services/           # 业务服务
 ├── tests/               # 测试文件
 ├── main.py              # 应用入口
 ├── .env.example         # 环境变量模板
 ├── pyproject.toml       # Ruff 配置
 └── requirements.txt     # Python 依赖
 ```
+
+**目录说明**:
+- **models/**: 功能模块，每个功能包含 router（路由）和 service（业务逻辑）
+- **orm/**: 数据库ORM模型，与SQLAlchemy对应的表定义
+- **分离原因**: 避免ORM模型和业务模块混在一起，职责清晰
 
 ## 环境配置
 
