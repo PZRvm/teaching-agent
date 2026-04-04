@@ -12,7 +12,7 @@ class TestStudentProfile:
 
     def test_valid_student_profile(self):
         """Test creating valid student profile."""
-        from schemas.session import StudentAttitude, StudentLevel, StudentProfile
+        from schemas.student import StudentAttitude, StudentLevel, StudentProfile
 
         profile = StudentProfile(
             name="Alice",
@@ -27,7 +27,7 @@ class TestStudentProfile:
 
     def test_name_too_short(self):
         """Test name validation - too short."""
-        from schemas.session import StudentLevel, StudentProfile
+        from schemas.student import StudentLevel, StudentProfile
 
         with pytest.raises(ValidationError) as exc_info:
             StudentProfile(
@@ -41,7 +41,7 @@ class TestStudentProfile:
 
     def test_name_too_long(self):
         """Test name validation - too long."""
-        from schemas.session import StudentLevel, StudentProfile
+        from schemas.student import StudentLevel, StudentProfile
 
         with pytest.raises(ValidationError):
             StudentProfile(
@@ -52,7 +52,7 @@ class TestStudentProfile:
 
     def test_name_whitespace_only(self):
         """Test name validation - whitespace only."""
-        from schemas.session import StudentLevel, StudentProfile
+        from schemas.student import StudentLevel, StudentProfile
 
         with pytest.raises(ValidationError):
             StudentProfile(
@@ -63,7 +63,7 @@ class TestStudentProfile:
 
     def test_learning_ability_out_of_range_low(self):
         """Test learning_ability validation - too low."""
-        from schemas.session import StudentLevel, StudentProfile
+        from schemas.student import StudentLevel, StudentProfile
 
         with pytest.raises(ValidationError):
             StudentProfile(
@@ -74,7 +74,7 @@ class TestStudentProfile:
 
     def test_learning_ability_out_of_range_high(self):
         """Test learning_ability validation - too high."""
-        from schemas.session import StudentLevel, StudentProfile
+        from schemas.student import StudentLevel, StudentProfile
 
         with pytest.raises(ValidationError):
             StudentProfile(
@@ -85,7 +85,7 @@ class TestStudentProfile:
 
     def test_default_values(self):
         """Test default values for optional fields."""
-        from schemas.session import StudentAttitude, StudentLevel, StudentProfile
+        from schemas.student import StudentAttitude, StudentLevel, StudentProfile
 
         profile = StudentProfile(
             name="David",
@@ -102,7 +102,7 @@ class TestRandomClassConfig:
 
     def test_valid_random_config(self):
         """Test creating valid random class config."""
-        from schemas.session import RandomClassConfig
+        from schemas.student import RandomClassConfig
 
         config = RandomClassConfig(
             total_students=30,
@@ -115,7 +115,7 @@ class TestRandomClassConfig:
 
     def test_level_distribution_not_sum_to_one(self):
         """Test level distribution validation - doesn't sum to 1."""
-        from schemas.session import RandomClassConfig
+        from schemas.student import RandomClassConfig
 
         with pytest.raises(ValidationError) as exc_info:
             RandomClassConfig(
@@ -128,7 +128,7 @@ class TestRandomClassConfig:
 
     def test_total_students_too_small(self):
         """Test total_students validation - too small."""
-        from schemas.session import RandomClassConfig
+        from schemas.student import RandomClassConfig
 
         with pytest.raises(ValidationError):
             RandomClassConfig(
@@ -137,7 +137,7 @@ class TestRandomClassConfig:
 
     def test_total_students_too_large(self):
         """Test total_students validation - too large."""
-        from schemas.session import RandomClassConfig
+        from schemas.student import RandomClassConfig
 
         with pytest.raises(ValidationError):
             RandomClassConfig(
@@ -150,12 +150,8 @@ class TestTeachingSessionCreate:
 
     def test_valid_session_create(self):
         """Test creating valid teaching session."""
-        from schemas.session import (
-            StudentCreateRequest,
-            StudentProfile,
-            TeachingMode,
-            TeachingSessionCreate,
-        )
+        from schemas.student import StudentCreateRequest, StudentProfile
+        from schemas.teaching_session import TeachingMode, TeachingSessionCreate
 
         session = TeachingSessionCreate(
             teaching_mode=TeachingMode.DIDACTIC,
@@ -175,7 +171,8 @@ class TestTeachingSessionCreate:
 
     def test_topic_too_long(self):
         """Test topic validation - too long."""
-        from schemas.session import StudentCreateRequest, TeachingMode, TeachingSessionCreate
+        from schemas.student import StudentCreateRequest
+        from schemas.teaching_session import TeachingMode, TeachingSessionCreate
 
         with pytest.raises(ValidationError):
             TeachingSessionCreate(
@@ -186,7 +183,8 @@ class TestTeachingSessionCreate:
 
     def test_duration_too_short(self):
         """Test duration_seconds validation - too short."""
-        from schemas.session import StudentCreateRequest, TeachingMode, TeachingSessionCreate
+        from schemas.student import StudentCreateRequest
+        from schemas.teaching_session import TeachingMode, TeachingSessionCreate
 
         with pytest.raises(ValidationError):
             TeachingSessionCreate(
@@ -198,7 +196,8 @@ class TestTeachingSessionCreate:
 
     def test_optional_duration(self):
         """Test duration_seconds is optional."""
-        from schemas.session import StudentCreateRequest, TeachingMode, TeachingSessionCreate
+        from schemas.student import StudentCreateRequest
+        from schemas.teaching_session import TeachingMode, TeachingSessionCreate
 
         session = TeachingSessionCreate(
             teaching_mode=TeachingMode.DIDACTIC,
@@ -213,7 +212,7 @@ class TestMessage:
 
     def test_valid_message(self):
         """Test creating valid message."""
-        from schemas.session import Message, MessageType
+        from schemas.message import Message, MessageType
 
         message = Message(
             sender="teacher",
@@ -225,7 +224,7 @@ class TestMessage:
 
     def test_content_empty(self):
         """Test content validation - empty."""
-        from schemas.session import Message, MessageType
+        from schemas.message import Message, MessageType
 
         with pytest.raises(ValidationError):
             Message(
@@ -236,7 +235,7 @@ class TestMessage:
 
     def test_message_create_with_session_id(self):
         """Test MessageCreate schema."""
-        from schemas.session import MessageCreate, MessageType
+        from schemas.message import MessageCreate, MessageType
 
         message_create = MessageCreate(
             session_id=1,
