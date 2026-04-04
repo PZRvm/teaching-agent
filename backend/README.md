@@ -160,3 +160,122 @@ ruff format . --check     # 检查格式（不修改）
 1. 在 FastAPI 路由中编写接口（会自动出现在 Swagger UI）
 2. 更新 `docs/api.md` 文档，添加详细说明
 3. 在路由函数的 docstring 中添加描述（会显示在 Swagger UI）
+
+## 数据库迁移 (Alembic)
+
+项目使用 Alembic 进行数据库版本控制和迁移管理。
+
+### 首次设置
+
+首次运行项目时，需要创建数据库表结构：
+
+```bash
+# 初始化数据库（创建所有表）
+alembic upgrade head
+```
+
+执行后会在 `datas/database.db` 创建以下表：
+- `teaching_sessions` - 教学会话表
+- `session_memories` - 会话记忆表
+- `teacher_memories` - 教师记忆表
+- `messages` - 消息表
+- `alembic_version` - Alembic 版本控制表
+
+### 创建新迁移
+
+当修改了 ORM 模型（`orm/` 目录下的文件）后，需要创建新的迁移脚本：
+
+```bash
+# 自动生成迁移脚本（推荐）
+alembic revision --autogenerate -m "描述变更内容"
+
+# 示例：
+# alembic revision --autogenerate -m "添加用户头像字段"
+# alembic revision --autogenerate -m "创建订单表"
+```
+
+**注意事项：**
+- `--autogenerate` 会自动检测 ORM 模型的变化
+- 生成的迁移脚本位于 `alembic/versions/` 目录
+- 生成后请检查迁移脚本内容是否正确
+- 提交代码时包含迁移脚本
+
+### 应用迁移
+
+将待执行的迁移应用到数据库：
+
+```bash
+# 应用所有待执行的迁移
+alembic upgrade head
+
+# 应用到指定版本
+alembic upgrade <revision_id>
+
+# 示例：
+# alembic upgrade 2c224e826c17
+```
+
+### 回滚迁移
+
+回滚到之前的迁移版本：
+
+```bash
+# 回滚一个版本
+alembic downgrade -1
+
+# 回滚到指定版本
+alembic downgrade <revision_id>
+
+# 回滚到初始状态（删除所有表）
+alembic downgrade base
+```
+
+**警告：** 回滚会删除数据，请谨慎操作！
+
+### 查看迁移状态
+
+```bash
+# 查看当前数据库版本
+alembic current
+
+# 查看所有迁移历史
+alembic history
+
+# 查看待执行的迁移
+alembic heads
+```
+
+### 迁移脚本示例
+
+生成的迁移脚本位于 `alembic/versions/` 目录：
+
+```
+alembic/versions/
+├── 2c224e826c17_创建初始表结构.py       # 初始迁移
+├── a1b2c3d4e5f6_添加用户头像字段.py     # 后续迁移示例
+└── ...
+```
+
+### 外键约束说明
+
+SQLite 默认不强制执行外键约束。项目已在 `alembic/env.py` 中配置自动启用外键约束。
+
+使用其他 SQLite 客户端时，需要手动执行：
+
+```sql
+PRAGMA foreign_keys = ON;
+```
+
+### 数据库文件位置
+
+- **SQLite 数据库**: `datas/database.db`
+- **迁移配置**: `alembic.ini`
+- **环境配置**: `alembic/env.py`
+
+### 迁移最佳实践
+
+1. **先 autogenerate，后检查**: 使用 `--autogenerate` 后务必检查生成的脚本
+2. **小步快跑**: 每次修改 ORM 后立即创建迁移，不要积累太多变更
+3. **测试迁移**: 在开发环境测试迁移后再部署到生产环境
+4. **备份重要数据**: 执行迁移前备份重要数据
+5. **版本控制**: 将迁移脚本纳入版本控制，便于团队协作
