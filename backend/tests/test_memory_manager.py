@@ -527,3 +527,109 @@ class TestMemoryManager:
         manager.process_message(msg)
 
         assert manager.teacher_memory.student_participation.get("李四") == 1
+
+
+class TestMemoryManagerSummary:
+    """MemoryManager 摘要更新测试."""
+
+    def _make_lecture(self, content: str = "讲授内容") -> Message:
+        return Message(
+            sender="teacher",
+            message_type=MessageType.LECTURE,
+            content=content,
+            timestamp=datetime.now(),
+        )
+
+    def test_summary_updates_after_interval(self):
+        """测试达到间隔后自动更新摘要."""
+        from agents.memories.memory_manager import MemoryManager, SessionMemory
+
+        session_mem = SessionMemory(session_id=1, topic="Python基础")
+        summary_calls = []
+
+        def mock_summary(prompt: str) -> str:
+            summary_calls.append(prompt)
+            return "摘要内容"
+
+        manager = MemoryManager(
+            session_memory=session_mem,
+            summary_fn=mock_summary,
+            summary_update_interval=5,
+        )
+
+        # 发送5条消息触发摘要更新
+        for i in range(5):
+            manager.process_message(self._make_lecture(f"内容{i}"))
+
+        assert session_mem.teaching_summary == "摘要内容"
+        assert len(summary_calls) == 1
+
+    def test_summary_not_updated_below_interval(self):
+        """测试未达到间隔不更新摘要."""
+        from agents.memories.memory_manager import MemoryManager, SessionMemory
+
+        session_mem = SessionMemory(session_id=1, topic="Python基础")
+        manager = MemoryManager(
+            session_memory=session_mem,
+            summary_fn=lambda p: "摘要",
+            summary_update_interval=10,
+        )
+
+        for i in range(9):
+            manager.process_message(self._make_lecture(f"内容{i}"))
+
+        assert session_mem.teaching_summary == ""
+
+    def test_summary_marks_updated(self):
+        """测试摘要更新后重置计数器."""
+        from agents.memories.memory_manager import MemoryManager, SessionMemory
+
+        session_mem = SessionMemory(session_id=1, topic="Python基础")
+        call_count = 0
+
+        def mock_summary(prompt: str) -> str:
+            nonlocal call_count
+            call_count += 1
+            return f"摘要{call_count}"
+
+        manager = MemoryManager(
+            session_memory=session_mem,
+            summary_fn=mock_summary,
+            summary_update_interval=5,
+        )
+
+        # 第一次触发
+        for i in range(5):
+            manager.process_message(self._make_lecture(f"内容{i}"))
+        assert call_count == 1
+
+        # 再发5条触发第二次
+        for i in range(5):
+            manager.process_message(self._make_lecture(f"更多内容{i}"))
+        assert call_count == 2
+
+    def test_summary_uses_recent_messages(self):
+        """测试摘要基于最近消息生成."""
+        from agents.memories.memory_manager import MemoryManager, SessionMemory
+
+        session_mem = SessionMemory(session_id=1, topic="Python基础")
+
+        captured_prompt = None
+
+        def mock_summary(prompt: str) -> str:
+            nonlocal captured_prompt
+            captured_prompt = prompt
+            return "摘要"
+
+        manager = MemoryManager(
+            session_memory=session_mem,
+            summary_fn=mock_summary,
+            summary_update_interval=3,
+        )
+
+        for i in range(3):
+            manager.process_message(self._make_lecture(f"内容{i}"))
+
+        assert captured_prompt is not None
+        assert "Python基础" in captured_prompt
+        assert "内容2" in captured_prompt  # 最近的对话
