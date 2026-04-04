@@ -12,7 +12,7 @@ class TestAlembicMigration:
     @pytest.fixture
     def db_path(self):
         """获取数据库文件路径."""
-        return Path(__file__).parents[1] / "datas" / "database.db"
+        return Path(__file__).parents[2] / "datas" / "database.db"
 
     def test_database_file_exists(self, db_path):
         """测试数据库文件是否存在."""
