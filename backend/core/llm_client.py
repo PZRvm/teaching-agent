@@ -91,3 +91,28 @@ class LLMClient:
 
         response = self._llm.invoke(**invoke_kwargs)
         return response.content
+
+    def stream(
+        self,
+        prompt: str | list,
+        temperature: float | None = None,
+    ):
+        """流式调用 LLM，逐 token 生成响应.
+
+        Args:
+            prompt: 提示文本或消息列表
+            temperature: 可选温度覆盖
+
+        Yields:
+            每个文本 chunk
+        """
+        from langchain_core.messages import HumanMessage
+
+        messages = [HumanMessage(content=prompt)] if isinstance(prompt, str) else prompt
+
+        invoke_kwargs: dict = {"input": messages}
+        if temperature is not None:
+            invoke_kwargs["temperature"] = temperature
+
+        for chunk in self._llm.stream(**invoke_kwargs):
+            yield chunk.content

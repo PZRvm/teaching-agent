@@ -1,6 +1,6 @@
 """TeacherAgent 真实 LLM 集成测试.
 
-使用真实 LLM API 测试 TeacherAgent 的讲授功能。
+使用真实 LLM API 测试 TeacherAgent 的讲授功能（流式输出）。
 运行方式: pytest tests/integration/test_teacher_agent_real.py -v -s
 """
 
@@ -22,11 +22,11 @@ def real_llm():
 
 
 class TestTeacherAgentRealLecture:
-    """使用真实 LLM 测试 TeacherAgent 讲授功能."""
+    """使用真实 LLM 流式输出测试 TeacherAgent 讲授功能."""
 
     @pytest.mark.integration
     def test_deliver_lecture_didactic(self, real_llm):
-        """测试灌输式模式讲授（真实 LLM）."""
+        """测试灌输式模式讲授（真实 LLM，流式输出）."""
         session_mem = SessionMemory(session_id=9991, topic="Python变量与数据类型")
 
         agent = TeacherAgent(
@@ -35,21 +35,22 @@ class TestTeacherAgentRealLecture:
             teaching_mode="didactic",
         )
 
-        content = agent.deliver_lecture()
-
         print(f"\n{'='*60}")
         print("[灌输式] Python变量与数据类型")
         print(f"{'='*60}")
-        print(content)
-        print(f"{'='*60}\n")
 
+        chunks = list(agent.deliver_lecture_stream())
+
+        print(f"\n{'='*60}\n")
+
+        content = "".join(chunks)
         assert isinstance(content, str)
         assert len(content) > 50
         assert len(agent.session_memory.message_history) == 1
 
     @pytest.mark.integration
     def test_deliver_lecture_heuristic(self, real_llm):
-        """测试启发式模式讲授（真实 LLM）."""
+        """测试启发式模式讲授（真实 LLM，流式输出）."""
         session_mem = SessionMemory(session_id=9992, topic="Python条件语句")
 
         agent = TeacherAgent(
@@ -58,21 +59,22 @@ class TestTeacherAgentRealLecture:
             teaching_mode="heuristic",
         )
 
-        content = agent.deliver_lecture()
-
         print(f"\n{'='*60}")
         print("[启发式] Python条件语句")
         print(f"{'='*60}")
-        print(content)
-        print(f"{'='*60}\n")
 
+        chunks = list(agent.deliver_lecture_stream())
+
+        print(f"\n{'='*60}\n")
+
+        content = "".join(chunks)
         assert isinstance(content, str)
         assert len(content) > 50
         assert len(agent.session_memory.message_history) == 1
 
     @pytest.mark.integration
     def test_deliver_lecture_discussion(self, real_llm):
-        """测试讨论式模式讲授（真实 LLM）."""
+        """测试讨论式模式讲授（真实 LLM，流式输出）."""
         session_mem = SessionMemory(session_id=9993, topic="Python循环结构")
 
         agent = TeacherAgent(
@@ -81,14 +83,15 @@ class TestTeacherAgentRealLecture:
             teaching_mode="discussion",
         )
 
-        content = agent.deliver_lecture()
-
         print(f"\n{'='*60}")
         print("[讨论式] Python循环结构")
         print(f"{'='*60}")
-        print(content)
-        print(f"{'='*60}\n")
 
+        chunks = list(agent.deliver_lecture_stream())
+
+        print(f"\n{'='*60}\n")
+
+        content = "".join(chunks)
         assert isinstance(content, str)
         assert len(content) > 50
         assert len(agent.session_memory.message_history) == 1

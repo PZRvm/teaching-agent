@@ -132,6 +132,37 @@ class TeacherAgent:
 
         return content
 
+    def deliver_lecture_stream(self):
+        """流式生成讲授内容，逐 token 输出.
+
+        Yields:
+            每个文本 chunk
+        """
+        system_prompt = self._build_system_prompt()
+        user_prompt = f"请继续讲授关于「{self.session_memory.topic}」的内容。"
+
+        messages = [
+            {"role": "system", "content": system_prompt},
+            {"role": "user", "content": user_prompt},
+        ]
+
+        full_content = []
+        for chunk in self.llm.stream(messages, temperature=self._get_mode_temperature()):
+            print(chunk, end="", flush=True)
+            full_content.append(chunk)
+            yield chunk
+
+        content = "".join(full_content)
+
+        # 通过 MemoryManager 处理消息
+        message = Message(
+            sender="teacher",
+            message_type=MessageType.LECTURE,
+            content=content,
+            timestamp=datetime.now(),
+        )
+        self.memory_manager.process_message(message)
+
     def _get_mode_temperature(self) -> float:
         """根据教学模式获取合适的温度值.
 
