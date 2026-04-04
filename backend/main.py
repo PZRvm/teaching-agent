@@ -1,7 +1,11 @@
-import uvicorn
-from fastapi import FastAPI
+from dotenv import load_dotenv
 
-from models.user import router as user_router
+load_dotenv()  # noqa: E402
+
+import uvicorn  # noqa: E402
+from fastapi import FastAPI  # noqa: E402
+
+from models.user import router as user_router  # noqa: E402
 
 app = FastAPI()
 
