@@ -81,53 +81,53 @@
 
 **任务列表**:
 1. SessionMemory
-   - [x] `backend/agents/memories/session_memory.py` - SessionMemory类
-   - [x] message_history列表
-   - [x] teaching_summary
-   - [x] should_update_summary() 判断逻辑
+   - [✓] `backend/agents/memories/session_memory.py` - SessionMemory类
+   - [✓] message_history列表
+   - [✓] teaching_summary
+   - [✓] should_update_summary() 判断逻辑
 
 2. TeacherAgentMemory
-   - [x] `backend/agents/memories/teacher_memory.py` - TeacherAgentMemory类
-   - [x] covered_topics追踪
-   - [x] student_questions字典
-   - [x] student_participation字典
-   - [x] get_system_prompt_addition()
+   - [✓] `backend/agents/memories/teacher_memory.py` - TeacherAgentMemory类
+   - [✓] covered_topics追踪
+   - [✓] student_questions字典
+   - [✓] student_participation字典
+   - [✓] get_system_prompt_addition()
 
 3. StudentAgentMemory
-   - [x] `backend/agents/memories/student_memory.py` - StudentAgentMemory类
-   - [x] learned_concepts - 已掌握概念列表
-   - [x] current_knowledge_level - 当前知识水平（0-1）
-   - [x] should_remember_concept() - 基于学习参数判断是否记住
-   - [x] update_knowledge() - 尝试学习新概念
-   - [x] get_system_prompt_addition() - 生成学生 prompt 上下文
+   - [✓] `backend/agents/memories/student_memory.py` - StudentAgentMemory类
+   - [✓] learned_concepts - 已掌握概念列表
+   - [✓] current_knowledge_level - 当前知识水平（0-1）
+   - [✓] should_remember_concept() - 基于学习参数判断是否记住
+   - [✓] update_knowledge() - 尝试学习新概念
+   - [✓] get_system_prompt_addition() - 生成学生 prompt 上下文
 
 4. MemoryManager
-   - [x] `backend/agents/memories/memory_manager.py` - MemoryManager类
-   - [x] process_message() 方法
-   - [x] _process_lecture() - 提取知识点并更新学生记忆
-   - [x] _check_and_update_summary() - LLM生成摘要
-   - [x] register_student() - 注册学生到记忆系统
+   - [✓] `backend/agents/memories/memory_manager.py` - MemoryManager类
+   - [✓] process_message() 方法
+   - [✓] _process_lecture() - 提取知识点并更新学生记忆
+   - [✓] _check_and_update_summary() - LLM生成摘要
+   - [✓] register_student() - 注册学生到记忆系统
 
 5. MemoryPersistence服务
-   - [x] `backend/agents/memories/memory_persistence.py`
-   - [x] _upsert() 通用方法
-   - [x] save_session_memory()
-   - [x] save_teacher_memory()
-   - [x] save_student_memory()
-   - [x] save_message()
-   - [x] load_session_memory()
-   - [x] load_teacher_memory()
-   - [x] load_student_memory()
-   - [x] _load_message_history()
+   - [✓] `backend/agents/memories/memory_persistence.py`
+   - [✓] _upsert() 通用方法
+   - [✓] save_session_memory()
+   - [✓] save_teacher_memory()
+   - [✓] save_student_memory()
+   - [✓] save_message()
+   - [✓] load_session_memory()
+   - [✓] load_teacher_memory()
+   - [✓] load_student_memory()
+   - [✓] _load_message_history()
 
 **验收标准**:
-- [x] 消息能添加到message_history
-- [x] 每10条消息触发一次摘要更新（通过测试验证）
-- [x] 会话结束后能从数据库完整恢复所有数据（SessionMemory + TeacherAgentMemory + StudentAgentMemory）
-- [x] StudentAgentMemory 正常持久化和加载
-- [x] 学生学习状态（learned_concepts, knowledge_level）正确保存和恢复
-- [x] 并发更新不丢失数据（测试同时更新）
-- [x] 验证：创建会话→添加消息→持久化→读取恢复
+- [✓] 消息能添加到message_history
+- [✓] 每10条消息触发一次摘要更新（通过测试验证）
+- [✓] 会话结束后能从数据库完整恢复所有数据（SessionMemory + TeacherAgentMemory + StudentAgentMemory）
+- [✓] StudentAgentMemory 正常持久化和加载
+- [✓] 学生学习状态（learned_concepts, knowledge_level）正确保存和恢复
+- [✓] 并发更新不丢失数据（测试同时更新）
+- [✓] 验证：创建会话→添加消息→持久化→读取恢复
 
 **完成时间**: 2026-04-04
 
