@@ -9,6 +9,23 @@ from schemas.student import StudentProfile
 class TestTeacherAgentInit:
     """TeacherAgent 初始化测试."""
 
+    def test_invalid_teaching_mode_raises_error(self):
+        """测试无效教学模式抛出 ValueError."""
+        from agents.memories import SessionMemory
+        from agents.teacher_agent import TeacherAgent
+
+        session_mem = SessionMemory(session_id=1, topic="Python基础")
+        mock_llm = MagicMock()
+
+        import pytest
+
+        with pytest.raises(ValueError, match="无效的教学模式"):
+            TeacherAgent(
+                session_memory=session_mem,
+                llm=mock_llm,
+                teaching_mode="invalid_mode",
+            )
+
     def test_init_with_defaults(self):
         """测试使用 MemoryManager 初始化."""
         from agents.memories import SessionMemory

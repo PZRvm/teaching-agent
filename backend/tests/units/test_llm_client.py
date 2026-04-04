@@ -33,6 +33,15 @@ class TestLLMClient:
         assert client.base_url == "https://api.siliconflow.cn/v1"
         assert client.model == "Qwen/Qwen2.5-7B-Instruct"
 
+    def test_init_from_config_raises_without_api_key(self):
+        """测试 from_config() 在无 API key 时抛出 ValueError."""
+        import pytest
+
+        from core.llm_client import LLMClient
+
+        with patch.dict("os.environ", {}, clear=True), pytest.raises(ValueError, match="OPENAI_API_KEY"):
+            LLMClient.from_config()
+
     @patch("core.llm_client.ChatOpenAI")
     def test_invoke_returns_response(self, mock_chat_openai_cls):
         """测试 invoke 调用 LLM 并返回响应."""

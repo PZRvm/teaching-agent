@@ -139,25 +139,38 @@
 
 **任务列表**:
 1. LangChain基础集成
-   - [ ] 配置硅基流动API（Qwen2.5-7B-Instruct）
-   - [ ] 测试LLM连接
+   - [✓] 配置硅基流动API（Qwen2.5-7B-Instruct）
+   - [✓] 测试LLM连接
 
 2. MemoryAwareTeacherAgent基础结构
-   - [ ] `backend/agents/teacher_agent.py`
-   - [ ] __init__ with MemoryManager and LLM
-   - [ ] _create_agent() - LangChain AgentExecutor
+   - [✓] `backend/agents/teacher_agent.py`
+   - [✓] __init__ with MemoryManager and LLM
+   - [✓] teaching_mode 参数校验（didactic/heuristic/discussion）
 
 3. 讲授功能
-   - [ ] deliver_lecture() 方法
-   - [ ] 根据teaching_mode调整讲授风格
+   - [✓] deliver_lecture() 方法
+   - [✓] deliver_lecture_stream() 流式输出
+   - [✓] 根据teaching_mode调整讲授风格（不同 system prompt + temperature）
+   - [✓] is_content_complete() LLM 判断内容是否完成
+
+4. LLMClient
+   - [✓] `backend/core/llm_client.py` - 封装 ChatOpenAI
+   - [✓] invoke() 同步调用
+   - [✓] stream() 流式调用
+   - [✓] from_config() 从 YAML + .env 配置
+
+5. 测试
+   - [✓] 15 个 TeacherAgent 单元测试
+   - [✓] 6 个 LLMClient 单元测试
+   - [✓] 3 个真实 LLM 集成测试（流式输出）
 
 **验收标准**:
-- [ ] 能连接LLM API
-- [ ] 能输出讲授内容（lecture）
-- [ ] 讲授内容与教学主题相关
-- [ ] 验证：调用agent，查看输出内容
+- [✓] 能连接LLM API
+- [✓] 能输出讲授内容（lecture）
+- [✓] 讲授内容与教学主题相关
+- [✓] 验证：调用agent，查看输出内容
 
-**预计时间**: 2-3小时
+**完成时间**: 2026-04-05
 
 ---
 
@@ -342,7 +355,7 @@
 3. ObservationView组件
    - [ ] 实时消息列表显示
    - [ ] 当前模式徽章显示
-   - [� 已进行时间显示
+   - [ ] 已进行时间显示
    - [ ] 消息数量统计
 
 **验收标准**:
@@ -475,7 +488,7 @@ Phase 13 (测试)
 
 ## 快速开始
 
-**当前进度**: Phase 3 已完成 ✅
+**当前进度**: Phase 4 已完成 ✅
 
 ✅ **已完成**:
 - Phase 1: 基础设施与数据层
@@ -492,6 +505,12 @@ Phase 13 (测试)
   - `backend/agents/memories/memory_persistence.py` - MemoryPersistence类（数据库持久化）
   - 完整测试覆盖（43个新测试：9个SessionMemory + 8个TeacherAgentMemory + 8个StudentAgentMemory + 14个MemoryManager + 4个Summary + 14个Persistence + 2个Integration）
   - 所有保存和加载操作完整测试通过
+- Phase 4: 教师 Agent
+  - `backend/core/llm_client.py` - LLMClient（封装 ChatOpenAI，支持 invoke/stream）
+  - `backend/agents/teacher_agent.py` - TeacherAgent（讲授、流式输出、内容完成判断）
+  - 三种教学模式支持（didactic/heuristic/discussion），不同 prompt + temperature
+  - 完整测试覆盖（24个新测试：15个TeacherAgent单元 + 6个LLMClient单元 + 3个集成测试）
+  - 133 个测试全部通过
 
-📋 **下一步**: Phase 4 - 教师 Agent（单个，先做基础）
+📋 **下一步**: Phase 5 - 学生 Agent（单个）
 
