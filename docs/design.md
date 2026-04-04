@@ -1092,7 +1092,25 @@ class TeacherMemoryModel(Base, AsyncAttrs):
     student_participation: Mapped[dict] = mapped_column(JSON)  # {student_id: count}
     student_misconceptions: Mapped[dict] = mapped_column(JSON)  # {student_id: [misconceptions]}
 
-# StudentMemoryModel 已移除 - 学生状态合并到 TeachingSession 的 students_config JSON 字段
+class StudentMemoryModel(Base, AsyncAttrs):
+    """学生记忆 ORM 模型"""
+    __tablename__ = "student_memories"
+
+    id: Mapped[int] = mapped_column(primary_key=True)
+    session_id: Mapped[str] = mapped_column(String(50), foreign_key="session_memories.session_id")
+    student_name: Mapped[str] = mapped_column(String(50))
+    
+    # 学习状态追踪
+    learned_concepts: Mapped[dict] = mapped_column(JSON)  # list[str]
+    confused_points: Mapped[dict] = mapped_column(JSON)  # list[str]
+    questions_asked: Mapped[dict] = mapped_column(JSON)  # list[str]
+    
+    # 模拟学习曲线
+    initial_knowledge_level: Mapped[float] = mapped_column(Float, default=0.0)
+    current_knowledge_level: Mapped[float] = mapped_column(Float, default=0.0)
+    learning_rate: Mapped[float] = mapped_column(Float, default=0.1)
+    
+    last_updated: Mapped[datetime] = mapped_column(DateTime, default=datetime.now)
 
 class MessageModel(Base, AsyncAttrs):
     """消息记录 ORM 模型"""
@@ -1118,8 +1136,7 @@ from sqlalchemy.orm import selectinload
 from typing import TypeVar, Type, Callable, Awaitable
 from abc import ABC, abstractmethod
 
-from models.session_memory import SessionMemoryModel, TeacherMemoryModel
-# StudentMemoryModel 已移除 - 学生状态保存在 TeachingSession.students_config 中
+from models.session_memory import SessionMemoryModel, TeacherMemoryModel, StudentMemoryModel
 
 T = TypeVar('T', bound=Base)
 
@@ -1228,10 +1245,36 @@ class MemoryPersistence:
 
         await self.async_session.commit()
 
-    # Note: save_teacher_memory 已重构为使用 _upsert() 通用方法，避免重复代码
-    # 实现类似 save_session_memory，使用 update_fn 和 create_fn 模式
-
-    # save_student_memory 方法已移除 - 学生状态保存在 TeachingSession.students_config JSON 字段中
+    async def save_student_memory(self, session_id: str, student_memory: StudentAgentMemory):
+        """保存学生记忆到数据库
+        
+        Args:
+            session_id: 会话ID
+            student_memory: 学生记忆对象
+        """
+        def update_fn(existing: StudentMemoryModel, data: dict) -> None:
+            existing.learned_concepts = data['learned_concepts']
+            existing.confused_points = data['confused_points']
+            existing.questions_asked = data['questions_asked']
+            existing.current_knowledge_level = data['current_knowledge_level']
+            existing.learning_rate = data['learning_rate']
+            existing.last_updated = datetime.now()
+        
+        def create_fn() -> dict:
+            return {
+                'session_id': session_id,
+                'student_name': student_memory.name,
+                'learned_concepts': student_memory.learned_concepts,
+                'confused_points': student_memory.confused_points,
+                'questions_asked': student_memory.questions_asked,
+                'initial_knowledge_level': student_memory.initial_knowledge_level,
+                'current_knowledge_level': student_memory.current_knowledge_level,
+                'learning_rate': student_memory.learning_rate,
+            }
+        
+        return await self._upsert(
+            StudentMemoryModel, session_id, update_fn, create_fn
+        )
 
     async def _load_message_history(self, session_id: str) -> List[Message]:
         """加载消息历史"""
@@ -1329,7 +1372,28 @@ def upgrade():
 
     op.create_index('ix_messages_session_id', 'messages', ['session_id'])
 
-    # student_memories 表已移除 - 学生状态保存在 teaching_sessions 表的 students_config 字段中
+    # 创建 student_memories 表
+    op.create_table(
+        'student_memories',
+        sa.Column('id', sa.Integer(), autoincrement=True, primary_key=True),
+        sa.Column('session_id', sa.String(50), sa.ForeignKey('session_memories.session_id')),
+        sa.Column('student_name', sa.String(50), nullable=False),
+        
+        # 学习状态追踪
+        sa.Column('learned_concepts', sa.JSON(), nullable=False),
+        sa.Column('confused_points', sa.JSON(), nullable=False),
+        sa.Column('questions_asked', sa.JSON(), nullable=False),
+        
+        # 模拟学习曲线
+        sa.Column('initial_knowledge_level', sa.Float(), nullable=False, default=0.0),
+        sa.Column('current_knowledge_level', sa.Float(), nullable=False, default=0.0),
+        sa.Column('learning_rate', sa.Float(), nullable=False, default=0.1),
+        
+        sa.Column('last_updated', sa.DateTime(), nullable=False),
+    )
+    
+    op.create_index('ix_student_memories_session_id', 'student_memories', ['session_id'])
+    op.create_index('ix_student_memories_student_name', 'student_memories', ['session_id', 'student_name'])
 ```
 
 **依赖注入配置**:
@@ -1905,10 +1969,11 @@ CI/CD：暂不需要，本地开发即可
 
 ### 简化措施
 
-1. **Memory系统简化**:
-   - 移除 `StudentMemoryModel` ORM表
-   - 学生状态保存在 `TeachingSession.students_config` JSON字段中
-   - 运行时状态从消息历史重建
+1. **Memory系统设计**:
+   - **保留** `SessionMemory` 数据类和 ORM 表
+   - **保留** `TeacherAgentMemory` 数据类和 ORM 表
+   - **保留** `StudentAgentMemory` 数据类和 ORM 表
+   - 所有三种记忆都持久化到数据库
 
 2. **分析报告简化**:
    - 核心指标即可（参与度、正确率、互动频率、知识掌握度等）
@@ -1918,14 +1983,17 @@ CI/CD：暂不需要，本地开发即可
 ### 数据库Schema
 
 ```sql
--- 保留的表
-teaching_sessions        -- 会话主表（包含学生配置JSON）
+-- 所有表（ORM持久化）
+teaching_sessions        -- 会话主表
 session_memories         -- 会话记忆（消息历史摘要 + 教学摘要）
 teacher_memories         -- 教师记忆（已讲授主题 + 学生问题）
+student_memories         -- 学生记忆（学习状态 + 学习曲线）
 messages                 -- 消息记录（完整历史）
 
--- 移除的表
-student_memories         -- 学生单独记忆表（数据合并到teaching_sessions）
+-- 对应的数据类
+- SessionMemory          -- 会话记忆类
+- TeacherAgentMemory     -- 教师agent记忆类
+- StudentAgentMemory     -- 学生agent记忆类
 ```
 
 ### 实现时间表（4周）
