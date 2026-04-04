@@ -238,3 +238,152 @@ class TestMemoryPersistenceSave:
         assert len(records) == 1
         assert records[0].sender == "teacher"
         assert records[0].content == "今天学习变量"
+
+
+@pytest.mark.asyncio
+class TestMemoryPersistenceLoad:
+    """MemoryPersistence 加载操作测试."""
+
+    async def test_load_session_memory_exists(
+        self, db_session: AsyncSession
+    ):
+        """测试加载已存在的会话记忆."""
+
+        from agents.memories.memory_persistence import MemoryPersistence
+
+        session_id = await _create_teaching_session(db_session)
+
+        # 先保存
+        memory = SessionMemory(
+            session_id=session_id,
+            topic="Python基础",
+            teaching_summary="已讲授变量",
+        )
+        persistence = MemoryPersistence(db_session)
+        await persistence.save_session_memory(memory)
+
+        # 再加载
+        loaded = await persistence.load_session_memory(session_id)
+        assert loaded is not None
+        assert loaded.session_id == session_id
+        assert loaded.teaching_summary == "已讲授变量"
+
+    async def test_load_session_memory_not_exists(
+        self, db_session: AsyncSession
+    ):
+        """测试加载不存在的会话记忆返回 None."""
+        from agents.memories.memory_persistence import MemoryPersistence
+
+        persistence = MemoryPersistence(db_session)
+        loaded = await persistence.load_session_memory(99999)
+        assert loaded is None
+
+    async def test_load_session_memory_with_messages(
+        self, db_session: AsyncSession
+    ):
+        """测试加载会话记忆包含消息历史."""
+
+        from agents.memories.memory_persistence import MemoryPersistence
+        from schemas.message import Message, MessageType
+
+        session_id = await _create_teaching_session(db_session)
+        persistence = MemoryPersistence(db_session)
+
+        # 保存消息
+        msg1 = Message(
+            sender="teacher",
+            message_type=MessageType.LECTURE,
+            content="今天学习变量",
+            timestamp=datetime.now(),
+        )
+        msg2 = Message(
+            sender="张三",
+            message_type=MessageType.REPLY_TO_TEACHER,
+            content="变量是什么?",
+            timestamp=datetime.now(),
+        )
+        await persistence.save_message(session_id, msg1)
+        await persistence.save_message(session_id, msg2)
+
+        # 保存会话记忆
+        memory = SessionMemory(session_id=session_id, topic="Python基础")
+        await persistence.save_session_memory(memory)
+
+        # 加载
+        loaded = await persistence.load_session_memory(session_id)
+        assert loaded is not None
+        assert len(loaded.message_history) == 2
+        assert loaded.message_history[0].sender == "teacher"
+        assert loaded.message_history[1].sender == "张三"
+
+    async def test_load_teacher_memory_exists(
+        self, db_session: AsyncSession
+    ):
+        """测试加载已存在的教师记忆."""
+
+        from agents.memories.memory_persistence import MemoryPersistence
+
+        session_id = await _create_teaching_session(db_session)
+        persistence = MemoryPersistence(db_session)
+
+        # 先保存
+        teacher_mem = TeacherAgentMemory()
+        teacher_mem.record_covered_topic("变量")
+        teacher_mem.record_covered_topic("函数")
+        teacher_mem.record_student_participation("张三")
+        await persistence.save_teacher_memory(session_id, teacher_mem)
+
+        # 再加载
+        loaded = await persistence.load_teacher_memory(session_id)
+        assert loaded is not None
+        assert "变量" in loaded.covered_topics
+        assert "函数" in loaded.covered_topics
+        assert loaded.student_participation == {"张三": 1}
+
+    async def test_load_teacher_memory_not_exists(
+        self, db_session: AsyncSession
+    ):
+        """测试加载不存在的教师记忆返回 None."""
+        from agents.memories.memory_persistence import MemoryPersistence
+
+        persistence = MemoryPersistence(db_session)
+        loaded = await persistence.load_teacher_memory(99999)
+        assert loaded is None
+
+    async def test_load_student_memory_exists(
+        self, db_session: AsyncSession
+    ):
+        """测试加载已存在的学生记忆."""
+
+        from agents.memories.memory_manager import StudentAgentMemory
+        from agents.memories.memory_persistence import MemoryPersistence
+        from schemas.student import StudentProfile
+
+        session_id = await _create_teaching_session(db_session)
+        persistence = MemoryPersistence(db_session)
+
+        # 先保存
+        student_mem = StudentAgentMemory.from_profile(
+            StudentProfile(name="张三", learning_ability=8)
+        )
+        student_mem.learned_concepts.append("变量")
+        student_mem.current_knowledge_level = 0.2
+        await persistence.save_student_memory(session_id, student_mem)
+
+        # 再加载
+        loaded = await persistence.load_student_memory(session_id, "张三")
+        assert loaded is not None
+        assert "变量" in loaded.learned_concepts
+        assert loaded.current_knowledge_level == 0.2
+
+    async def test_load_student_memory_not_exists(
+        self, db_session: AsyncSession
+    ):
+        """测试加载不存在的学生记忆返回 None."""
+        from agents.memories.memory_persistence import MemoryPersistence
+
+        session_id = await _create_teaching_session(db_session)
+        persistence = MemoryPersistence(db_session)
+
+        loaded = await persistence.load_student_memory(session_id, "不存在")
+        assert loaded is None

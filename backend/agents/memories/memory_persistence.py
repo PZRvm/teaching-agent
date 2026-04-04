@@ -19,7 +19,7 @@ from orm.message import MessageModel
 from orm.session_memory import SessionMemoryModel
 from orm.student_memory import StudentMemoryModel
 from orm.teacher_memory import TeacherMemoryModel
-from schemas.message import Message
+from schemas.message import Message, MessageType
 
 T = TypeVar("T", bound=Base)
 
@@ -195,3 +195,153 @@ class MemoryPersistence:
         return await self._upsert(
             StudentMemoryModel, session_id, update_fn, create_fn
         )
+
+    async def load_session_memory(
+        self, session_id: int
+    ) -> SessionMemory | None:
+        """从数据库加载会话记忆.
+
+        Args:
+            session_id: 会话ID
+
+        Returns:
+            会话记忆对象，不存在则返回 None
+        """
+        result = await self.db_session.execute(
+            select(SessionMemoryModel).where(
+                SessionMemoryModel.session_id == session_id
+            )
+        )
+        record = result.scalar_one_or_none()
+
+        if record is None:
+            return None
+
+        # 从 messages 表加载消息历史
+        message_history = await self._load_message_history(session_id)
+
+        # 从 teaching_sessions 表获取 topic
+        topic = await self._load_topic(session_id)
+
+        return SessionMemory(
+            session_id=session_id,
+            topic=topic,
+            teaching_summary=record.teaching_summary or "",
+            message_history=message_history,
+        )
+
+    async def load_teacher_memory(
+        self, session_id: int
+    ) -> TeacherAgentMemory | None:
+        """从数据库加载教师记忆.
+
+        Args:
+            session_id: 会话ID
+
+        Returns:
+            教师记忆对象，不存在则返回 None
+        """
+        result = await self.db_session.execute(
+            select(TeacherMemoryModel).where(
+                TeacherMemoryModel.session_id == session_id
+            )
+        )
+        record = result.scalar_one_or_none()
+
+        if record is None:
+            return None
+
+        memory = TeacherAgentMemory()
+        memory.covered_topics = record.covered_topics or []
+        memory.student_questions = record.student_questions or {}
+        memory.teaching_progress = record.teaching_progress or 0.0
+        memory.student_participation = record.student_participation or {}
+        memory.student_misconceptions = record.student_misconceptions or {}
+
+        return memory
+
+    async def _load_message_history(self, session_id: int) -> list[Message]:
+        """从 messages 表加载消息历史.
+
+        Args:
+            session_id: 会话ID
+
+        Returns:
+            消息列表，按时间排序
+        """
+        result = await self.db_session.execute(
+            select(MessageModel)
+            .where(MessageModel.session_id == session_id)
+            .order_by(MessageModel.timestamp)
+        )
+        records = result.scalars().all()
+
+        return [
+            Message(
+                sender=record.sender,
+                message_type=MessageType(record.message_type),
+                content=record.content,
+                timestamp=record.timestamp,
+            )
+            for record in records
+        ]
+
+    async def _load_topic(self, session_id: int) -> str:
+        """从 teaching_sessions 表加载主题.
+
+        Args:
+            session_id: 会话ID
+
+        Returns:
+            教学主题
+        """
+        from orm.teaching_session import TeachingSessionModel
+
+        result = await self.db_session.execute(
+            select(TeachingSessionModel).where(
+                TeachingSessionModel.id == session_id
+            )
+        )
+        record = result.scalar_one_or_none()
+        return record.topic if record else ""
+
+    async def load_student_memory(
+        self, session_id: int, student_name: str
+    ) -> StudentAgentMemory | None:
+        """从数据库加载学生记忆.
+
+        Args:
+            session_id: 会话ID
+            student_name: 学生姓名
+
+        Returns:
+            学生记忆对象，不存在则返回 None
+        """
+        result = await self.db_session.execute(
+            select(StudentMemoryModel).where(
+                StudentMemoryModel.session_id == session_id,
+                StudentMemoryModel.student_name == student_name,
+            )
+        )
+        record = result.scalar_one_or_none()
+
+        if record is None:
+            return None
+
+        from schemas.student import StudentAttitude, StudentLevel
+
+        memory = StudentAgentMemory(
+            name=record.student_name,
+            level=StudentLevel(record.level),
+            attitude=StudentAttitude(record.attitude),
+            learning_ability=record.learning_ability,
+        )
+        memory.learned_concepts = record.learned_concepts or []
+        memory.confused_points = record.confused_points or []
+        memory.questions_asked = record.questions_asked or []
+        memory.initial_knowledge_level = record.initial_knowledge_level or 0.0
+        memory.current_knowledge_level = record.current_knowledge_level or 0.0
+        memory.learning_rate = record.learning_rate or 0.05
+
+        return memory
+
