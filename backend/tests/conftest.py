@@ -37,17 +37,35 @@ async def test_engine():
     from core.database import Base
 
     # Import all ORM models so they register with Base.metadata
+    from orm.checkpoint_plan import CheckpointPlanModel  # noqa: F401
     from orm.message import MessageModel  # noqa: F401
     from orm.session_memory import SessionMemoryModel  # noqa: F401
     from orm.student_memory import StudentMemoryModel  # noqa: F401
     from orm.teacher_memory import TeacherMemoryModel  # noqa: F401
     from orm.teaching_session import TeachingSessionModel  # noqa: F401
 
+    # Enable foreign key support in SQLite for cascade delete tests
+    def create_connection():
+        """Create a connection with foreign keys enabled."""
+        import sqlite3
+
+        conn = sqlite3.connect(":memory:", check_same_thread=False)
+        conn.execute("PRAGMA foreign_keys = ON")
+        return conn
+
+    from sqlalchemy import event
+
     engine = create_async_engine(
         TEST_DATABASE_URL,
         connect_args={"check_same_thread": False},
         poolclass=StaticPool,
     )
+
+    # Enable FK for each new connection
+    def enable_fk(dbapi_conn, connection_record):
+        dbapi_conn.execute("PRAGMA foreign_keys = ON")
+
+    event.listen(engine.sync_engine, "connect", enable_fk)
 
     async with engine.begin() as conn:
         await conn.run_sync(Base.metadata.create_all)
