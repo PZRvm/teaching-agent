@@ -584,3 +584,57 @@ class TestTeacherAgentReplyToStudent:
         agent.reply_to_student(student_name="张三", student_message="变量有局部和全局作用域。")
         assert len(agent.session_memory.message_history) == 1
         assert agent.session_memory.message_history[0].message_type == MessageType.TEACHER_REPLY
+
+
+class TestTeacherAgentAssignHomework:
+    """TeacherAgent assign_homework 测试."""
+
+    def _make_agent(self, covered_topics: list[str] | None = None):
+        """辅助方法：创建 TeacherAgent."""
+        from agents.memories import SessionMemory, TeacherAgentMemory
+        from agents.memories.memory_manager import MemoryManager
+        from agents.teacher_agent import TeacherAgent
+
+        session_mem = SessionMemory(session_id=1, topic="Python基础")
+        teacher_mem = TeacherAgentMemory()
+        if covered_topics:
+            for t in covered_topics:
+                teacher_mem.record_covered_topic(t)
+
+        mm = MemoryManager(session_memory=session_mem, teacher_memory=teacher_mem)
+        mock_llm = MagicMock()
+        mock_llm.invoke.return_value = "作业：请编写一个函数，实现列表的排序功能。"
+        return TeacherAgent(
+            session_memory=session_mem,
+            llm=mock_llm,
+            teaching_mode="didactic",
+            memory_manager=mm,
+        )
+
+    def test_assign_homework_calls_llm(self):
+        """测试 assign_homework 调用 LLM."""
+        agent = self._make_agent()
+        agent.assign_homework()
+        assert len(agent.llm.invoke.call_args_list) == 1
+
+    def test_assign_homework_prompt_includes_topic_and_topics(self):
+        """测试 prompt 包含教学主题和已讲授知识点."""
+        agent = self._make_agent(covered_topics=["变量", "函数"])
+        agent.assign_homework()
+        messages = agent.llm.invoke.call_args[0][0]
+        user_msg = messages[1]["content"]
+        assert "Python基础" in user_msg
+        assert "变量" in user_msg
+
+    def test_assign_homework_returns_content(self):
+        """测试返回作业内容."""
+        agent = self._make_agent()
+        result = agent.assign_homework()
+        assert result == "作业：请编写一个函数，实现列表的排序功能。"
+
+    def test_assign_homework_records_as_assign_homework(self):
+        """测试记录为 ASSIGN_HOMEWORK 消息."""
+        agent = self._make_agent()
+        agent.assign_homework()
+        assert len(agent.session_memory.message_history) == 1
+        assert agent.session_memory.message_history[0].message_type == MessageType.ASSIGN_HOMEWORK

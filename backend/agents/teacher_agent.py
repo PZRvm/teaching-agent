@@ -314,6 +314,49 @@ class TeacherAgent:
         self._record_message(content, MessageType.TEACHER_REPLY)
         return content
 
+    def assign_homework(self) -> str:
+        """布置课后作业.
+
+        基于已讲授的内容生成作业题目。
+
+        Returns:
+            作业内容文本
+
+        Raises:
+            RuntimeError: LLM 调用失败或返回空内容时
+        """
+        system_prompt = self._build_system_prompt()
+        covered = self.memory_manager.teacher_memory.covered_topics
+        topics_str = "、".join(covered) if covered else self.session_memory.topic
+
+        user_prompt = (
+            f"请基于以下已讲授内容布置一份课后作业。\n"
+            f"教学主题: {self.session_memory.topic}\n"
+            f"已讲授的知识点: {topics_str}\n\n"
+            f"要求:\n"
+            f"- 作业应涵盖主要知识点\n"
+            f"- 包含基础题和提高题\n"
+            f"- 明确答题要求"
+        )
+        messages = [
+            {"role": "system", "content": system_prompt},
+            {"role": "user", "content": user_prompt},
+        ]
+
+        content = safe_llm_call(
+            self.llm.invoke,
+            "教师",
+            "布置作业",
+            messages,
+            temperature=DEFAULT_TEACHING_TEMPERATURE,
+        )
+
+        if not content or not content.strip():
+            raise RuntimeError("教师布置作业 LLM 返回空内容")
+
+        self._record_message(content, MessageType.ASSIGN_HOMEWORK)
+        return content
+
     def is_content_complete(self) -> bool:
         """判断教学内容是否已完成.
 
