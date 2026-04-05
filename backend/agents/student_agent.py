@@ -52,9 +52,7 @@ class StudentAgent:
         Returns:
             True 表示学生选择响应
         """
-        probability = self._RESPOND_PROBABILITIES.get(
-            self.profile.attitude.value, 0.5
-        )
+        probability = self._RESPOND_PROBABILITIES.get(self.profile.attitude.value, 0.5)
         return self.rng.random() < probability
 
     def _build_system_prompt(self) -> str:

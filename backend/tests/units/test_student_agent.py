@@ -331,8 +331,7 @@ class TestStudentAgentSubmitHomework:
         )
         mock_llm = MagicMock()
         mock_llm.invoke.return_value = (
-            "def calculate_average(numbers):\n"
-            "    return sum(numbers) / len(numbers)"
+            "def calculate_average(numbers):\n    return sum(numbers) / len(numbers)"
         )
 
         return StudentAgent(
@@ -406,9 +405,7 @@ class TestStudentAgentGiveFeedback:
             learning_ability=6,
         )
         mock_llm = MagicMock()
-        mock_llm.invoke.return_value = (
-            "今天的课我学到了列表操作，但对列表推导式还不太理解。"
-        )
+        mock_llm.invoke.return_value = "今天的课我学到了列表操作，但对列表推导式还不太理解。"
 
         return StudentAgent(
             session_memory=session_mem,
