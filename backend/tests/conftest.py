@@ -90,3 +90,33 @@ async def db_session(test_engine) -> AsyncGenerator[AsyncSession, None]:
 
     async with async_session_maker() as session:
         yield session
+
+
+@pytest.fixture
+def mock_llm_with_structured_output():
+    """Mock LLM that supports structured output."""
+    from unittest.mock import AsyncMock, MagicMock
+
+    mock = MagicMock()
+    mock.ainvoke = AsyncMock()
+    return mock
+
+
+@pytest.fixture
+def mock_llm_without_structured_output():
+    """Mock LLM that doesn't support structured output."""
+    from unittest.mock import AsyncMock, MagicMock
+
+    mock = MagicMock()
+    mock.ainvoke = AsyncMock()
+    return mock
+
+
+@pytest.fixture
+def mock_llm_json_parse_fails():
+    """Mock LLM where both structured output and JSON parsing fail."""
+    from unittest.mock import AsyncMock, MagicMock
+
+    mock = MagicMock()
+    mock.ainvoke = AsyncMock()
+    return mock
