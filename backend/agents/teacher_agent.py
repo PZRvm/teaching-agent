@@ -402,6 +402,44 @@ class TeacherAgent:
         self._record_message(content, MessageType.HOMEWORK_FEEDBACK)
         return content
 
+    def end_feedback(self) -> str:
+        """生成课程结束总结和反馈.
+
+        Returns:
+            课程总结反馈内容
+
+        Raises:
+            RuntimeError: LLM 调用失败或返回空内容时
+        """
+        system_prompt = self._build_system_prompt()
+
+        user_prompt = (
+            f"课程即将结束，请对本次教学进行总结。\n\n"
+            f"教学主题: {self.session_memory.topic}\n"
+            f"请包含:\n"
+            f"1. 本次课程的核心知识点回顾\n"
+            f"2. 对学生学习情况的评价\n"
+            f"3. 课后学习建议"
+        )
+        messages = [
+            {"role": "system", "content": system_prompt},
+            {"role": "user", "content": user_prompt},
+        ]
+
+        content = safe_llm_call(
+            self.llm.invoke,
+            "教师",
+            "课程总结",
+            messages,
+            temperature=DEFAULT_TEACHING_TEMPERATURE,
+        )
+
+        if not content or not content.strip():
+            raise RuntimeError("教师课程总结 LLM 返回空内容")
+
+        self._record_message(content, MessageType.END_FEEDBACK)
+        return content
+
     def is_content_complete(self) -> bool:
         """判断教学内容是否已完成.
 

@@ -697,3 +697,52 @@ class TestTeacherAgentGradeHomework:
         agent.grade_homework(student_name="张三", homework_content="def sort(lst): return sorted(lst)")
         assert len(agent.session_memory.message_history) == 1
         assert agent.session_memory.message_history[0].message_type == MessageType.HOMEWORK_FEEDBACK
+
+
+class TestTeacherAgentEndFeedback:
+    """TeacherAgent end_feedback 测试."""
+
+    def _make_agent(self):
+        """辅助方法：创建 TeacherAgent."""
+        from agents.memories import SessionMemory, TeacherAgentMemory
+        from agents.memories.memory_manager import MemoryManager
+        from agents.teacher_agent import TeacherAgent
+
+        session_mem = SessionMemory(session_id=1, topic="Python基础")
+        teacher_mem = TeacherAgentMemory()
+        mm = MemoryManager(session_memory=session_mem, teacher_memory=teacher_mem)
+        mock_llm = MagicMock()
+        mock_llm.invoke.return_value = "本次课程我们学习了Python基础，大家表现不错，课后多练习。"
+        return TeacherAgent(
+            session_memory=session_mem,
+            llm=mock_llm,
+            teaching_mode="didactic",
+            memory_manager=mm,
+        )
+
+    def test_end_feedback_calls_llm(self):
+        """测试 end_feedback 调用 LLM."""
+        agent = self._make_agent()
+        agent.end_feedback()
+        assert len(agent.llm.invoke.call_args_list) == 1
+
+    def test_end_feedback_prompt_includes_topic(self):
+        """测试 prompt 包含教学主题."""
+        agent = self._make_agent()
+        agent.end_feedback()
+        messages = agent.llm.invoke.call_args[0][0]
+        user_msg = messages[1]["content"]
+        assert "Python基础" in user_msg
+
+    def test_end_feedback_returns_content(self):
+        """测试返回课程总结内容."""
+        agent = self._make_agent()
+        result = agent.end_feedback()
+        assert result == "本次课程我们学习了Python基础，大家表现不错，课后多练习。"
+
+    def test_end_feedback_records_as_end_feedback(self):
+        """测试记录为 END_FEEDBACK 消息."""
+        agent = self._make_agent()
+        agent.end_feedback()
+        assert len(agent.session_memory.message_history) == 1
+        assert agent.session_memory.message_history[0].message_type == MessageType.END_FEEDBACK
