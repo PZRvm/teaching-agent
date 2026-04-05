@@ -120,7 +120,7 @@ class StudentAgent:
 
         if not content or not content.strip():
             logger.warning("StudentAgent LLM 返回空内容: student=%s", self.profile.name)
-            content = ""
+            return ""
 
         message = Message(
             sender=self.profile.name,

@@ -11,8 +11,11 @@ import yaml
 def _load_yaml(filename: str) -> dict:
     """加载 configs/ 下的 YAML 配置文件."""
     config_path = Path(__file__).parents[1] / "configs" / filename
-    with open(config_path) as f:
-        return yaml.safe_load(f)
+    with open(config_path, encoding="utf-8") as f:
+        config = yaml.safe_load(f)
+    if config is None:
+        raise ValueError(f"配置文件 {filename} 为空或格式无效")
+    return config
 
 
 _APP = _load_yaml("app.yml")

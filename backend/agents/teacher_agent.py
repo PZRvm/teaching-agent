@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import logging
 from datetime import datetime
 
 from agents.memories import SessionMemory
@@ -9,6 +10,8 @@ from agents.memories.memory_manager import MemoryManager
 from core.settings import TEACHING_TEMPERATURES, TIMEZONE
 from schemas.message import Message, MessageType
 from schemas.student import StudentProfile
+
+logger = logging.getLogger(__name__)
 
 VALID_TEACHING_MODES = ("didactic", "heuristic", "discussion")
 
@@ -135,10 +138,18 @@ class TeacherAgent:
 
         Returns:
             讲授内容文本
+
+        Raises:
+            RuntimeError: LLM 调用失败时
         """
         messages = self._build_lecture_messages()
 
-        content = self.llm.invoke(messages, temperature=self._get_mode_temperature())
+        try:
+            content = self.llm.invoke(messages, temperature=self._get_mode_temperature())
+        except Exception as e:
+            logger.error("TeacherAgent LLM 调用失败: error=%s", e)
+            raise RuntimeError(f"教师讲授的 LLM 调用失败: {e}") from e
+
         self._record_lecture(content)
 
         return content
@@ -148,16 +159,24 @@ class TeacherAgent:
 
         Yields:
             每个文本 chunk
+
+        Raises:
+            RuntimeError: LLM 调用失败时
         """
         messages = self._build_lecture_messages()
 
         full_content = []
-        for chunk in self.llm.stream(messages, temperature=self._get_mode_temperature()):
-            full_content.append(chunk)
-            yield chunk
+        try:
+            for chunk in self.llm.stream(messages, temperature=self._get_mode_temperature()):
+                full_content.append(chunk)
+                yield chunk
+        except Exception as e:
+            logger.error("TeacherAgent LLM stream 调用失败: error=%s", e)
+            raise RuntimeError(f"教师讲授的 LLM stream 调用失败: {e}") from e
 
         content = "".join(full_content)
-        self._record_lecture(content)
+        if content:
+            self._record_lecture(content)
 
     def _get_mode_temperature(self) -> float:
         """根据教学模式获取合适的温度值.
@@ -189,5 +208,10 @@ class TeacherAgent:
             + "\n\n请只回答「完成」或「未完成」。"
         )
 
-        response = self.llm.invoke(prompt, temperature=0.1)
+        try:
+            response = self.llm.invoke(prompt, temperature=0.1)
+        except Exception as e:
+            logger.error("TeacherAgent is_content_complete LLM 调用失败: error=%s", e)
+            raise RuntimeError(f"教师内容完成度判断的 LLM 调用失败: {e}") from e
+
         return response.strip() == "完成"

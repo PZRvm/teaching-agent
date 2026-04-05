@@ -15,6 +15,7 @@ from agents.memories.memory_manager import (
     TeacherAgentMemory,
 )
 from core.database import Base
+from core.settings import TIMEZONE
 from orm.message import MessageModel
 from orm.session_memory import SessionMemoryModel
 from orm.student_memory import StudentMemoryModel
@@ -79,14 +80,14 @@ class MemoryPersistence:
         def update_fn(existing: SessionMemoryModel) -> None:
             existing.teaching_summary = memory.teaching_summary
             existing.message_history = [m.model_dump(mode="json") for m in memory.message_history]
-            existing.last_updated = datetime.now()
+            existing.last_updated = datetime.now(TIMEZONE)
 
         def create_fn() -> dict[str, Any]:
             return {
                 "session_id": memory.session_id,
                 "message_history": [m.model_dump(mode="json") for m in memory.message_history],
                 "teaching_summary": memory.teaching_summary or None,
-                "last_updated": datetime.now(),
+                "last_updated": datetime.now(TIMEZONE),
             }
 
         return await self._upsert(SessionMemoryModel, memory.session_id, update_fn, create_fn)
@@ -138,7 +139,7 @@ class MemoryPersistence:
             sender=message.sender,
             message_type=message.message_type.value,
             content=message.content,
-            timestamp=message.timestamp or datetime.now(),
+            timestamp=message.timestamp or datetime.now(TIMEZONE),
         )
         self.db_session.add(db_message)
         await self.db_session.commit()
@@ -165,7 +166,7 @@ class MemoryPersistence:
             existing.initial_knowledge_level = student_memory.initial_knowledge_level
             existing.current_knowledge_level = student_memory.current_knowledge_level
             existing.learning_rate = student_memory.learning_rate
-            existing.last_updated = datetime.now()
+            existing.last_updated = datetime.now(TIMEZONE)
 
         def create_fn() -> dict[str, Any]:
             return {
@@ -180,7 +181,7 @@ class MemoryPersistence:
                 "initial_knowledge_level": student_memory.initial_knowledge_level,
                 "current_knowledge_level": student_memory.current_knowledge_level,
                 "learning_rate": student_memory.learning_rate,
-                "last_updated": datetime.now(),
+                "last_updated": datetime.now(TIMEZONE),
             }
 
         return await self._upsert(StudentMemoryModel, session_id, update_fn, create_fn)

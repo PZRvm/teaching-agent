@@ -219,7 +219,7 @@ class TestStudentAgentAnswerQuestion:
         messages = agent.llm.invoke.call_args[0][0]
         system_msg = messages[0]["content"]
 
-        assert "excellent" in system_msg
+        assert "举一反三" in system_msg
 
     def test_answer_question_basic_student_has_basic_prompt(self):
         """测试基础学生的 prompt 包含基础水平描述."""
@@ -230,7 +230,7 @@ class TestStudentAgentAnswerQuestion:
         messages = agent.llm.invoke.call_args[0][0]
         system_msg = messages[0]["content"]
 
-        assert "basic" in system_msg
+        assert "混淆概念" in system_msg
 
     def test_answer_question_returns_llm_response(self):
         """测试 answer_question 返回 LLM 响应."""
