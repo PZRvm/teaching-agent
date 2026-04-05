@@ -1,9 +1,9 @@
 """SessionOrchestrator - 观察模式核心控制器."""
 
-import asyncio
 import random
-from typing import Callable
+from collections.abc import Callable
 
+from agents.student_agent import StudentAgent
 from models.checkpoint.schemas import Checkpoint, CheckpointState
 
 
@@ -54,8 +54,6 @@ class SessionOrchestrator:
 
         最后一个检查点完成后布置作业和收集反馈。
         """
-        num_checkpoints = len(self.checkpoint_plan.checkpoints)
-
         for i, checkpoint in enumerate(self.checkpoint_plan.checkpoints):
             # 更新当前索引
             self.checkpoint_plan.current_index = i
@@ -114,15 +112,16 @@ class SessionOrchestrator:
         lecture_content = self.teacher_agent.deliver_lecture()
 
         # 记录到会话记忆
-        from schemas.message import Message, MessageType
         from datetime import datetime
+
+        from schemas.message import Message, MessageType
 
         message = Message(
             sender="teacher",
             message_type=MessageType.LECTURE,
             content=lecture_content,
             receiver="all",
-            timestamp=datetime.now()
+            timestamp=datetime.now(),
         )
 
         self.memory_manager.process_message(message)
@@ -140,15 +139,16 @@ class SessionOrchestrator:
         question_content = self.teacher_agent.ask_checkpoint_question()
 
         # 记录问题到会话记忆
-        from schemas.message import Message, MessageType
         from datetime import datetime
+
+        from schemas.message import Message, MessageType
 
         message = Message(
             sender="teacher",
             message_type=MessageType.CHECKPOINT_QUESTION,
             content=question_content,
             receiver="all",
-            timestamp=datetime.now()
+            timestamp=datetime.now(),
         )
 
         self.memory_manager.process_message(message)
@@ -162,7 +162,6 @@ class SessionOrchestrator:
         教师提问后，学生基于 should_respond() 决定是否回答。
         如果无人回答，教师指定某个学生回答。
         """
-        from agents.student_agent import StudentAgent
 
         responding_students = []
 
@@ -197,15 +196,16 @@ class SessionOrchestrator:
             student_name: 学生名称
             content: 消息内容
         """
-        from schemas.message import Message, MessageType
         from datetime import datetime
+
+        from schemas.message import Message, MessageType
 
         message = Message(
             sender=student_name,
             message_type=MessageType.ANSWER_TO_CHECKPOINT,
             content=content,
             receiver="teacher",
-            timestamp=datetime.now()
+            timestamp=datetime.now(),
         )
 
         self.memory_manager.process_message(message)
@@ -216,23 +216,25 @@ class SessionOrchestrator:
         homework_content = self.teacher_agent.assign_homework()
 
         # 记录到会话记忆
-        from schemas.message import Message, MessageType
         from datetime import datetime
+
+        from schemas.message import Message, MessageType
 
         message = Message(
             sender="teacher",
             message_type=MessageType.ASSIGN_HOMEWORK,
             content=homework_content,
             receiver="all",
-            timestamp=datetime.now()
+            timestamp=datetime.now(),
         )
 
         self.memory_manager.process_message(message)
 
     async def _collect_homework_and_feedback(self) -> None:
         """收集作业和反馈."""
-        from schemas.message import Message, MessageType
         from datetime import datetime
+
+        from schemas.message import Message, MessageType
 
         # 收集每个学生的作业
         for student in self.student_agents:
@@ -243,7 +245,7 @@ class SessionOrchestrator:
                 message_type=MessageType.HOMEWORK_SUBMISSION,
                 content=homework,
                 receiver="teacher",
-                timestamp=datetime.now()
+                timestamp=datetime.now(),
             )
             self.memory_manager.process_message(homework_message)
 
@@ -254,7 +256,7 @@ class SessionOrchestrator:
                 message_type=MessageType.HOMEWORK_FEEDBACK,
                 content=feedback,
                 receiver=student.profile.name,
-                timestamp=datetime.now()
+                timestamp=datetime.now(),
             )
             self.memory_manager.process_message(feedback_message)
 
@@ -265,7 +267,7 @@ class SessionOrchestrator:
             message_type=MessageType.END_FEEDBACK,
             content=end_feedback,
             receiver="all",
-            timestamp=datetime.now()
+            timestamp=datetime.now(),
         )
         self.memory_manager.process_message(end_message)
 
@@ -284,10 +286,7 @@ class SessionOrchestrator:
         # 尝试让每个学生学习该知识点
         for student in self.student_agents:
             # 学生尝试记住知识点（使用学生的 rng）
-            if student.memory.should_remember_concept(
-                checkpoint.key_point,
-                student.rng
-            ):
+            if student.memory.should_remember_concept(checkpoint.key_point, student.rng):
                 student.memory.update_knowledge([checkpoint.key_point], student.rng)
 
     async def _ws_push_checkpoint_state(self, checkpoint: Checkpoint) -> None:
@@ -297,7 +296,7 @@ class SessionOrchestrator:
             checkpoint: 当前检查点
         """
         if self._ws_push_callback:
-            await self._ws_push_callback({
+            message = {
                 "type": "checkpoint_state_change",
                 "data": {
                     "session_id": self.memory_manager.session_memory.session_id,
@@ -306,7 +305,14 @@ class SessionOrchestrator:
                     "checkpoint": {
                         "title": checkpoint.title,
                         "key_point": checkpoint.key_point,
-                        "state": checkpoint.state.value
-                    }
-                }
-            })
+                        "state": checkpoint.state.value,
+                    },
+                },
+            }
+            # Check if callback is async or sync
+            import inspect
+
+            if inspect.iscoroutinefunction(self._ws_push_callback):
+                await self._ws_push_callback(message)
+            else:
+                self._ws_push_callback(message)

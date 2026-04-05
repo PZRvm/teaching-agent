@@ -56,7 +56,9 @@ class TestCheckpointAPI:
                 ],
             }
 
-            response = await client.post(f"/checkpoint-plans/?session_id={session.id}", json=plan_data)
+            response = await client.post(
+                f"/checkpoint-plans/?session_id={session.id}", json=plan_data
+            )
 
             assert response.status_code == 200
             data = response.json()
@@ -126,8 +128,18 @@ class TestCheckpointAPI:
                 "topic": "状态测试",
                 "teaching_mode": "heuristic",
                 "checkpoints": [
-                    {"title": "C1", "key_point": "K1", "checkpoint_question": "Q1", "state": "pending"},
-                    {"title": "C2", "key_point": "K2", "checkpoint_question": "Q2", "state": "pending"},
+                    {
+                        "title": "C1",
+                        "key_point": "K1",
+                        "checkpoint_question": "Q1",
+                        "state": "pending",
+                    },
+                    {
+                        "title": "C2",
+                        "key_point": "K2",
+                        "checkpoint_question": "Q2",
+                        "state": "pending",
+                    },
                 ],
                 "current_index": 0,
             },
@@ -171,8 +183,18 @@ class TestCheckpointAPI:
                 "topic": "推进测试",
                 "teaching_mode": "heuristic",
                 "checkpoints": [
-                    {"title": "C1", "key_point": "K1", "checkpoint_question": "Q1", "state": "complete"},
-                    {"title": "C2", "key_point": "K2", "checkpoint_question": "Q2", "state": "pending"},
+                    {
+                        "title": "C1",
+                        "key_point": "K1",
+                        "checkpoint_question": "Q1",
+                        "state": "complete",
+                    },
+                    {
+                        "title": "C2",
+                        "key_point": "K2",
+                        "checkpoint_question": "Q2",
+                        "state": "pending",
+                    },
                 ],
                 "current_index": 0,
             },

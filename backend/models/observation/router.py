@@ -33,7 +33,4 @@ async def start_observation(
     # - Generate checkpoint plan
     # - Initialize and run SessionOrchestrator
     # For now, return a mock response to satisfy the test
-    return ObservationStartResponse(
-        session_id=1,
-        status="running"
-    )
+    return ObservationStartResponse(session_id=1, status="running")

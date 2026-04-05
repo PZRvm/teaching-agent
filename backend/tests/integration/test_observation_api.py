@@ -22,8 +22,8 @@ def test_start_observation_session():
                     "attitude": "neutral",
                     "learning_ability": 5,
                 }
-            ]
-        }
+            ],
+        },
     )
 
     assert response.status_code == 200

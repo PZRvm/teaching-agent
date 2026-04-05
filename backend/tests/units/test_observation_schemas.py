@@ -7,7 +7,7 @@ class TestObservationSchemas:
     def test_observation_config_schema(self):
         """测试 ObservationConfig schema."""
         from models.observation.schemas import ObservationConfig
-        from schemas.student import StudentProfile, StudentLevel, StudentAttitude
+        from schemas.student import StudentAttitude, StudentLevel, StudentProfile
 
         config = ObservationConfig(
             topic="Python Basics",
@@ -20,7 +20,7 @@ class TestObservationSchemas:
                     attitude=StudentAttitude.NEUTRAL,
                     learning_ability=5,
                 )
-            ]
+            ],
         )
 
         assert config.topic == "Python Basics"
@@ -31,10 +31,7 @@ class TestObservationSchemas:
         """测试 ObservationStartResponse schema."""
         from models.observation.schemas import ObservationStartResponse
 
-        response = ObservationStartResponse(
-            session_id=1,
-            status="running"
-        )
+        response = ObservationStartResponse(session_id=1, status="running")
 
         assert response.session_id == 1
         assert response.status == "running"

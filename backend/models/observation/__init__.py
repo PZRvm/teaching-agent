@@ -2,9 +2,9 @@
 
 from models.observation.schemas import (
     ObservationConfig,
-    ObservationStartResponse,
-    ObservationReport,
     ObservationMetrics,
+    ObservationReport,
+    ObservationStartResponse,
 )
 
 __all__ = [

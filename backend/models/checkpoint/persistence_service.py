@@ -57,9 +57,7 @@ class CheckpointPlanPersistence:
             检查点计划，如果不存在则返回 None
         """
         result = await self.db_session.execute(
-            select(CheckpointPlanModel).where(
-                CheckpointPlanModel.session_id == session_id
-            )
+            select(CheckpointPlanModel).where(CheckpointPlanModel.session_id == session_id)
         )
         record = result.scalar_one_or_none()
 
@@ -140,8 +138,6 @@ class CheckpointPlanPersistence:
             session_id: 教学会话 ID
         """
         await self.db_session.execute(
-            delete(CheckpointPlanModel).where(
-                CheckpointPlanModel.session_id == session_id
-            )
+            delete(CheckpointPlanModel).where(CheckpointPlanModel.session_id == session_id)
         )
         await self.db_session.commit()

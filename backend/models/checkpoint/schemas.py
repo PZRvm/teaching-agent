@@ -7,6 +7,7 @@ from pydantic import BaseModel, Field, field_validator
 
 class CheckpointState(str, Enum):
     """检查点状态枚举。"""
+
     PENDING = "pending"
     TEACHING = "teaching"
     QUESTIONS = "questions"

@@ -29,11 +29,8 @@ def pytest_configure(config: pytest.Config) -> None:
     logging.basicConfig(
         level=logging.INFO,
         format="%(asctime)s [%(levelname)s] %(name)s - %(message)s",
-        handlers=[
-            logging.FileHandler(logs_dir / "tests.log"),
-            logging.StreamHandler(sys.stdout)
-        ],
-        force=True  # 强制重新配置
+        handlers=[logging.FileHandler(logs_dir / "tests.log"), logging.StreamHandler(sys.stdout)],
+        force=True,  # 强制重新配置
     )
 
 

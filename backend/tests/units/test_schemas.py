@@ -249,6 +249,7 @@ class TestMessage:
     def test_message_with_receiver(self):
         """Test Message 支持 receiver 字段."""
         from datetime import datetime
+
         from schemas.message import Message, MessageType
 
         msg = Message(
@@ -256,6 +257,6 @@ class TestMessage:
             message_type=MessageType.LECTURE,
             content="Hello everyone",
             receiver="all",
-            timestamp=datetime.now()
+            timestamp=datetime.now(),
         )
         assert msg.receiver == "all"

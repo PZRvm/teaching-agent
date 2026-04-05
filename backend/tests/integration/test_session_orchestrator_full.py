@@ -6,19 +6,116 @@
 """
 
 import asyncio  # noqa: E402
+
 import pytest  # noqa: E402
+
+from models.checkpoint.schemas import CheckpointState  # noqa: E402
+
+
+def test_acceptance_criteria():
+    """验收标准：能自动运行完整教学流程."""
+    import asyncio
+    from unittest.mock import Mock
+
+    from agents.memories import SessionMemory
+    from agents.memories.memory_manager import MemoryManager
+    from agents.student_agent import StudentAgent
+    from agents.teacher_agent import TeacherAgent
+    from models.checkpoint.schemas import Checkpoint, CheckpointPlan
+    from models.session.orchestrator import SessionOrchestrator
+    from schemas.message import MessageType
+    from schemas.student import StudentAttitude, StudentLevel, StudentProfile
+
+    async def test():
+        # Mock LLM
+        mock_llm = Mock()
+        mock_llm.invoke = Mock(return_value="Test content")
+
+        session_memory = SessionMemory(session_id=1, topic="Test")
+        memory_manager = MemoryManager(session_memory=session_memory)
+
+        teacher = TeacherAgent(
+            session_memory=session_memory,
+            llm=mock_llm,
+            teaching_mode="didactic",
+            memory_manager=memory_manager,
+        )
+
+        student = StudentAgent(
+            session_memory=session_memory,
+            llm=mock_llm,
+            profile=StudentProfile(
+                name="S1",
+                level=StudentLevel.AVERAGE,
+                attitude=StudentAttitude.NEUTRAL,
+                learning_ability=5,
+            ),
+            rng=Mock(random=Mock(return_value=0.1)),  # Low response rate
+        )
+
+        plan = CheckpointPlan(
+            topic="Test",
+            teaching_mode="didactic",
+            checkpoints=[
+                Checkpoint(title="CP1", key_point="P1", checkpoint_question="Q1?"),
+                Checkpoint(title="CP2", key_point="P2", checkpoint_question="Q2?"),
+            ],
+        )
+
+        orchestrator = SessionOrchestrator(
+            teacher_agent=teacher,
+            student_agents=[student],
+            checkpoint_plan=plan,
+            memory_manager=memory_manager,
+        )
+
+        ws_messages = []
+        orchestrator.set_ws_push_callback(lambda msg: ws_messages.append(msg))
+
+        await orchestrator.run_autonomous_session()
+
+        # 验收标准 1: 能自动运行完整教学流程
+        assert plan.checkpoints[0].state.value == "complete"
+        assert plan.checkpoints[1].state.value == "complete"
+
+        # 验收标准 2: 遍历完所有检查点后自动结束
+        assert orchestrator.checkpoint_plan.current_index == 1
+
+        # 验收标准 3: 灌输式跳过 QUESTIONS 状态
+        # 灌输式应该直接 TEACHING → COMPLETE
+        # 验证没有 QUESTIONS 状态的 WebSocket 消息
+        teaching_states = [
+            msg["data"]["checkpoint"]["state"]
+            for msg in ws_messages
+            if msg["type"] == "checkpoint_state_change"
+        ]
+        assert "questions" not in teaching_states
+
+        # 验收标准 4: 检查点状态变更通过 WebSocket 实时推送
+        assert len(ws_messages) > 0
+
+        # 验收标准 5: 能布置作业
+        hw_messages = [
+            msg
+            for msg in session_memory.message_history
+            if hasattr(msg, "message_type") and msg.message_type == MessageType.ASSIGN_HOMEWORK
+        ]
+        assert len(hw_messages) > 0
+
+    asyncio.run(test())
 
 
 def test_full_observation_session():
     """测试完整的观察模式会话流程 (使用 mock LLM)."""
+    from unittest.mock import Mock
+
     from agents.memories import SessionMemory
     from agents.memories.memory_manager import MemoryManager
-    from agents.teacher_agent import TeacherAgent
     from agents.student_agent import StudentAgent
-    from models.checkpoint.schemas import CheckpointPlan, Checkpoint, CheckpointState
+    from agents.teacher_agent import TeacherAgent
+    from models.checkpoint.schemas import Checkpoint, CheckpointPlan, CheckpointState
     from models.session.orchestrator import SessionOrchestrator
-    from schemas.student import StudentProfile, StudentLevel, StudentAttitude
-    from unittest.mock import Mock, AsyncMock
+    from schemas.student import StudentAttitude, StudentLevel, StudentProfile
 
     async def test():
         # Mock LLM - make invoke return actual string
@@ -34,7 +131,7 @@ def test_full_observation_session():
             session_memory=session_memory,
             llm=mock_llm,
             teaching_mode="heuristic",
-            memory_manager=memory_manager
+            memory_manager=memory_manager,
         )
 
         # 创建学生
@@ -42,7 +139,7 @@ def test_full_observation_session():
             name="TestStudent",
             level=StudentLevel.AVERAGE,
             attitude=StudentAttitude.ACTIVE,
-            learning_ability=5
+            learning_ability=5,
         )
 
         # Mock student's rng to make should_respond() return True
@@ -50,7 +147,7 @@ def test_full_observation_session():
             session_memory=session_memory,
             llm=mock_llm,
             profile=student_profile,
-            rng=Mock(random=Mock(return_value=0.9))  # Always respond
+            rng=Mock(random=Mock(return_value=0.9)),  # Always respond
         )
 
         # 创建检查点计划（2个检查点）
@@ -61,14 +158,14 @@ def test_full_observation_session():
                 Checkpoint(
                     title="Variables",
                     key_point="Python variables store data",
-                    checkpoint_question="What is a variable?"
+                    checkpoint_question="What is a variable?",
                 ),
                 Checkpoint(
                     title="Data Types",
                     key_point="Python has several data types",
-                    checkpoint_question="Name some Python data types."
-                )
-            ]
+                    checkpoint_question="Name some Python data types.",
+                ),
+            ],
         )
 
         # 创建 orchestrator
@@ -76,7 +173,7 @@ def test_full_observation_session():
             teacher_agent=teacher,
             student_agents=[student],
             checkpoint_plan=plan,
-            memory_manager=memory_manager
+            memory_manager=memory_manager,
         )
 
         # 记录 WebSocket 推送
@@ -119,16 +216,15 @@ def test_full_observation_session_with_console_output():
     运行方式: pytest tests/integration/test_session_orchestrator_full.py::test_full_observation_session_with_console_output -v -s -m integration
     """
     import asyncio
-    from datetime import datetime
-    from agents.memories import SessionMemory, TeacherAgentMemory, StudentAgentMemory
+
+    from agents.memories import SessionMemory, StudentAgentMemory, TeacherAgentMemory
     from agents.memories.memory_manager import MemoryManager
-    from agents.teacher_agent import TeacherAgent
     from agents.student_agent import StudentAgent
-    from models.checkpoint.service import CheckpointPlanService
-    from models.checkpoint.schemas import CheckpointPlan
-    from models.session.orchestrator import SessionOrchestrator
-    from schemas.student import StudentProfile, StudentLevel, StudentAttitude
+    from agents.teacher_agent import TeacherAgent
     from core.llm_client import LLMClient
+    from models.checkpoint.service import CheckpointPlanService
+    from models.session.orchestrator import SessionOrchestrator
+    from schemas.student import StudentAttitude, StudentLevel, StudentProfile
 
     async def test():
         # 使用真实 LLM
@@ -151,19 +247,13 @@ def test_full_observation_session_with_console_output():
             profile = StudentProfile(name=name, level=level, attitude=attitude)
             student_memory = StudentAgentMemory.from_profile(profile)
             student = StudentAgent(
-                session_memory=session_memory,
-                llm=llm,
-                profile=profile,
-                memory=student_memory
+                session_memory=session_memory, llm=llm, profile=profile, memory=student_memory
             )
             students.append(student)
 
         # 创建教师
         teacher = TeacherAgent(
-            session_memory=session_memory,
-            llm=llm,
-            teaching_mode="heuristic",
-            memory=teacher_memory
+            session_memory=session_memory, llm=llm, teaching_mode="heuristic", memory=teacher_memory
         )
 
         # 创建 MemoryManager
@@ -174,26 +264,24 @@ def test_full_observation_session_with_console_output():
 
         # 生成检查点计划（使用真实 LLM）
         print(f"\n{'=' * 70}")
-        print(f"【观察模式集成测试】主题: Python 变量基础")
-        print(f"教学模式: 启发式 (heuristic)")
+        print("【观察模式集成测试】主题: Python 变量基础")
+        print("教学模式: 启发式 (heuristic)")
         print(f"学生数量: {len(students)}")
         print(f"{'=' * 70}\n")
 
         checkpoint_service = CheckpointPlanService(llm=llm)
         plan = await checkpoint_service.generate_plan(
-            topic="Python 变量基础",
-            teaching_mode="heuristic",
-            checkpoint_count=2
+            topic="Python 变量基础", teaching_mode="heuristic", checkpoint_count=2
         )
 
-        print(f"生成的检查点计划:")
+        print("生成的检查点计划:")
         print(f"  主题: {plan.topic}")
         print(f"  教学模式: {plan.teaching_mode}")
         print(f"  检查点数量: {len(plan.checkpoints)}")
         for i, cp in enumerate(plan.checkpoints, 1):
             print(f"    检查点 {i}: {cp.title}")
         print(f"\n{'=' * 70}")
-        print(f"【开始上课】")
+        print("【开始上课】")
         print(f"{'=' * 70}\n")
 
         # 创建 orchestrator
@@ -201,7 +289,7 @@ def test_full_observation_session_with_console_output():
             teacher_agent=teacher,
             student_agents=students,
             checkpoint_plan=plan,
-            memory_manager=memory_manager
+            memory_manager=memory_manager,
         )
 
         # 设置 WebSocket 推送回调（打印状态变更）
@@ -218,20 +306,20 @@ def test_full_observation_session_with_console_output():
         await orchestrator.run_autonomous_session()
 
         print(f"\n{'=' * 70}")
-        print(f"【课程结束】")
+        print("【课程结束】")
         print(f"{'=' * 70}")
 
         # 打印课程统计
-        print(f"\n课程统计:")
+        print("\n课程统计:")
         print(f"  总消息数: {len(session_memory.messages)}")
         print(f"  教师讲授主题: {len(teacher_memory.covered_topics)}")
-        print(f"  学生参与情况:")
+        print("  学生参与情况:")
         for student in students:
             participation = teacher_memory.student_participation.get(student.profile.name, 0)
             print(f"    {student.profile.name}: {participation} 次参与")
 
         # 打印最后几条消息
-        print(f"\n最后几条消息:")
+        print("\n最后几条消息:")
         for msg in session_memory.messages[-5:]:
             sender = msg.sender
             msg_type = msg.message_type.value
@@ -262,17 +350,15 @@ def test_multi_student_classroom():
     运行方式: pytest tests/integration/test_session_orchestrator_full.py::test_multi_student_classroom -v -s -m integration
     """
     import asyncio
-    from datetime import datetime
-    from agents.memories import SessionMemory, TeacherAgentMemory, StudentAgentMemory
+
+    from agents.memories import SessionMemory, StudentAgentMemory, TeacherAgentMemory
     from agents.memories.memory_manager import MemoryManager
-    from agents.teacher_agent import TeacherAgent
     from agents.student_agent import StudentAgent
-    from models.checkpoint.service import CheckpointPlanService
-    from models.checkpoint.schemas import CheckpointPlan
-    from models.session.orchestrator import SessionOrchestrator
-    from schemas.student import StudentProfile, StudentLevel, StudentAttitude
-    from schemas.message import MessageType
+    from agents.teacher_agent import TeacherAgent
     from core.llm_client import LLMClient
+    from models.checkpoint.service import CheckpointPlanService
+    from models.session.orchestrator import SessionOrchestrator
+    from schemas.student import StudentAttitude, StudentLevel, StudentProfile
 
     async def test():
         llm = LLMClient.from_config()
@@ -296,19 +382,13 @@ def test_multi_student_classroom():
             profile = StudentProfile(name=name, level=level, attitude=attitude)
             student_memory = StudentAgentMemory.from_profile(profile)
             student = StudentAgent(
-                session_memory=session_memory,
-                llm=llm,
-                profile=profile,
-                memory=student_memory
+                session_memory=session_memory, llm=llm, profile=profile, memory=student_memory
             )
             students.append(student)
 
         # 创建教师
         teacher = TeacherAgent(
-            session_memory=session_memory,
-            llm=llm,
-            teaching_mode="heuristic",
-            memory=teacher_memory
+            session_memory=session_memory, llm=llm, teaching_mode="heuristic", memory=teacher_memory
         )
 
         # 创建 MemoryManager
@@ -319,11 +399,11 @@ def test_multi_student_classroom():
 
         # 打印课堂信息
         print(f"\n{'#' * 70}")
-        print(f"  多学生课堂集成测试")
+        print("  多学生课堂集成测试")
         print(f"{'#' * 70}")
         print(f"  主题: {session_memory.topic}")
-        print(f"  教学模式: 启发式 (heuristic)")
-        print(f"  学生列表:")
+        print("  教学模式: 启发式 (heuristic)")
+        print("  学生列表:")
         for s in students:
             level_str = s.profile.level.value
             attitude_str = s.profile.attitude.value
@@ -334,9 +414,7 @@ def test_multi_student_classroom():
         print("[1/4] 生成检查点计划...")
         checkpoint_service = CheckpointPlanService(llm=llm)
         plan = await checkpoint_service.generate_plan(
-            topic=session_memory.topic,
-            teaching_mode="heuristic",
-            checkpoint_count=3
+            topic=session_memory.topic, teaching_mode="heuristic", checkpoint_count=3
         )
 
         print(f"[2/4] 检查点计划生成完成，共 {len(plan.checkpoints)} 个检查点\n")
@@ -346,22 +424,22 @@ def test_multi_student_classroom():
             teacher_agent=teacher,
             student_agents=students,
             checkpoint_plan=plan,
-            memory_manager=memory_manager
+            memory_manager=memory_manager,
         )
 
         # 运行会话
         print("[3/4] 开始上课...\n")
         await orchestrator.run_autonomous_session()
 
-        print(f"\n[4/4] 课程完成！\n")
+        print("\n[4/4] 课程完成！\n")
 
         # 打印统计
         print(f"\n{'=' * 60}")
-        print(f"  课堂统计")
+        print("  课堂统计")
         print(f"{'=' * 60}")
         print(f"  总消息数: {len(session_memory.messages)}")
         print(f"  教师讲授主题: {len(teacher_memory.covered_topics)}")
-        print(f"  学生参与情况:")
+        print("  学生参与情况:")
         for student in students:
             participation = teacher_memory.student_participation.get(student.profile.name, 0)
             learned = len(student.memory.knowledge_points)
