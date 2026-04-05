@@ -766,3 +766,88 @@ class TestTeacherAgentEndFeedback:
         agent.end_feedback()
         assert len(agent.session_memory.message_history) == 1
         assert agent.session_memory.message_history[0].message_type == MessageType.END_FEEDBACK
+
+
+class TestTeacherAgentNewMethodsErrors:
+    """TeacherAgent 新方法错误路径测试."""
+
+    def _make_agent(self):
+        """辅助方法：创建 TeacherAgent."""
+        from agents.memories import SessionMemory, TeacherAgentMemory
+        from agents.memories.memory_manager import MemoryManager
+        from agents.teacher_agent import TeacherAgent
+
+        session_mem = SessionMemory(session_id=1, topic="Python基础")
+        teacher_mem = TeacherAgentMemory()
+        mm = MemoryManager(session_memory=session_mem, teacher_memory=teacher_mem)
+        mock_llm = MagicMock()
+        return TeacherAgent(
+            session_memory=session_mem,
+            llm=mock_llm,
+            teaching_mode="didactic",
+            memory_manager=mm,
+        )
+
+    def test_ask_checkpoint_question_raises_on_empty(self):
+        """测试 checkpoint 提问空内容时抛出 RuntimeError."""
+        import pytest
+
+        agent = self._make_agent()
+        agent.llm.invoke.return_value = ""
+        with pytest.raises(RuntimeError, match="空内容"):
+            agent.ask_checkpoint_question()
+
+    def test_ask_discussion_question_raises_on_empty(self):
+        """测试讨论提问空内容时抛出 RuntimeError."""
+        import pytest
+
+        agent = self._make_agent()
+        agent.llm.invoke.return_value = ""
+        with pytest.raises(RuntimeError, match="空内容"):
+            agent.ask_discussion_question()
+
+    def test_reply_to_student_raises_on_empty(self):
+        """测试回复学生空内容时抛出 RuntimeError."""
+        import pytest
+
+        agent = self._make_agent()
+        agent.llm.invoke.return_value = ""
+        with pytest.raises(RuntimeError, match="空内容"):
+            agent.reply_to_student(student_name="张三", student_message="回答内容")
+
+    def test_assign_homework_raises_on_empty(self):
+        """测试布置作业空内容时抛出 RuntimeError."""
+        import pytest
+
+        agent = self._make_agent()
+        agent.llm.invoke.return_value = ""
+        with pytest.raises(RuntimeError, match="空内容"):
+            agent.assign_homework()
+
+    def test_grade_homework_raises_on_empty(self):
+        """测试作业评分空内容时抛出 RuntimeError."""
+        import pytest
+
+        agent = self._make_agent()
+        agent.llm.invoke.return_value = ""
+        with pytest.raises(RuntimeError, match="空内容"):
+            agent.grade_homework(student_name="张三", homework_content="作业")
+
+    def test_end_feedback_raises_on_empty(self):
+        """测试课程总结空内容时抛出 RuntimeError."""
+        import pytest
+
+        agent = self._make_agent()
+        agent.llm.invoke.return_value = ""
+        with pytest.raises(RuntimeError, match="空内容"):
+            agent.end_feedback()
+
+    def test_ask_checkpoint_question_no_record_on_empty(self):
+        """测试 checkpoint 提问空内容时不记录消息."""
+        import pytest
+
+        agent = self._make_agent()
+        agent.llm.invoke.return_value = ""
+        with pytest.raises(RuntimeError):
+            agent.ask_checkpoint_question()
+        assert len(agent.session_memory.message_history) == 0
