@@ -120,3 +120,101 @@ class StudentAgent:
         self.session_memory.add_message(message)
 
         return content
+
+    def ask_question(self, teaching_context: str) -> str:
+        """基于困惑点向教师提问.
+
+        Args:
+            teaching_context: 最近的教学内容上下文（触发提问的原因）
+
+        Returns:
+            学生提出的问题
+        """
+        system_prompt = self._build_system_prompt()
+
+        user_prompt = (
+            f"基于以下教学内容，请以学生的身份提出一个你不理解的问题。\n"
+            f"教学内容: {teaching_context}\n"
+            f"要求: 提问要具体、自然，符合你的学习水平和当前知识掌握程度。"
+        )
+        messages = [
+            {"role": "system", "content": system_prompt},
+            {"role": "user", "content": user_prompt},
+        ]
+
+        content = self.llm.invoke(messages)
+
+        message = Message(
+            sender=self.profile.name,
+            message_type=MessageType.QUESTION_TO_TEACHER,
+            content=content,
+            timestamp=datetime.now(),
+        )
+        self.session_memory.add_message(message)
+
+        return content
+
+    def submit_homework(self, homework_prompt: str) -> str:
+        """提交作业.
+
+        Args:
+            homework_prompt: 作业题目/要求
+
+        Returns:
+            学生的作业回答
+        """
+        system_prompt = self._build_system_prompt()
+
+        user_prompt = (
+            f"请完成以下作业：\n\n{homework_prompt}\n\n"
+            f"要求: 根据你已学到的知识完成作业，展示你的解题过程。"
+        )
+        messages = [
+            {"role": "system", "content": system_prompt},
+            {"role": "user", "content": user_prompt},
+        ]
+
+        content = self.llm.invoke(messages)
+
+        message = Message(
+            sender=self.profile.name,
+            message_type=MessageType.HOMEWORK_SUBMISSION,
+            content=content,
+            timestamp=datetime.now(),
+        )
+        self.session_memory.add_message(message)
+
+        return content
+
+    def give_feedback(self) -> str:
+        """对课程给出总结性反馈.
+
+        Returns:
+            学生的课程反馈文本
+        """
+        system_prompt = self._build_system_prompt()
+
+        user_prompt = (
+            "课程即将结束，请对今天的学习进行总结和反馈。\n"
+            "请包含以下内容：\n"
+            "1. 你学到了什么\n"
+            "2. 你还有什么不理解的地方\n"
+            "3. 你对课程的感受\n\n"
+            "要求: 以自然的学生口吻回答，内容符合你的学习水平。"
+        )
+        messages = [
+            {"role": "system", "content": system_prompt},
+            {"role": "user", "content": user_prompt},
+        ]
+
+        content = self.llm.invoke(messages)
+
+        message = Message(
+            sender=self.profile.name,
+            message_type=MessageType.FEEDBACK_SUBMISSION,
+            content=content,
+            timestamp=datetime.now(),
+        )
+        self.session_memory.add_message(message)
+
+        return content

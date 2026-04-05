@@ -250,3 +250,218 @@ class TestStudentAgentAnswerQuestion:
         msg = agent.session_memory.message_history[0]
         assert msg.sender == "张三"
         assert msg.message_type.value == "answer_to_checkpoint"
+
+
+class TestStudentAgentAskQuestion:
+    """StudentAgent ask_question 测试."""
+
+    def _make_agent(self, *, attitude: str = "neutral"):
+        """辅助方法：创建 StudentAgent."""
+        from agents.memories import SessionMemory
+        from agents.student_agent import StudentAgent
+
+        session_mem = SessionMemory(session_id=1, topic="Python基础")
+        profile = StudentProfile(
+            name="李四",
+            attitude=attitude,
+            learning_ability=5,
+        )
+        mock_llm = MagicMock()
+        mock_llm.invoke.return_value = "老师，列表和元组有什么区别？"
+
+        return StudentAgent(
+            session_memory=session_mem,
+            llm=mock_llm,
+            profile=profile,
+        )
+
+    def test_ask_question_calls_llm(self):
+        """测试 ask_question 调用 LLM."""
+        agent = self._make_agent()
+
+        agent.ask_question("刚才讲的列表操作")
+
+        assert agent.llm.invoke.called
+
+    def test_ask_question_includes_teaching_context(self):
+        """测试 ask_question 的 prompt 包含教学内容上下文."""
+        agent = self._make_agent()
+
+        agent.ask_question("刚才讲的列表操作")
+
+        messages = agent.llm.invoke.call_args[0][0]
+        system_msg = messages[0]["content"]
+
+        assert "Python基础" in system_msg
+        assert "李四" in system_msg
+
+    def test_ask_question_returns_question_text(self):
+        """测试 ask_question 返回问题文本."""
+        agent = self._make_agent()
+
+        result = agent.ask_question("列表操作")
+
+        assert result == "老师，列表和元组有什么区别？"
+
+    def test_ask_question_records_message(self):
+        """测试 ask_question 记录消息到会话记忆."""
+        agent = self._make_agent()
+
+        agent.ask_question("列表操作")
+
+        assert len(agent.session_memory.message_history) == 1
+        msg = agent.session_memory.message_history[0]
+        assert msg.sender == "李四"
+        assert msg.message_type.value == "question_to_teacher"
+
+
+class TestStudentAgentSubmitHomework:
+    """StudentAgent submit_homework 测试."""
+
+    def _make_agent(self, *, level: str = "average", learning_ability: int = 5):
+        """辅助方法：创建 StudentAgent."""
+        from agents.memories import SessionMemory
+        from agents.student_agent import StudentAgent
+
+        session_mem = SessionMemory(session_id=1, topic="Python基础")
+        profile = StudentProfile(
+            name="王五",
+            level=level,
+            learning_ability=learning_ability,
+        )
+        mock_llm = MagicMock()
+        mock_llm.invoke.return_value = (
+            "def calculate_average(numbers):\n"
+            "    return sum(numbers) / len(numbers)"
+        )
+
+        return StudentAgent(
+            session_memory=session_mem,
+            llm=mock_llm,
+            profile=profile,
+        )
+
+    def test_submit_homework_calls_llm(self):
+        """测试 submit_homework 调用 LLM."""
+        agent = self._make_agent()
+
+        agent.submit_homework("写一个函数计算列表的平均值")
+
+        assert agent.llm.invoke.called
+
+    def test_submit_homework_includes_homework_prompt(self):
+        """测试 submit_homework 的 prompt 包含作业要求."""
+        agent = self._make_agent()
+
+        agent.submit_homework("写一个函数计算列表的平均值")
+
+        messages = agent.llm.invoke.call_args[0][0]
+        user_msg = messages[-1]["content"]
+
+        assert "平均" in user_msg
+
+    def test_submit_homework_includes_student_context(self):
+        """测试 submit_homework 的 system prompt 包含学生上下文."""
+        agent = self._make_agent()
+
+        agent.submit_homework("写一个函数计算列表的平均值")
+
+        messages = agent.llm.invoke.call_args[0][0]
+        system_msg = messages[0]["content"]
+
+        assert "王五" in system_msg
+
+    def test_submit_homework_returns_response(self):
+        """测试 submit_homework 返回 LLM 响应."""
+        agent = self._make_agent()
+
+        result = agent.submit_homework("写一个函数计算列表的平均值")
+
+        assert "def" in result
+
+    def test_submit_homework_records_message(self):
+        """测试 submit_homework 记录消息."""
+        agent = self._make_agent()
+
+        agent.submit_homework("写一个函数计算列表的平均值")
+
+        assert len(agent.session_memory.message_history) == 1
+        msg = agent.session_memory.message_history[0]
+        assert msg.sender == "王五"
+        assert msg.message_type.value == "homework_submission"
+
+
+class TestStudentAgentGiveFeedback:
+    """StudentAgent give_feedback 测试."""
+
+    def _make_agent(self, *, attitude: str = "neutral"):
+        """辅助方法：创建 StudentAgent."""
+        from agents.memories import SessionMemory
+        from agents.student_agent import StudentAgent
+
+        session_mem = SessionMemory(session_id=1, topic="Python基础")
+        profile = StudentProfile(
+            name="赵六",
+            attitude=attitude,
+            learning_ability=6,
+        )
+        mock_llm = MagicMock()
+        mock_llm.invoke.return_value = (
+            "今天的课我学到了列表操作，但对列表推导式还不太理解。"
+        )
+
+        return StudentAgent(
+            session_memory=session_mem,
+            llm=mock_llm,
+            profile=profile,
+        )
+
+    def test_give_feedback_calls_llm(self):
+        """测试 give_feedback 调用 LLM."""
+        agent = self._make_agent()
+
+        agent.give_feedback()
+
+        assert agent.llm.invoke.called
+
+    def test_give_feedback_includes_feedback_prompt(self):
+        """测试 give_feedback 的 prompt 包含反馈请求."""
+        agent = self._make_agent()
+
+        agent.give_feedback()
+
+        messages = agent.llm.invoke.call_args[0][0]
+        user_msg = messages[-1]["content"]
+
+        assert "反馈" in user_msg or "总结" in user_msg
+
+    def test_give_feedback_includes_student_context(self):
+        """测试 give_feedback 的 system prompt 包含学生上下文."""
+        agent = self._make_agent()
+
+        agent.give_feedback()
+
+        messages = agent.llm.invoke.call_args[0][0]
+        system_msg = messages[0]["content"]
+
+        assert "赵六" in system_msg
+        assert "Python基础" in system_msg
+
+    def test_give_feedback_returns_response(self):
+        """测试 give_feedback 返回反馈文本."""
+        agent = self._make_agent()
+
+        result = agent.give_feedback()
+
+        assert "列表操作" in result
+
+    def test_give_feedback_records_message(self):
+        """测试 give_feedback 记录消息."""
+        agent = self._make_agent()
+
+        agent.give_feedback()
+
+        assert len(agent.session_memory.message_history) == 1
+        msg = agent.session_memory.message_history[0]
+        assert msg.sender == "赵六"
+        assert msg.message_type.value == "feedback_submission"
