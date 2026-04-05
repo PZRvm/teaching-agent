@@ -232,34 +232,34 @@
 
 **任务列表**:
 1. 灌输式模式
-   - [ ] system prompt设计
-   - [ ] 连续讲授逻辑
-   - [ ] 无互动提问
+   - [✓] system prompt设计
+   - [✓] 连续讲授逻辑
+   - [✓] 无互动提问
 
 2. 启发式模式
-   - [ ] system prompt设计
-   - [ ] 讲授3-5个知识点后提问
-   - [ ] ask_checkpoint_question() 方法
+   - [✓] system prompt设计
+   - [✓] 讲授3-5个知识点后提问
+   - [✓] ask_checkpoint_question() 方法
 
 3. 讨论式模式
-   - [ ] system prompt设计
-   - [ ] 频繁提问（每1-2个知识点）
-   - [ ] ask_discussion_question() 方法
+   - [✓] system prompt设计
+   - [✓] 频繁提问（每1-2个知识点）
+   - [✓] ask_discussion_question() 方法
 
 4. 作业和反馈
-   - [ ] assign_homework()
-   - [ ] grade_homework() - LLM评价
-   - [ ] end_feedback()
-   - [ ] collect_feedback()
+   - [✓] assign_homework()
+   - [✓] grade_homework() - LLM评价
+   - [✓] end_feedback()
+   - [✓] reply_to_student() - 回复学生（替代 collect_feedback）
 
 **验收标准**:
-- [ ] 灌输式：连续讲授，无提问
-- [ ] 启发式：讲授后提问checkpoint问题
-- [ ] 讨论式：频繁提问，引导学生讨论
-- [ ] 三种模式的system prompt风格明显不同
-- [ ] 验证：运行三种模式对比输出风格
+- [✓] 灌输式：连续讲授，无提问
+- [✓] 启发式：讲授后提问checkpoint问题
+- [✓] 讨论式：频繁提问，引导学生讨论
+- [✓] 三种模式的system prompt风格明显不同
+- [✓] 验证：运行三种模式对比输出风格
 
-**预计时间**: 4-5小时
+**完成时间**: 2026-04-05
 
 ---
 
@@ -512,7 +512,7 @@ Phase 13 (测试)
 
 ## 快速开始
 
-**当前进度**: Phase 5 已完成 ✅
+**当前进度**: Phase 6 已完成 ✅
 
 ✅ **已完成**:
 - Phase 1: 基础设施与数据层
@@ -544,6 +544,14 @@ Phase 13 (测试)
   - 基于 attitude 参数差异化响应概率（STUDENT_RESPOND_PROBABILITIES）
   - 完整测试覆盖（35个新测试：32个StudentAgent + 3个空内容处理）
   - 160 个测试全部通过
+- Phase 6: 三种教学模式实现
+  - `backend/agents/teacher_agent.py` - 新增三种教学模式差异化逻辑
+  - `_MODE_INSTRUCTIONS` 定义 didactic/heuristic/discussion 三种 system prompt 风格
+  - `ask_checkpoint_question()` / `ask_discussion_question()` / `reply_to_student()` /
+    `assign_homework()` / `grade_homework()` / `end_feedback()` 方法实现
+  - `backend/agents/memories/memory_manager.py` - 补全所有 MessageType 分支处理
+  - `backend/tests/units/test_teacher_agent.py` - 新增 40 个测试（共 200 个单测）
+  - 所有新方法均有正常路径和错误路径测试覆盖
 
-📋 **下一步**: Phase 6 - 三种教学模式实现
+📋 **下一步**: Phase 7 - SessionOrchestrator（观察模式核心）
 

@@ -188,6 +188,31 @@ PRAGMA foreign_keys = ON;
 
 详见 [docs/development-roadmap.md](docs/development-roadmap.md)
 
+## 已知限制
+
+### LLM 信任边界
+
+**v1 版本注意**: 系统中部分 Agent 方法（如 `TeacherAgent.reply_to_student()`）直接将用户输入传递给 LLM，未进行输入清理。
+
+**影响范围**:
+- `TeacherAgent.reply_to_student()` - 学生回复/提问内容直接插入 prompt
+- `TeacherAgent.grade_homework()` - 作业内容直接传递给 LLM
+
+**风险评估**:
+- 当前系统假设为教育场景，输入环境相对可控
+- 如果暴露给不可信用户，可能存在 prompt 注入风险
+- 建议在生产环境中添加输入验证和清理机制
+
+**未来改进**:
+- 添加输入长度限制
+- 实施内容过滤（控制字符、危险模式）
+- 使用结构化输出验证
+- 参考 OWASP LLM 安全指南
+
+### 数据库
+
+- SQLite 默认不启用外键约束，需手动执行 `PRAGMA foreign_keys = ON;`
+
 ## 许可证
 
 MIT License
