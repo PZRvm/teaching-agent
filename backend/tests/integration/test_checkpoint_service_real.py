@@ -49,7 +49,7 @@ class TestCheckpointPlanServiceReal:
         print(f"教学主题: {plan.topic}")
         print(f"教学模式: {plan.teaching_mode}")
         print(f"检查点数量: {len(plan.checkpoints)}")
-        print(f"\n检查点详情:")
+        print("\n检查点详情:")
         for i, cp in enumerate(plan.checkpoints, 1):
             print(f"\n  检查点 {i}:")
             print(f"    标题: {cp.title}")
@@ -91,7 +91,7 @@ class TestCheckpointPlanServiceReal:
         print(f"教学主题: {plan.topic}")
         print(f"教学模式: {plan.teaching_mode}")
         print(f"检查点数量: {len(plan.checkpoints)}")
-        print(f"\n检查点详情:")
+        print("\n检查点详情:")
         for i, cp in enumerate(plan.checkpoints, 1):
             print(f"\n  检查点 {i}:")
             print(f"    标题: {cp.title}")
@@ -128,7 +128,7 @@ class TestCheckpointPlanServiceReal:
         print(f"教学主题: {plan.topic}")
         print(f"教学模式: {plan.teaching_mode}")
         print(f"检查点数量: {len(plan.checkpoints)}")
-        print(f"\n检查点详情:")
+        print("\n检查点详情:")
         for i, cp in enumerate(plan.checkpoints, 1):
             print(f"\n  检查点 {i}:")
             print(f"    标题: {cp.title}")

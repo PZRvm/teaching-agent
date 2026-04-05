@@ -358,6 +358,80 @@ from agents.memories import SessionMemory, TeacherAgentMemory
 from agents.memories.session_memory import SessionMemory
 ```
 
+## Documentation Requirements
+
+**Code-Documentation Sync**: All code changes must be accompanied by corresponding documentation updates. This ensures documentation stays in sync with implementation.
+
+### API Changes
+
+When modifying API endpoints (adding, changing, or removing routes), update `docs/api.md` with:
+
+- Endpoint path and HTTP method
+- Query parameters, path parameters, and request body schemas
+- Response examples with actual data
+- Error cases and status codes
+- Data model changes and field descriptions
+
+**Example**: After adding a new endpoint like `POST /checkpoint-plans/`, document it with:
+```markdown
+### 创建检查点计划
+
+创建一个新的教学检查点计划。
+
+```http
+POST /checkpoint-plans/
+```
+
+**Query 参数:**
+- `session_id` (integer, required) - 教学会话 ID
+
+**请求体:**
+```json
+{
+  "topic": "Python 变量与数据类型",
+  "teaching_mode": "didactic",
+  "checkpoints": [...]
+}
+```
+
+**响应示例:**
+```json
+{
+  "plan_id": 1
+}
+```
+```
+
+### Test Changes
+
+When adding or modifying tests, update `docs/tests/backend/index.md` with:
+
+- Test file path (relative to `backend/tests/`)
+- Test class names with descriptions
+- Test method names with descriptions of what they test
+- Running commands for specific tests
+
+**Example**: After adding tests for checkpoint system, document them as:
+```markdown
+### tests/units/test_checkpoint_persistence.py
+Checkpoint persistence service 单元测试
+
+- **TestCheckpointPlanPersistence** - CheckpointPlanPersistence 测试类
+  - `test_save_plan()` - 测试保存检查点计划到数据库
+  - `test_load_plan()` - 测试从数据库加载检查点计划
+  - `test_update_checkpoint_state()` - 测试更新检查点状态
+  - `test_advance_checkpoint()` - 测试推进到下一个检查点
+```
+
+### Documentation Update Checklist
+
+Before committing code changes, verify:
+
+- [ ] If API changed: `docs/api.md` updated with new/modified endpoints
+- [ ] If tests added/modified: `docs/tests/backend/index.md` updated with test documentation
+- [ ] Documentation examples are accurate and runnable
+- [ ] Error cases are documented with correct status codes
+
 ## Important Architecture Decisions
 
 1. **No Knowledge Base System (v1)**: The system uses LLM's native capabilities for teaching. Knowledge base (ChromaDB, RAG) was removed from v1 scope. Future enhancement may add structured course content.
