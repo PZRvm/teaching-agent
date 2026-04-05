@@ -528,6 +528,61 @@ class TestMemoryManager:
 
         assert manager.teacher_memory.student_participation.get("李四") == 1
 
+    def test_process_assign_homework_does_not_crash(self):
+        """测试处理布置作业消息不崩溃."""
+        from agents.memories.memory_manager import MemoryManager, SessionMemory
+
+        session_mem = SessionMemory(session_id=1, topic="Python基础")
+        manager = MemoryManager(session_memory=session_mem)
+
+        msg = self._make_message("teacher", MessageType.ASSIGN_HOMEWORK, "作业内容")
+        manager.process_message(msg)
+        assert len(session_mem.message_history) == 1
+
+    def test_process_homework_submission_does_not_crash(self):
+        """测试处理学生提交作业消息不崩溃."""
+        from agents.memories.memory_manager import MemoryManager, SessionMemory
+
+        session_mem = SessionMemory(session_id=1, topic="Python基础")
+        manager = MemoryManager(session_memory=session_mem)
+
+        msg = self._make_message("张三", MessageType.HOMEWORK_SUBMISSION, "我的作业答案")
+        manager.process_message(msg)
+        assert len(session_mem.message_history) == 1
+
+    def test_process_homework_feedback_does_not_crash(self):
+        """测试处理作业反馈消息不崩溃."""
+        from agents.memories.memory_manager import MemoryManager, SessionMemory
+
+        session_mem = SessionMemory(session_id=1, topic="Python基础")
+        manager = MemoryManager(session_memory=session_mem)
+
+        msg = self._make_message("teacher", MessageType.HOMEWORK_FEEDBACK, "评分：良好")
+        manager.process_message(msg)
+        assert len(session_mem.message_history) == 1
+
+    def test_process_end_feedback_does_not_crash(self):
+        """测试处理课程结束反馈消息不崩溃."""
+        from agents.memories.memory_manager import MemoryManager, SessionMemory
+
+        session_mem = SessionMemory(session_id=1, topic="Python基础")
+        manager = MemoryManager(session_memory=session_mem)
+
+        msg = self._make_message("teacher", MessageType.END_FEEDBACK, "课程总结")
+        manager.process_message(msg)
+        assert len(session_mem.message_history) == 1
+
+    def test_process_feedback_submission_does_not_crash(self):
+        """测试处理学生课程反馈消息不崩溃."""
+        from agents.memories.memory_manager import MemoryManager, SessionMemory
+
+        session_mem = SessionMemory(session_id=1, topic="Python基础")
+        manager = MemoryManager(session_memory=session_mem)
+
+        msg = self._make_message("张三", MessageType.FEEDBACK_SUBMISSION, "课程很好")
+        manager.process_message(msg)
+        assert len(session_mem.message_history) == 1
+
 
 class TestMemoryManagerSummary:
     """MemoryManager 摘要更新测试."""

@@ -49,6 +49,18 @@ class MemoryManager:
             self._process_question_to_teacher(message)
         elif message.message_type == MessageType.ANSWER_TO_CHECKPOINT:
             self._process_answer_to_checkpoint(message)
+        elif message.message_type == MessageType.TEACHER_REPLY:
+            pass  # 教师回复，已通过 message_history 记录
+        elif message.message_type == MessageType.ASSIGN_HOMEWORK:
+            pass  # 布置作业，已通过 message_history 记录
+        elif message.message_type == MessageType.HOMEWORK_SUBMISSION:
+            pass  # 学生提交作业，已通过 message_history 记录
+        elif message.message_type == MessageType.HOMEWORK_FEEDBACK:
+            pass  # 作业评分，已通过 message_history 记录
+        elif message.message_type == MessageType.END_FEEDBACK:
+            pass  # 课程结束反馈，已通过 message_history 记录
+        elif message.message_type == MessageType.FEEDBACK_SUBMISSION:
+            pass  # 学生课程反馈，已通过 message_history 记录
 
         self._check_and_update_summary()
 
