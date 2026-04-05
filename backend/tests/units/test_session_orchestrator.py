@@ -66,3 +66,75 @@ class TestSessionOrchestratorInit:
         assert orchestrator.student_agents == [student]
         assert orchestrator.checkpoint_plan == plan
         assert orchestrator.memory_manager == memory_manager
+
+
+class TestRunAutonomousSession:
+    """Test run_autonomous_session method."""
+
+    @pytest.mark.asyncio
+    async def test_run_autonomous_session_basic(self):
+        """测试 run_autonomous_session 基本流程."""
+        import asyncio
+        from agents.memories import SessionMemory
+        from agents.memories.memory_manager import MemoryManager
+        from agents.teacher_agent import TeacherAgent
+        from agents.student_agent import StudentAgent
+        from models.checkpoint.schemas import CheckpointPlan, Checkpoint, CheckpointState
+        from schemas.student import StudentProfile, StudentLevel, StudentAttitude
+        from unittest.mock import Mock, AsyncMock, patch
+        from models.session.orchestrator import SessionOrchestrator
+
+        # Mock LLM
+        mock_llm = Mock()
+        mock_llm.ainvoke = AsyncMock(return_value="Test content")
+
+        session_memory = SessionMemory(session_id=1, topic="Test Topic")
+        memory_manager = MemoryManager(session_memory=session_memory)
+
+        teacher = TeacherAgent(
+            session_memory=session_memory,
+            llm=mock_llm,
+            teaching_mode="didactic",
+        )
+
+        student_profile = StudentProfile(
+            name="Student1",
+            level=StudentLevel.AVERAGE,
+            attitude=StudentAttitude.NEUTRAL,
+            learning_ability=5,
+        )
+
+        student = StudentAgent(
+            session_memory=session_memory,
+            llm=mock_llm,
+            profile=student_profile,
+        )
+
+        # 创建包含 2 个检查点的计划
+        plan = CheckpointPlan(
+            topic="Test",
+            teaching_mode="didactic",
+            checkpoints=[
+                Checkpoint(title="CP1", key_point="Point 1", checkpoint_question="Q1?"),
+                Checkpoint(title="CP2", key_point="Point 2", checkpoint_question="Q2?")
+            ]
+        )
+
+        orchestrator = SessionOrchestrator(
+            teacher_agent=teacher,
+            student_agents=[student],
+            checkpoint_plan=plan,
+            memory_manager=memory_manager
+        )
+
+        # Mock _teach_checkpoint 方法
+        with patch.object(orchestrator, '_teach_checkpoint', new_callable=AsyncMock) as mock_teach:
+            with patch.object(orchestrator, '_assign_homework', new_callable=AsyncMock) as mock_hw:
+                with patch.object(orchestrator, '_collect_homework_and_feedback', new_callable=AsyncMock):
+                    await orchestrator.run_autonomous_session()
+
+                    # 验证调用了 2 次 _teach_checkpoint (每个检查点一次)
+                    assert mock_teach.call_count == 2
+
+                    # 验证最后一次调用了 _assign_homework
+                    mock_hw.assert_called_once()
