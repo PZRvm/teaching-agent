@@ -6,11 +6,9 @@ import uvicorn  # noqa: E402
 from fastapi import FastAPI  # noqa: E402
 
 from models.checkpoint.router import router as checkpoint_router  # noqa: E402
-from models.user import router as user_router  # noqa: E402
 
 app = FastAPI()
 
-app.include_router(user_router)
 app.include_router(checkpoint_router)
 
 
