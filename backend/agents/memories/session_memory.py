@@ -27,10 +27,7 @@ class SessionMemory:
 
     def should_update_summary(self) -> bool:
         """判断是否需要更新摘要."""
-        return (
-            len(self.message_history) - self.last_summary_update
-            >= self.summary_update_interval
-        )
+        return len(self.message_history) - self.last_summary_update >= self.summary_update_interval
 
     def mark_summary_updated(self) -> None:
         """标记摘要已更新."""

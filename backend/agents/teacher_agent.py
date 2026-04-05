@@ -6,6 +6,7 @@ from datetime import datetime
 
 from agents.memories import SessionMemory
 from agents.memories.memory_manager import MemoryManager
+from core.settings import TEACHING_TEMPERATURES, TIMEZONE
 from schemas.message import Message, MessageType
 from schemas.student import StudentProfile
 
@@ -38,8 +39,7 @@ class TeacherAgent:
         """
         if teaching_mode not in VALID_TEACHING_MODES:
             raise ValueError(
-                f"无效的教学模式: {teaching_mode}，"
-                f"有效值为: {', '.join(VALID_TEACHING_MODES)}"
+                f"无效的教学模式: {teaching_mode}，有效值为: {', '.join(VALID_TEACHING_MODES)}"
             )
 
         self.session_memory = session_memory
@@ -63,9 +63,7 @@ class TeacherAgent:
         """
         topic = self.session_memory.topic
         context = self.memory_manager.session_memory.get_agent_context()
-        teacher_context = self.memory_manager.teacher_memory.get_system_prompt_addition(
-            topic=topic
-        )
+        teacher_context = self.memory_manager.teacher_memory.get_system_prompt_addition(topic=topic)
 
         mode_instructions = {
             "didactic": (
@@ -91,9 +89,7 @@ class TeacherAgent:
             ),
         }
 
-        mode_section = mode_instructions.get(
-            self.teaching_mode, mode_instructions["didactic"]
-        )
+        mode_section = mode_instructions.get(self.teaching_mode, mode_instructions["didactic"])
 
         return f"""你是教师 agent，正在教授"{topic}"相关内容。
 
@@ -130,7 +126,7 @@ class TeacherAgent:
             sender="teacher",
             message_type=MessageType.LECTURE,
             content=content,
-            timestamp=datetime.now(),
+            timestamp=datetime.now(TIMEZONE),
         )
         self.memory_manager.process_message(message)
 
@@ -169,12 +165,7 @@ class TeacherAgent:
         Returns:
             温度值
         """
-        temperatures = {
-            "didactic": 0.3,
-            "heuristic": 0.5,
-            "discussion": 0.7,
-        }
-        return temperatures.get(self.teaching_mode, 0.3)
+        return TEACHING_TEMPERATURES.get(self.teaching_mode, 0.3)
 
     def is_content_complete(self) -> bool:
         """判断教学内容是否已完成.

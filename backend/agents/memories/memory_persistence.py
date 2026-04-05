@@ -53,9 +53,7 @@ class MemoryPersistence:
         Returns:
             ORM 模型实例
         """
-        result = await self.db_session.execute(
-            select(model).where(model.session_id == session_id)
-        )
+        result = await self.db_session.execute(select(model).where(model.session_id == session_id))
         existing = result.scalar_one_or_none()
 
         if existing:
@@ -68,9 +66,7 @@ class MemoryPersistence:
         await self.db_session.commit()
         return db_record
 
-    async def save_session_memory(
-        self, memory: SessionMemory
-    ) -> SessionMemoryModel:
+    async def save_session_memory(self, memory: SessionMemory) -> SessionMemoryModel:
         """保存会话记忆到数据库.
 
         Args:
@@ -79,26 +75,21 @@ class MemoryPersistence:
         Returns:
             ORM 模型实例
         """
+
         def update_fn(existing: SessionMemoryModel) -> None:
             existing.teaching_summary = memory.teaching_summary
-            existing.message_history = [
-                m.model_dump(mode="json") for m in memory.message_history
-            ]
+            existing.message_history = [m.model_dump(mode="json") for m in memory.message_history]
             existing.last_updated = datetime.now()
 
         def create_fn() -> dict[str, Any]:
             return {
                 "session_id": memory.session_id,
-                "message_history": [
-                    m.model_dump(mode="json") for m in memory.message_history
-                ],
+                "message_history": [m.model_dump(mode="json") for m in memory.message_history],
                 "teaching_summary": memory.teaching_summary or None,
                 "last_updated": datetime.now(),
             }
 
-        return await self._upsert(
-            SessionMemoryModel, memory.session_id, update_fn, create_fn
-        )
+        return await self._upsert(SessionMemoryModel, memory.session_id, update_fn, create_fn)
 
     async def save_teacher_memory(
         self, session_id: int, teacher_memory: TeacherAgentMemory
@@ -112,6 +103,7 @@ class MemoryPersistence:
         Returns:
             ORM 模型实例
         """
+
         def update_fn(existing: TeacherMemoryModel) -> None:
             existing.covered_topics = teacher_memory.covered_topics
             existing.student_questions = teacher_memory.student_questions
@@ -129,9 +121,7 @@ class MemoryPersistence:
                 "student_misconceptions": teacher_memory.student_misconceptions,
             }
 
-        return await self._upsert(
-            TeacherMemoryModel, session_id, update_fn, create_fn
-        )
+        return await self._upsert(TeacherMemoryModel, session_id, update_fn, create_fn)
 
     async def save_message(self, session_id: int, message: Message) -> MessageModel:
         """保存单条消息到数据库.
@@ -167,6 +157,7 @@ class MemoryPersistence:
         Returns:
             ORM 模型实例
         """
+
         def update_fn(existing: StudentMemoryModel) -> None:
             existing.learned_concepts = student_memory.learned_concepts
             existing.confused_points = student_memory.confused_points
@@ -192,13 +183,9 @@ class MemoryPersistence:
                 "last_updated": datetime.now(),
             }
 
-        return await self._upsert(
-            StudentMemoryModel, session_id, update_fn, create_fn
-        )
+        return await self._upsert(StudentMemoryModel, session_id, update_fn, create_fn)
 
-    async def load_session_memory(
-        self, session_id: int
-    ) -> SessionMemory | None:
+    async def load_session_memory(self, session_id: int) -> SessionMemory | None:
         """从数据库加载会话记忆.
 
         Args:
@@ -208,9 +195,7 @@ class MemoryPersistence:
             会话记忆对象，不存在则返回 None
         """
         result = await self.db_session.execute(
-            select(SessionMemoryModel).where(
-                SessionMemoryModel.session_id == session_id
-            )
+            select(SessionMemoryModel).where(SessionMemoryModel.session_id == session_id)
         )
         record = result.scalar_one_or_none()
 
@@ -230,9 +215,7 @@ class MemoryPersistence:
             message_history=message_history,
         )
 
-    async def load_teacher_memory(
-        self, session_id: int
-    ) -> TeacherAgentMemory | None:
+    async def load_teacher_memory(self, session_id: int) -> TeacherAgentMemory | None:
         """从数据库加载教师记忆.
 
         Args:
@@ -242,9 +225,7 @@ class MemoryPersistence:
             教师记忆对象，不存在则返回 None
         """
         result = await self.db_session.execute(
-            select(TeacherMemoryModel).where(
-                TeacherMemoryModel.session_id == session_id
-            )
+            select(TeacherMemoryModel).where(TeacherMemoryModel.session_id == session_id)
         )
         record = result.scalar_one_or_none()
 
@@ -298,9 +279,7 @@ class MemoryPersistence:
         from orm.teaching_session import TeachingSessionModel
 
         result = await self.db_session.execute(
-            select(TeachingSessionModel).where(
-                TeachingSessionModel.id == session_id
-            )
+            select(TeachingSessionModel).where(TeachingSessionModel.id == session_id)
         )
         record = result.scalar_one_or_none()
         return record.topic if record else ""
@@ -344,4 +323,3 @@ class MemoryPersistence:
         memory.learning_rate = record.learning_rate or 0.05
 
         return memory
-

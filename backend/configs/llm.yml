@@ -21,3 +21,15 @@ models:
   paid:
     - deepseek-ai/DeepSeek-V3
     - THUDM/glm-4-9b-chat
+
+# 教学模式对应的温度配置
+teaching_temperatures:
+  didactic: 0.3
+  heuristic: 0.5
+  discussion: 0.7
+
+# 学生态度对应的响应概率
+student_respond_probabilities:
+  active: 0.8
+  neutral: 0.5
+  passive: 0.2

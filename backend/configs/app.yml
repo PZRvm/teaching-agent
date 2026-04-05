@@ -9,6 +9,9 @@ app:
   name: 教学智能体
   version: 0.1.0
 
+  # 时区配置
+  timezone: Asia/Shanghai
+
   # CORS 配置
   cors:
     allow_origins:

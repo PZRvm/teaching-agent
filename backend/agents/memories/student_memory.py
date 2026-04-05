@@ -57,11 +57,7 @@ class StudentAgentMemory:
 
     def get_system_prompt_addition(self, topic: str) -> str:
         """生成学生 system prompt 的附加内容."""
-        learned = (
-            ", ".join(self.learned_concepts)
-            if self.learned_concepts
-            else "尚未开始学习"
-        )
+        learned = ", ".join(self.learned_concepts) if self.learned_concepts else "尚未开始学习"
         return (
             f'你是学生 agent "{self.name}"，正在学习"{topic}"相关内容。\n\n'
             f"已学习内容: {learned}\n"
