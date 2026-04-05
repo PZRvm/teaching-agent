@@ -126,15 +126,19 @@ class TeacherAgent:
             {"role": "user", "content": user_prompt},
         ]
 
-    def _record_lecture(self, content: str) -> None:
-        """通过 MemoryManager 记录讲授消息."""
+    def _record_message(self, content: str, message_type: MessageType) -> None:
+        """通过 MemoryManager 记录消息."""
         message = Message(
             sender="teacher",
-            message_type=MessageType.LECTURE,
+            message_type=message_type,
             content=content,
             timestamp=datetime.now(TIMEZONE),
         )
         self.memory_manager.process_message(message)
+
+    def _record_lecture(self, content: str) -> None:
+        """通过 MemoryManager 记录讲授消息."""
+        self._record_message(content, MessageType.LECTURE)
 
     def deliver_lecture(self) -> str:
         """生成讲授内容.
@@ -191,6 +195,46 @@ class TeacherAgent:
             温度值
         """
         return TEACHING_TEMPERATURES.get(self.teaching_mode, DEFAULT_TEACHING_TEMPERATURE)
+
+    def ask_checkpoint_question(self) -> str:
+        """提出 checkpoint 问题（启发式模式）.
+
+        基于已讲授的知识点生成一个检查理解程度的问题。
+
+        Returns:
+            问题文本
+
+        Raises:
+            RuntimeError: LLM 调用失败或返回空内容时
+        """
+        system_prompt = self._build_system_prompt()
+        covered = self.memory_manager.teacher_memory.covered_topics
+        recent_topics = covered[-5:] if covered else []
+        topics_str = "、".join(recent_topics) if recent_topics else self.session_memory.topic
+
+        user_prompt = (
+            f"基于刚才讲授的内容，请提出一个 checkpoint 问题来检查学生的理解程度。\n"
+            f"最近讲授的知识点: {topics_str}\n"
+            f"要求: 问题应该紧扣已讲授内容，难度适中。只输出问题本身。"
+        )
+        messages = [
+            {"role": "system", "content": system_prompt},
+            {"role": "user", "content": user_prompt},
+        ]
+
+        content = safe_llm_call(
+            self.llm.invoke,
+            "教师",
+            "checkpoint 提问",
+            messages,
+            temperature=self._get_mode_temperature(),
+        )
+
+        if not content or not content.strip():
+            raise RuntimeError("教师 checkpoint 提问 LLM 返回空内容")
+
+        self._record_message(content, MessageType.CHECKPOINT_QUESTION)
+        return content
 
     def is_content_complete(self) -> bool:
         """判断教学内容是否已完成.

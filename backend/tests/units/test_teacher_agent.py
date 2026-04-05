@@ -409,3 +409,62 @@ class TestTeacherAgentStreamErrors:
             list(agent.deliver_lecture_stream())
 
         assert len(agent.session_memory.message_history) == 0
+
+
+class TestTeacherAgentCheckpointQuestion:
+    """TeacherAgent ask_checkpoint_question 测试."""
+
+    def _make_agent(self, teaching_mode: str = "heuristic", covered_topics: list[str] | None = None):
+        """辅助方法：创建 TeacherAgent."""
+        from agents.memories import SessionMemory, TeacherAgentMemory
+        from agents.memories.memory_manager import MemoryManager
+        from agents.teacher_agent import TeacherAgent
+
+        session_mem = SessionMemory(session_id=1, topic="Python基础")
+        teacher_mem = TeacherAgentMemory()
+        if covered_topics:
+            for t in covered_topics:
+                teacher_mem.record_covered_topic(t)
+
+        mm = MemoryManager(session_memory=session_mem, teacher_memory=teacher_mem)
+        mock_llm = MagicMock()
+        mock_llm.invoke.return_value = "请问变量的作用域有哪些？"
+        return TeacherAgent(
+            session_memory=session_mem,
+            llm=mock_llm,
+            teaching_mode=teaching_mode,
+            memory_manager=mm,
+        )
+
+    def test_ask_checkpoint_question_calls_llm(self):
+        """测试 ask_checkpoint_question 调用 LLM."""
+        agent = self._make_agent()
+        agent.ask_checkpoint_question()
+        assert len(agent.llm.invoke.call_args_list) == 1
+
+    def test_ask_checkpoint_question_prompt_includes_covered_topics(self):
+        """测试 prompt 包含已讲授知识点."""
+        agent = self._make_agent(covered_topics=["变量", "数据类型"])
+        agent.ask_checkpoint_question()
+        messages = agent.llm.invoke.call_args[0][0]
+        user_msg = messages[1]["content"]
+        assert "变量" in user_msg
+
+    def test_ask_checkpoint_question_uses_mode_temperature(self):
+        """测试使用对应模式的温度."""
+        agent = self._make_agent(teaching_mode="heuristic")
+        agent.ask_checkpoint_question()
+        assert agent.llm.invoke.call_args[1].get("temperature") == 0.5
+
+    def test_ask_checkpoint_question_returns_content(self):
+        """测试返回 LLM 生成的问题内容."""
+        agent = self._make_agent()
+        result = agent.ask_checkpoint_question()
+        assert result == "请问变量的作用域有哪些？"
+
+    def test_ask_checkpoint_question_records_message(self):
+        """测试记录为 CHECKPOINT_QUESTION 消息."""
+        agent = self._make_agent()
+        agent.ask_checkpoint_question()
+        assert len(agent.session_memory.message_history) == 1
+        assert agent.session_memory.message_history[0].message_type == MessageType.CHECKPOINT_QUESTION
