@@ -238,13 +238,15 @@ def test_full_observation_session_with_console_output():
         # 创建学生（3 个学生，不同水平）
         students = []
         student_configs = [
-            ("张三", StudentLevel.EXCELLENT, StudentAttitude.ACTIVE),
-            ("李四", StudentLevel.AVERAGE, StudentAttitude.NEUTRAL),
-            ("王五", StudentLevel.BASIC, StudentAttitude.PASSIVE),
+            ("张三", StudentLevel.EXCELLENT, StudentAttitude.ACTIVE, 8),
+            ("李四", StudentLevel.AVERAGE, StudentAttitude.NEUTRAL, 5),
+            ("王五", StudentLevel.BASIC, StudentAttitude.PASSIVE, 3),
         ]
 
-        for name, level, attitude in student_configs:
-            profile = StudentProfile(name=name, level=level, attitude=attitude)
+        for name, level, attitude, learning_ability in student_configs:
+            profile = StudentProfile(
+                name=name, level=level, attitude=attitude, learning_ability=learning_ability
+            )
             student_memory = StudentAgentMemory.from_profile(profile)
             student = StudentAgent(
                 session_memory=session_memory, llm=llm, profile=profile, memory=student_memory
@@ -253,7 +255,7 @@ def test_full_observation_session_with_console_output():
 
         # 创建教师
         teacher = TeacherAgent(
-            session_memory=session_memory, llm=llm, teaching_mode="heuristic", memory=teacher_memory
+            session_memory=session_memory, llm=llm, teaching_mode="heuristic"
         )
 
         # 创建 MemoryManager
@@ -370,16 +372,18 @@ def test_multi_student_classroom():
 
         # 创建 5 个学生，模拟真实课堂的多样性
         student_configs = [
-            ("赵学霸", StudentLevel.EXCELLENT, StudentAttitude.ACTIVE),
-            ("钱积极", StudentLevel.AVERAGE, StudentAttitude.ACTIVE),
-            ("孙普通", StudentLevel.AVERAGE, StudentAttitude.NEUTRAL),
-            ("李沉默", StudentLevel.AVERAGE, StudentAttitude.PASSIVE),
-            ("周小白", StudentLevel.BASIC, StudentAttitude.PASSIVE),
+            ("赵学霸", StudentLevel.EXCELLENT, StudentAttitude.ACTIVE, 9),
+            ("钱积极", StudentLevel.AVERAGE, StudentAttitude.ACTIVE, 7),
+            ("孙普通", StudentLevel.AVERAGE, StudentAttitude.NEUTRAL, 5),
+            ("李沉默", StudentLevel.AVERAGE, StudentAttitude.PASSIVE, 4),
+            ("周小白", StudentLevel.BASIC, StudentAttitude.PASSIVE, 3),
         ]
 
         students = []
-        for name, level, attitude in student_configs:
-            profile = StudentProfile(name=name, level=level, attitude=attitude)
+        for name, level, attitude, learning_ability in student_configs:
+            profile = StudentProfile(
+                name=name, level=level, attitude=attitude, learning_ability=learning_ability
+            )
             student_memory = StudentAgentMemory.from_profile(profile)
             student = StudentAgent(
                 session_memory=session_memory, llm=llm, profile=profile, memory=student_memory
@@ -388,7 +392,7 @@ def test_multi_student_classroom():
 
         # 创建教师
         teacher = TeacherAgent(
-            session_memory=session_memory, llm=llm, teaching_mode="heuristic", memory=teacher_memory
+            session_memory=session_memory, llm=llm, teaching_mode="heuristic"
         )
 
         # 创建 MemoryManager
