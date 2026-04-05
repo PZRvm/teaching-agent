@@ -267,3 +267,145 @@ class TestTeacherAgentContentComplete:
 
         assert "Python基础变量" in prompt
         assert "变量" in prompt
+
+    def test_content_complete_with_trailing_punctuation(self):
+        """测试 LLM 返回带标点的「完成」仍然判定为完成."""
+        agent = self._make_agent(covered_topics=["变量", "数据类型", "条件语句", "循环"])
+
+        for response in ("完成。", "完成！", "完成？"):
+            agent.llm.invoke.return_value = response
+            assert agent.is_content_complete() is True, f"Failed for: {response}"
+
+
+class TestTeacherAgentDeliverLectureErrors:
+    """TeacherAgent deliver_lecture 错误路径测试."""
+
+    def _make_agent(self):
+        from agents.memories import SessionMemory, TeacherAgentMemory
+        from agents.memories.memory_manager import MemoryManager
+        from agents.teacher_agent import TeacherAgent
+
+        session_mem = SessionMemory(session_id=1, topic="Python基础")
+        teacher_mem = TeacherAgentMemory()
+        mm = MemoryManager(session_memory=session_mem, teacher_memory=teacher_mem)
+        mock_llm = MagicMock()
+        return TeacherAgent(
+            session_memory=session_mem,
+            llm=mock_llm,
+            teaching_mode="didactic",
+            memory_manager=mm,
+        )
+
+    def test_deliver_lecture_raises_runtime_error_on_llm_failure(self):
+        """测试 LLM 调用失败时抛出 RuntimeError."""
+        import pytest
+
+        agent = self._make_agent()
+        agent.llm.invoke.side_effect = ConnectionError("API error")
+
+        with pytest.raises(RuntimeError, match=".*讲授.*失败"):
+            agent.deliver_lecture()
+
+    def test_deliver_lecture_no_message_recorded_on_failure(self):
+        """测试 LLM 失败时不记录消息."""
+        import pytest
+
+        agent = self._make_agent()
+        agent.llm.invoke.side_effect = ConnectionError("API error")
+
+        with pytest.raises(RuntimeError):
+            agent.deliver_lecture()
+
+        assert len(agent.session_memory.message_history) == 0
+
+    def test_deliver_lecture_raises_on_empty_content(self):
+        """测试 LLM 返回空内容时抛出 RuntimeError."""
+        import pytest
+
+        agent = self._make_agent()
+        agent.llm.invoke.return_value = ""
+
+        with pytest.raises(RuntimeError, match="空内容"):
+            agent.deliver_lecture()
+
+    def test_deliver_lecture_raises_on_whitespace_content(self):
+        """测试 LLM 返回纯空白时抛出 RuntimeError."""
+        import pytest
+
+        agent = self._make_agent()
+        agent.llm.invoke.return_value = "   \n\t  "
+
+        with pytest.raises(RuntimeError, match="空内容"):
+            agent.deliver_lecture()
+
+
+class TestTeacherAgentStreamErrors:
+    """TeacherAgent deliver_lecture_stream 错误路径测试."""
+
+    def _make_agent(self):
+        from agents.memories import SessionMemory, TeacherAgentMemory
+        from agents.memories.memory_manager import MemoryManager
+        from agents.teacher_agent import TeacherAgent
+
+        session_mem = SessionMemory(session_id=1, topic="Python基础")
+        teacher_mem = TeacherAgentMemory()
+        mm = MemoryManager(session_memory=session_mem, teacher_memory=teacher_mem)
+        mock_llm = MagicMock()
+        return TeacherAgent(
+            session_memory=session_mem,
+            llm=mock_llm,
+            teaching_mode="didactic",
+            memory_manager=mm,
+        )
+
+    def test_stream_raises_runtime_error_on_failure(self):
+        """测试 stream 失败时抛出 RuntimeError."""
+        import pytest
+
+        agent = self._make_agent()
+        agent.llm.stream.side_effect = ConnectionError("stream broke")
+
+        with pytest.raises(RuntimeError, match=".*stream.*失败"):
+            list(agent.deliver_lecture_stream())
+
+    def test_stream_empty_does_not_record(self):
+        """测试空 stream 不记录讲授内容."""
+        agent = self._make_agent()
+        agent.llm.stream.return_value = iter([])
+
+        list(agent.deliver_lecture_stream())
+
+        assert len(agent.session_memory.message_history) == 0
+
+    def test_stream_success_records_lecture(self):
+        """测试成功 stream 记录完整讲授内容."""
+        agent = self._make_agent()
+
+        def fake_stream(*a, **kw):
+            yield "Hello "
+            yield "World"
+
+        agent.llm.stream.return_value = fake_stream()
+
+        chunks = list(agent.deliver_lecture_stream())
+
+        assert chunks == ["Hello ", "World"]
+        assert len(agent.session_memory.message_history) == 1
+        assert agent.session_memory.message_history[0].content == "Hello World"
+
+    def test_stream_error_does_not_record_partial(self):
+        """测试 stream 中途失败不记录部分内容."""
+        import pytest
+
+        agent = self._make_agent()
+
+        def failing_stream(*a, **kw):
+            yield "chunk1"
+            raise ConnectionError("mid-stream error")
+
+        agent.llm.stream.return_value = failing_stream()
+
+        with pytest.raises(RuntimeError):
+            list(agent.deliver_lecture_stream())
+
+        assert len(agent.session_memory.message_history) == 0

@@ -388,3 +388,49 @@ class TestStudentAgentGiveFeedback:
         msg = agent.session_memory.message_history[0]
         assert msg.sender == "赵六"
         assert msg.message_type.value == "feedback_submission"
+
+
+class TestStudentAgentEmptyContent:
+    """StudentAgent 空内容处理测试."""
+
+    def _make_agent(self):
+        return _make_agent(
+            name="测试生",
+            mock_return="正常回答",
+        )
+
+    def test_empty_llm_response_does_not_record_message(self):
+        """测试 LLM 返回空字符串时不记录消息."""
+        from unittest.mock import patch
+
+        agent = self._make_agent()
+
+        with patch("agents.student_agent.safe_llm_call", return_value=""):
+            result = agent.answer_question("测试问题？")
+
+        assert result == ""
+        assert len(agent.session_memory.message_history) == 0
+
+    def test_whitespace_llm_response_does_not_record_message(self):
+        """测试 LLM 返回纯空白时不记录消息."""
+        from unittest.mock import patch
+
+        agent = self._make_agent()
+
+        with patch("agents.student_agent.safe_llm_call", return_value="   \n\t  "):
+            result = agent.answer_question("测试问题？")
+
+        assert result == ""
+        assert len(agent.session_memory.message_history) == 0
+
+    def test_normal_response_records_message(self):
+        """测试正常响应正确记录消息."""
+        from unittest.mock import patch
+
+        agent = self._make_agent()
+
+        with patch("agents.student_agent.safe_llm_call", return_value="正常回答"):
+            result = agent.answer_question("测试问题？")
+
+        assert result == "正常回答"
+        assert len(agent.session_memory.message_history) == 1

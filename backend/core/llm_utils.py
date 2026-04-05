@@ -34,4 +34,4 @@ def safe_llm_call[T](
         return fn(*args, **kwargs)
     except Exception as e:
         logger.error("%s %s失败: error=%s", caller, description, e)
-        raise RuntimeError(f"{caller}{description}失败: {e}") from e
+        raise RuntimeError(f"{caller} {description}失败: {e}") from e

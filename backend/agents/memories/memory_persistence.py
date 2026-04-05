@@ -40,9 +40,7 @@ class MemoryPersistence:
 
     def _get_lock(self, key: str) -> asyncio.Lock:
         """获取或创建指定 key 的异步锁."""
-        if key not in self._locks:
-            self._locks[key] = asyncio.Lock()
-        return self._locks[key]
+        return self._locks.setdefault(key, asyncio.Lock())
 
     async def _upsert(
         self,
@@ -69,12 +67,20 @@ class MemoryPersistence:
 
             if existing:
                 update_fn(existing)
-                await self.db_session.commit()
+                try:
+                    await self.db_session.commit()
+                except Exception:
+                    await self.db_session.rollback()
+                    raise
                 return existing
 
             db_record = model(**create_fn())
             self.db_session.add(db_record)
-            await self.db_session.commit()
+            try:
+                await self.db_session.commit()
+            except Exception:
+                await self.db_session.rollback()
+                raise
             return db_record
 
     async def save_session_memory(self, memory: SessionMemory) -> SessionMemoryModel:
@@ -149,7 +155,7 @@ class MemoryPersistence:
             sender=message.sender,
             message_type=message.message_type.value,
             content=message.content,
-            timestamp=message.timestamp or datetime.now(TIMEZONE),
+            timestamp=message.timestamp if message.timestamp is not None else datetime.now(TIMEZONE),
         )
         self.db_session.add(db_message)
         await self.db_session.commit()
@@ -329,8 +335,8 @@ class MemoryPersistence:
         memory.learned_concepts = record.learned_concepts or []
         memory.confused_points = record.confused_points or []
         memory.questions_asked = record.questions_asked or []
-        memory.initial_knowledge_level = record.initial_knowledge_level or 0.0
-        memory.current_knowledge_level = record.current_knowledge_level or 0.0
-        memory.learning_rate = record.learning_rate or 0.05
+        memory.initial_knowledge_level = record.initial_knowledge_level if record.initial_knowledge_level is not None else 0.0
+        memory.current_knowledge_level = record.current_knowledge_level if record.current_knowledge_level is not None else 0.0
+        memory.learning_rate = record.learning_rate if record.learning_rate is not None else 0.05
 
         return memory

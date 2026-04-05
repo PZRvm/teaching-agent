@@ -155,6 +155,9 @@ class TeacherAgent:
             temperature=self._get_mode_temperature(),
         )
 
+        if not content or not content.strip():
+            raise RuntimeError("教师讲授 LLM 返回空内容")
+
         self._record_lecture(content)
 
         return content
@@ -175,12 +178,11 @@ class TeacherAgent:
             for chunk in self.llm.stream(messages, temperature=self._get_mode_temperature()):
                 full_content.append(chunk)
                 yield chunk
-        except Exception as e:
-            raise RuntimeError(f"教师讲授的 LLM stream 调用失败: {e}") from e
-        finally:
             content = "".join(full_content)
             if content:
                 self._record_lecture(content)
+        except Exception as e:
+            raise RuntimeError(f"教师讲授的 LLM stream 调用失败: {e}") from e
 
     def _get_mode_temperature(self) -> float:
         """根据教学模式获取合适的温度值.
