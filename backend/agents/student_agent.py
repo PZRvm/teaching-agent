@@ -36,3 +36,21 @@ class StudentAgent:
         self.rng = rng or random.Random()
 
         self.memory = memory or StudentAgentMemory.from_profile(profile)
+
+    # 态度 → 响应概率
+    _RESPOND_PROBABILITIES = {
+        "active": 0.8,
+        "neutral": 0.5,
+        "passive": 0.2,
+    }
+
+    def should_respond(self) -> bool:
+        """判断学生是否应该响应（基于态度概率）.
+
+        Returns:
+            True 表示学生选择响应
+        """
+        probability = self._RESPOND_PROBABILITIES.get(
+            self.profile.attitude.value, 0.5
+        )
+        return self.rng.random() < probability

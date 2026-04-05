@@ -98,3 +98,59 @@ class TestStudentAgentInit:
         )
 
         assert agent.rng is test_rng
+
+
+class TestStudentAgentShouldRespond:
+    """StudentAgent should_respond 测试."""
+
+    def _make_agent(self, *, attitude: str = "neutral", rng_seed: int = 42):
+        """辅助方法：创建 StudentAgent."""
+        from agents.memories import SessionMemory
+        from agents.student_agent import StudentAgent
+
+        session_mem = SessionMemory(session_id=1, topic="Python基础")
+        profile = StudentProfile(name="测试学生", attitude=attitude, learning_ability=5)
+        mock_llm = MagicMock()
+        test_rng = random.Random(rng_seed)
+
+        return StudentAgent(
+            session_memory=session_mem,
+            llm=mock_llm,
+            profile=profile,
+            rng=test_rng,
+        )
+
+    def test_active_student_responds_most_of_the_time(self):
+        """测试积极学生大概率响应."""
+        agent = self._make_agent(attitude="active", rng_seed=42)
+
+        results = [agent.should_respond() for _ in range(100)]
+        respond_rate = sum(results) / len(results)
+
+        assert respond_rate > 0.6
+
+    def test_neutral_student_responds_half_the_time(self):
+        """测试中性学生约 50% 响应."""
+        agent = self._make_agent(attitude="neutral", rng_seed=42)
+
+        results = [agent.should_respond() for _ in range(100)]
+        respond_rate = sum(results) / len(results)
+
+        assert 0.3 < respond_rate < 0.7
+
+    def test_passive_student_responds_less(self):
+        """测试消极学生响应较少."""
+        agent = self._make_agent(attitude="passive", rng_seed=42)
+
+        results = [agent.should_respond() for _ in range(100)]
+        respond_rate = sum(results) / len(results)
+
+        assert respond_rate < 0.4
+
+    def test_should_respond_returns_boolean(self):
+        """测试 should_respond 返回布尔值."""
+        agent = self._make_agent()
+
+        result = agent.should_respond()
+
+        assert isinstance(result, bool)
