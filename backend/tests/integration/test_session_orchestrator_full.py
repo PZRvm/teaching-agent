@@ -240,7 +240,7 @@ def test_full_observation_session_with_console_output():
         student_configs = [
             ("张三", StudentLevel.EXCELLENT, StudentAttitude.ACTIVE),
             ("李四", StudentLevel.AVERAGE, StudentAttitude.NEUTRAL),
-            ("王五", StudentLevel.BEGINNER, StudentAttitude.PASSIVE),
+            ("王五", StudentLevel.BASIC, StudentAttitude.PASSIVE),
         ]
 
         for name, level, attitude in student_configs:
@@ -371,10 +371,10 @@ def test_multi_student_classroom():
         # 创建 5 个学生，模拟真实课堂的多样性
         student_configs = [
             ("赵学霸", StudentLevel.EXCELLENT, StudentAttitude.ACTIVE),
-            ("钱积极", StudentLevel.ABOVE_AVERAGE, StudentAttitude.ACTIVE),
+            ("钱积极", StudentLevel.AVERAGE, StudentAttitude.ACTIVE),
             ("孙普通", StudentLevel.AVERAGE, StudentAttitude.NEUTRAL),
             ("李沉默", StudentLevel.AVERAGE, StudentAttitude.PASSIVE),
-            ("周小白", StudentLevel.BEGINNER, StudentAttitude.PASSIVE),
+            ("周小白", StudentLevel.BASIC, StudentAttitude.PASSIVE),
         ]
 
         students = []
