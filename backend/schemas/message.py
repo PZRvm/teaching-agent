@@ -28,6 +28,7 @@ class Message(BaseModel):
     sender: str = Field(description="发送者")
     message_type: MessageType = Field(description="消息类型")
     content: str = Field(min_length=1, description="消息内容")
+    receiver: str = Field(default="all", description="接收者 (all/学生名称)")
     timestamp: datetime | None = Field(None)
 
 
@@ -38,6 +39,7 @@ class MessageCreate(BaseModel):
     sender: str = Field(description="发送者")
     message_type: MessageType = Field(description="消息类型")
     content: str = Field(min_length=1, description="消息内容")
+    receiver: str = Field(default="all", description="接收者")
 
 
 class MessageResponse(BaseModel):
@@ -50,4 +52,5 @@ class MessageResponse(BaseModel):
     sender: str
     message_type: MessageType
     content: str
+    receiver: str
     timestamp: datetime
