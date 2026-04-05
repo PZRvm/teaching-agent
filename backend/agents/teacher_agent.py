@@ -357,6 +357,51 @@ class TeacherAgent:
         self._record_message(content, MessageType.ASSIGN_HOMEWORK)
         return content
 
+    def grade_homework(self, student_name: str, homework_content: str) -> str:
+        """评价学生的作业.
+
+        使用 LLM 评价学生提交的作业。
+
+        Args:
+            student_name: 学生名字
+            homework_content: 学生提交的作业内容
+
+        Returns:
+            评价内容
+
+        Raises:
+            RuntimeError: LLM 调用失败或返回空内容时
+        """
+        system_prompt = self._build_system_prompt()
+
+        user_prompt = (
+            f"请评价以下学生提交的作业。\n\n"
+            f"学生: {student_name}\n"
+            f"作业内容:\n{homework_content}\n\n"
+            f"请给出:\n"
+            f"1. 评分（优秀/良好/及格/不及格）\n"
+            f"2. 优点\n"
+            f"3. 需要改进的地方"
+        )
+        messages = [
+            {"role": "system", "content": system_prompt},
+            {"role": "user", "content": user_prompt},
+        ]
+
+        content = safe_llm_call(
+            self.llm.invoke,
+            "教师",
+            "作业评分",
+            messages,
+            temperature=CONTENT_JUDGE_TEMPERATURE,
+        )
+
+        if not content or not content.strip():
+            raise RuntimeError("教师作业评分 LLM 返回空内容")
+
+        self._record_message(content, MessageType.HOMEWORK_FEEDBACK)
+        return content
+
     def is_content_complete(self) -> bool:
         """判断教学内容是否已完成.
 
