@@ -53,7 +53,7 @@ class TestCheckpointPlanPersistence:
         )
 
         service = CheckpointPlanPersistence(db_session)
-        plan_id = await service.save_plan(session_id=42, plan=plan)
+        await service.save_plan(session_id=42, plan=plan)
 
         # 加载计划
         loaded_plan = await service.load_plan(session_id=42)
@@ -74,8 +74,8 @@ class TestCheckpointPlanPersistence:
 
     async def test_update_checkpoint_state(self, db_session):
         """更新检查点状态."""
-        from models.checkpoint.schemas import CheckpointState
         from models.checkpoint.persistence_service import CheckpointPlanPersistence
+        from models.checkpoint.schemas import CheckpointState
 
         plan = CheckpointPlan(
             topic="状态测试",
@@ -87,7 +87,7 @@ class TestCheckpointPlanPersistence:
         )
 
         service = CheckpointPlanPersistence(db_session)
-        plan_id = await service.save_plan(session_id=1, plan=plan)
+        await service.save_plan(session_id=1, plan=plan)
 
         # 更新第一个检查点状态为 complete
         await service.update_checkpoint_state(
@@ -101,8 +101,8 @@ class TestCheckpointPlanPersistence:
 
     async def test_advance_to_next_checkpoint(self, db_session):
         """推进到下一个检查点."""
-        from models.checkpoint.schemas import CheckpointState
         from models.checkpoint.persistence_service import CheckpointPlanPersistence
+        from models.checkpoint.schemas import CheckpointState
 
         plan = CheckpointPlan(
             topic="推进测试",
@@ -115,7 +115,7 @@ class TestCheckpointPlanPersistence:
         )
 
         service = CheckpointPlanPersistence(db_session)
-        plan_id = await service.save_plan(session_id=1, plan=plan)
+        await service.save_plan(session_id=1, plan=plan)
 
         # 推进到下一个
         await service.advance_checkpoint(session_id=1)

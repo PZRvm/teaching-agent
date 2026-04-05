@@ -4,11 +4,11 @@ from typing import Annotated
 
 from fastapi import APIRouter, Depends, HTTPException, status
 from pydantic import BaseModel, Field
+from sqlalchemy.ext.asyncio import AsyncSession
 
 from core.database import get_db
 from models.checkpoint.persistence_service import CheckpointPlanPersistence
 from models.checkpoint.schemas import Checkpoint, CheckpointPlan, CheckpointState
-from sqlalchemy.ext.asyncio import AsyncSession
 
 router = APIRouter(prefix="/checkpoint-plans", tags=["checkpoint-plans"])
 
@@ -116,7 +116,7 @@ async def update_checkpoint_state(
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
             detail=f"Invalid state: {request.new_state}. Must be one of: pending, teaching, questions, complete",
-        )
+        ) from None
 
     service = CheckpointPlanPersistence(db)
     await service.update_checkpoint_state(
@@ -154,7 +154,7 @@ async def advance_checkpoint(
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
             detail="Cannot advance beyond last checkpoint",
-        )
+        ) from None
 
     plan = await service.load_plan(session_id=session_id)
     if plan is None:

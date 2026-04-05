@@ -3,7 +3,7 @@
 from sqlalchemy import delete, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from models.checkpoint.schemas import Checkpoint, CheckpointPlan, CheckpointState
+from models.checkpoint.schemas import CheckpointPlan, CheckpointState
 from orm.checkpoint_plan import CheckpointPlanModel
 
 
