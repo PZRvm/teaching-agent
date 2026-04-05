@@ -120,3 +120,28 @@ class LLMClient:
 
         for chunk in self._llm.stream(**invoke_kwargs):
             yield chunk.content
+
+    async def ainvoke(
+        self,
+        prompt: str | list,
+        temperature: float | None = None,
+    ) -> str:
+        """异步调用 LLM 生成响应.
+
+        Args:
+            prompt: 提示文本或消息列表
+            temperature: 可选温度覆盖
+
+        Returns:
+            LLM 响应文本
+        """
+        from langchain_core.messages import HumanMessage
+
+        messages = [HumanMessage(content=prompt)] if isinstance(prompt, str) else prompt
+
+        invoke_kwargs: dict = {"input": messages}
+        if temperature is not None:
+            invoke_kwargs["temperature"] = temperature
+
+        response = await self._llm.ainvoke(**invoke_kwargs)
+        return response.content
