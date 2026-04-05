@@ -236,6 +236,46 @@ class TeacherAgent:
         self._record_message(content, MessageType.CHECKPOINT_QUESTION)
         return content
 
+    def ask_discussion_question(self) -> str:
+        """提出讨论问题（讨论式模式）.
+
+        基于当前教学内容引导开放性讨论。
+
+        Returns:
+            问题文本
+
+        Raises:
+            RuntimeError: LLM 调用失败或返回空内容时
+        """
+        system_prompt = self._build_system_prompt()
+
+        user_prompt = (
+            f"请基于当前教学内容「{self.session_memory.topic}」提出一个开放性的讨论问题。\n"
+            f"要求:\n"
+            f"- 问题应该能引发学生思考和讨论\n"
+            f"- 鼓励学生表达自己的观点\n"
+            f"- 可以结合实际案例或应用场景\n"
+            f"只输出问题本身。"
+        )
+        messages = [
+            {"role": "system", "content": system_prompt},
+            {"role": "user", "content": user_prompt},
+        ]
+
+        content = safe_llm_call(
+            self.llm.invoke,
+            "教师",
+            "讨论提问",
+            messages,
+            temperature=self._get_mode_temperature(),
+        )
+
+        if not content or not content.strip():
+            raise RuntimeError("教师讨论提问 LLM 返回空内容")
+
+        self._record_message(content, MessageType.CHECKPOINT_QUESTION)
+        return content
+
     def is_content_complete(self) -> bool:
         """判断教学内容是否已完成.
 

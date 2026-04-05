@@ -468,3 +468,62 @@ class TestTeacherAgentCheckpointQuestion:
         agent.ask_checkpoint_question()
         assert len(agent.session_memory.message_history) == 1
         assert agent.session_memory.message_history[0].message_type == MessageType.CHECKPOINT_QUESTION
+
+
+class TestTeacherAgentDiscussionQuestion:
+    """TeacherAgent ask_discussion_question 测试."""
+
+    def _make_agent(self, teaching_mode: str = "discussion", covered_topics: list[str] | None = None):
+        """辅助方法：创建 TeacherAgent."""
+        from agents.memories import SessionMemory, TeacherAgentMemory
+        from agents.memories.memory_manager import MemoryManager
+        from agents.teacher_agent import TeacherAgent
+
+        session_mem = SessionMemory(session_id=1, topic="Python基础")
+        teacher_mem = TeacherAgentMemory()
+        if covered_topics:
+            for t in covered_topics:
+                teacher_mem.record_covered_topic(t)
+
+        mm = MemoryManager(session_memory=session_mem, teacher_memory=teacher_mem)
+        mock_llm = MagicMock()
+        mock_llm.invoke.return_value = "大家觉得在实际项目中，什么时候应该用列表，什么时候应该用元组？"
+        return TeacherAgent(
+            session_memory=session_mem,
+            llm=mock_llm,
+            teaching_mode=teaching_mode,
+            memory_manager=mm,
+        )
+
+    def test_ask_discussion_question_calls_llm(self):
+        """测试 ask_discussion_question 调用 LLM."""
+        agent = self._make_agent()
+        agent.ask_discussion_question()
+        assert len(agent.llm.invoke.call_args_list) == 1
+
+    def test_ask_discussion_question_prompt_includes_topic(self):
+        """测试 prompt 包含教学主题."""
+        agent = self._make_agent()
+        agent.ask_discussion_question()
+        messages = agent.llm.invoke.call_args[0][0]
+        user_msg = messages[1]["content"]
+        assert "Python基础" in user_msg
+
+    def test_ask_discussion_question_uses_mode_temperature(self):
+        """测试讨论式模式使用 0.7 温度."""
+        agent = self._make_agent(teaching_mode="discussion")
+        agent.ask_discussion_question()
+        assert agent.llm.invoke.call_args[1].get("temperature") == 0.7
+
+    def test_ask_discussion_question_returns_content(self):
+        """测试返回 LLM 生成的讨论问题."""
+        agent = self._make_agent()
+        result = agent.ask_discussion_question()
+        assert result == "大家觉得在实际项目中，什么时候应该用列表，什么时候应该用元组？"
+
+    def test_ask_discussion_question_records_as_checkpoint(self):
+        """测试记录为 CHECKPOINT_QUESTION 消息."""
+        agent = self._make_agent()
+        agent.ask_discussion_question()
+        assert len(agent.session_memory.message_history) == 1
+        assert agent.session_memory.message_history[0].message_type == MessageType.CHECKPOINT_QUESTION
