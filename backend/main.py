@@ -7,11 +7,13 @@ from fastapi import FastAPI  # noqa: E402
 
 from models.checkpoint.router import router as checkpoint_router  # noqa: E402
 from models.observation.router import router as observation_router  # noqa: E402
+from models.session.router_websocket import router as websocket_router  # noqa: E402
 
 app = FastAPI()
 
 app.include_router(checkpoint_router)
 app.include_router(observation_router)
+app.include_router(websocket_router)
 
 
 @app.get("/")
