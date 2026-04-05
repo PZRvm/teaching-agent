@@ -320,13 +320,60 @@ def test_full_observation_session_with_console_output():
             participation = teacher_memory.student_participation.get(student.profile.name, 0)
             print(f"    {student.profile.name}: {participation} 次参与")
 
-        # 打印最后几条消息
-        print("\n最后几条消息:")
-        for msg in session_memory.message_history[-5:]:
+        # 打印完整对话记录
+        print("\n" + "=" * 70)
+        print("【完整对话记录】")
+        print("=" * 70)
+
+        # 定义消息类型对应的图标
+        msg_icons = {
+            "lecture": "👨‍🏫",
+            "checkpoint_question": "❓",
+            "student_answer": "🙋",
+            "student_question": "🤔",
+            "reply_to_student": "💬",
+            "assign_homework": "📝",
+            "submit_homework": "📚",
+            "homework_feedback": "✅",
+            "end_feedback": "🏁",
+        }
+
+        for idx, msg in enumerate(session_memory.message_history, 1):
             sender = msg.sender
             msg_type = msg.message_type.value
-            content = msg.content[:60] + "..." if len(msg.content) > 60 else msg.content
-            print(f"  [{sender}] ({msg_type}): {content}")
+            icon = msg_icons.get(msg_type, "💭")
+
+            # 消息类型中文名称
+            msg_type_names = {
+                "lecture": "讲授",
+                "checkpoint_question": "检查点提问",
+                "student_answer": "学生回答",
+                "student_question": "学生提问",
+                "reply_to_student": "教师回复",
+                "assign_homework": "布置作业",
+                "submit_homework": "提交作业",
+                "homework_feedback": "作业反馈",
+                "end_feedback": "课程总结",
+            }
+
+            msg_type_cn = msg_type_names.get(msg_type, msg_type)
+
+            # 打印消息头
+            print(f"\n[{idx:03d}] {icon} {sender} | {msg_type_cn}")
+            print("-" * 70)
+
+            # 打印完整内容（自动换行）
+            content = msg.content
+            if len(content) > 300:
+                # 长内容分段显示
+                for i in range(0, len(content), 300):
+                    print(f"  {content[i:i+300]}")
+            else:
+                print(f"  {content}")
+
+        print("\n" + "=" * 70)
+        print("【课程统计】")
+        print("=" * 70)
 
         print(f"\n{'=' * 70}\n")
 
@@ -437,10 +484,59 @@ def test_multi_student_classroom():
 
         print("\n[4/4] 课程完成！\n")
 
-        # 打印统计
-        print(f"\n{'=' * 60}")
-        print("  课堂统计")
-        print(f"{'=' * 60}")
+        # 打印完整对话记录
+        print("\n" + "=" * 70)
+        print("【完整对话记录】")
+        print("=" * 70)
+
+        # 定义消息类型对应的图标
+        msg_icons = {
+            "lecture": "👨‍🏫",
+            "checkpoint_question": "❓",
+            "student_answer": "🙋",
+            "student_question": "🤔",
+            "reply_to_student": "💬",
+            "assign_homework": "📝",
+            "submit_homework": "📚",
+            "homework_feedback": "✅",
+            "end_feedback": "🏁",
+        }
+
+        # 定义消息类型中文名称
+        msg_type_names = {
+            "lecture": "讲授",
+            "checkpoint_question": "检查点提问",
+            "student_answer": "学生回答",
+            "student_question": "学生提问",
+            "reply_to_student": "教师回复",
+            "assign_homework": "布置作业",
+            "submit_homework": "提交作业",
+            "homework_feedback": "作业反馈",
+            "end_feedback": "课程总结",
+        }
+
+        for idx, msg in enumerate(session_memory.message_history, 1):
+            sender = msg.sender
+            msg_type = msg.message_type.value
+            icon = msg_icons.get(msg_type, "💭")
+            msg_type_cn = msg_type_names.get(msg_type, msg_type)
+
+            # 打印消息头
+            print(f"\n[{idx:03d}] {icon} {sender} | {msg_type_cn}")
+            print("-" * 70)
+
+            # 打印完整内容（自动换行）
+            content = msg.content
+            if len(content) > 300:
+                for i in range(0, len(content), 300):
+                    print(f"  {content[i:i+300]}")
+            else:
+                print(f"  {content}")
+
+        # 打印统计信息
+        print("\n" + "=" * 70)
+        print("【课堂统计】")
+        print("=" * 70)
         print(f"  总消息数: {len(session_memory.message_history)}")
         print(f"  教师讲授主题: {len(teacher_memory.covered_topics)}")
         print("  学生参与情况:")
@@ -448,7 +544,7 @@ def test_multi_student_classroom():
             participation = teacher_memory.student_participation.get(student.profile.name, 0)
             learned = len(student.memory.knowledge_points)
             print(f"    {student.profile.name}: {participation} 次参与, 学会 {learned} 个知识点")
-        print(f"{'=' * 60}\n")
+        print("=" * 70 + "\n")
 
         # 验证
         assert len(session_memory.message_history) > 0
