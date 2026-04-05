@@ -1,6 +1,14 @@
 """LLM Client 单元测试."""
 
+import sys
 from unittest.mock import MagicMock, patch
+
+# Mock langchain dependencies before importing core.llm_client
+sys.modules.setdefault("langchain_openai", MagicMock())
+sys.modules.setdefault("langchain_core", MagicMock())
+sys.modules.setdefault("langchain_core.messages", MagicMock())
+
+from core.llm_client import LLMClient  # noqa: E402
 
 
 class TestLLMClient:
@@ -8,8 +16,6 @@ class TestLLMClient:
 
     def test_init_uses_config(self):
         """测试使用配置初始化."""
-        from core.llm_client import LLMClient
-
         client = LLMClient(
             base_url="https://api.test.com/v1",
             api_key="test-key",
@@ -24,8 +30,6 @@ class TestLLMClient:
 
     def test_init_from_config_uses_env_api_key(self):
         """测试 from_config() 从 .env 读取 API key."""
-        from core.llm_client import LLMClient
-
         with patch.dict("os.environ", {"OPENAI_API_KEY": "test-env-key"}):
             client = LLMClient.from_config()
 
@@ -37,16 +41,12 @@ class TestLLMClient:
         """测试 from_config() 在无 API key 时抛出 ValueError."""
         import pytest
 
-        from core.llm_client import LLMClient
-
         with patch.dict("os.environ", {}, clear=True), pytest.raises(ValueError, match="OPENAI_API_KEY"):
             LLMClient.from_config()
 
     @patch("core.llm_client.ChatOpenAI")
     def test_invoke_returns_response(self, mock_chat_openai_cls):
         """测试 invoke 调用 LLM 并返回响应."""
-        from core.llm_client import LLMClient
-
         mock_llm_instance = MagicMock()
         mock_chat_openai_cls.return_value = mock_llm_instance
         mock_llm_instance.invoke.return_value = MagicMock(content="这是讲授内容")
@@ -64,10 +64,6 @@ class TestLLMClient:
     @patch("core.llm_client.ChatOpenAI")
     def test_invoke_with_messages(self, mock_chat_openai_cls):
         """测试 invoke 传入消息列表."""
-        from langchain_core.messages import HumanMessage, SystemMessage
-
-        from core.llm_client import LLMClient
-
         mock_llm_instance = MagicMock()
         mock_chat_openai_cls.return_value = mock_llm_instance
         mock_llm_instance.invoke.return_value = MagicMock(content="响应内容")
@@ -79,8 +75,8 @@ class TestLLMClient:
         )
 
         messages = [
-            SystemMessage(content="你是教师"),
-            HumanMessage(content="请讲授变量"),
+            MagicMock(content="你是教师"),
+            MagicMock(content="请讲授变量"),
         ]
         result = client.invoke(messages)
 
@@ -89,8 +85,6 @@ class TestLLMClient:
     @patch("core.llm_client.ChatOpenAI")
     def test_invoke_with_temperature_override(self, mock_chat_openai_cls):
         """测试 invoke 支持临时覆盖 temperature."""
-        from core.llm_client import LLMClient
-
         mock_llm_instance = MagicMock()
         mock_chat_openai_cls.return_value = mock_llm_instance
         mock_llm_instance.invoke.return_value = MagicMock(content="响应")

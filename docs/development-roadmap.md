@@ -163,6 +163,15 @@
    - [✓] 15 个 TeacherAgent 单元测试
    - [✓] 6 个 LLMClient 单元测试
    - [✓] 3 个真实 LLM 集成测试（流式输出）
+   - [✓] 8 个错误路径测试（stream/empty/rollback）
+   - [✓] 1 个 is_content_complete 标点剥离测试
+
+6. 代码质量改进（gstack review）
+   - [✓] safe_llm_call 统一 LLM 错误处理
+   - [✓] deliver_lecture 空内容检查
+   - [✓] deliver_lecture_stream 异常时不记录部分内容
+   - [✓] MemoryPersistence asyncio.Lock 并发安全 + rollback 保护
+   - [✓] 时区统一使用 TIMEZONE (Asia/Shanghai)
 
 **验收标准**:
 - [✓] 能连接LLM API
@@ -180,25 +189,40 @@
 
 **任务列表**:
 1. MemoryAwareStudentAgent基础结构
-   - [ ] `backend/agents/student_agent.py`
-   - [ ] __init__ with StudentAgentMemory and LLM
+   - [✓] `backend/agents/student_agent.py`
+   - [✓] __init__ with StudentAgentMemory and LLM
 
 2. 回答功能
-   - [ ] answer_question() 方法
-   - [ ] 基于level参数差异化回答质量
-   - [ ] 基于attitude参数差异化主动性
+   - [✓] answer_question() 方法
+   - [✓] 基于level参数差异化回答质量
+   - [✓] 基于attitude参数差异化主动性
 
 3. should_respond() 判断
-   - [ ] 积极学生更主动响应
-   - [ ] 消极学生响应较少
+   - [✓] 积极学生更主动响应
+   - [✓] 消极学生响应较少
+
+4. 主动提问与作业（额外实现）
+   - [✓] ask_question() — 基于困惑点向教师提问
+   - [✓] submit_homework() — 提交作业
+   - [✓] give_feedback() — 课程总结性反馈
+
+5. 共享基础设施（额外实现）
+   - [✓] `backend/core/settings.py` — 从 YAML 加载配置（timezone、temperature、probability）
+   - [✓] `backend/core/llm_utils.py` — safe_llm_call 统一 LLM 错误处理
+
+6. 测试
+   - [✓] 32 个 StudentAgent 单元测试
+   - [✓] 5 个 safe_llm_call 单元测试
+   - [✓] 8 个 TeacherAgent 错误路径测试（stream/empty/error）
+   - [✓] 3 个 StudentAgent 空内容处理测试
 
 **验收标准**:
-- [ ] 学生能回答问题
-- [ ] level=优秀的学生比level=基础的学生回答质量更高
-- [ ] attitude=积极的学生更主动（回答更多问题）
-- [ ] 验证：创建两个不同level的学生，提问对比
+- [✓] 学生能回答问题
+- [✓] level=优秀的学生比level=基础的学生回答质量更高
+- [✓] attitude=积极的学生更主动（回答更多问题）
+- [✓] 验证：创建两个不同level的学生，提问对比
 
-**预计时间**: 2-3小时
+**完成时间**: 2026-04-05
 
 ---
 
@@ -488,7 +512,7 @@ Phase 13 (测试)
 
 ## 快速开始
 
-**当前进度**: Phase 4 已完成 ✅
+**当前进度**: Phase 5 已完成 ✅
 
 ✅ **已完成**:
 - Phase 1: 基础设施与数据层
@@ -502,15 +526,24 @@ Phase 13 (测试)
   - `backend/agents/memories/teacher_memory.py` - TeacherAgentMemory类（知识点追踪、学生问题记录）
   - `backend/agents/memories/student_memory.py` - StudentAgentMemory类（学习曲线模拟）
   - `backend/agents/memories/memory_manager.py` - MemoryManager类（消息路由、摘要更新）
-  - `backend/agents/memories/memory_persistence.py` - MemoryPersistence类（数据库持久化）
+  - `backend/agents/memories/memory_persistence.py` - MemoryPersistence类（数据库持久化，asyncio.Lock 并发安全）
   - 完整测试覆盖（43个新测试：9个SessionMemory + 8个TeacherAgentMemory + 8个StudentAgentMemory + 14个MemoryManager + 4个Summary + 14个Persistence + 2个Integration）
   - 所有保存和加载操作完整测试通过
 - Phase 4: 教师 Agent
   - `backend/core/llm_client.py` - LLMClient（封装 ChatOpenAI，支持 invoke/stream）
   - `backend/agents/teacher_agent.py` - TeacherAgent（讲授、流式输出、内容完成判断）
   - 三种教学模式支持（didactic/heuristic/discussion），不同 prompt + temperature
-  - 完整测试覆盖（24个新测试：15个TeacherAgent单元 + 6个LLMClient单元 + 3个集成测试）
-  - 133 个测试全部通过
+  - `backend/core/settings.py` - 从 YAML 加载配置（timezone、temperature、probability）
+  - `backend/core/llm_utils.py` - safe_llm_call 统一 LLM 错误处理
+  - 并发安全（asyncio.Lock）+ 错误处理（rollback、空内容检查、stream 异常保护）
+  - 完整测试覆盖（34个测试：23个TeacherAgent + 6个LLMClient + 5个safe_llm_call）
+  - 160 个测试全部通过
+- Phase 5: 学生 Agent
+  - `backend/agents/student_agent.py` - StudentAgent（回答问题、主动提问、提交作业、课程反馈）
+  - 基于 level 参数差异化回答质量（_LEVEL_INSTRUCTIONS）
+  - 基于 attitude 参数差异化响应概率（STUDENT_RESPOND_PROBABILITIES）
+  - 完整测试覆盖（35个新测试：32个StudentAgent + 3个空内容处理）
+  - 160 个测试全部通过
 
-📋 **下一步**: Phase 5 - 学生 Agent（单个）
+📋 **下一步**: Phase 6 - 三种教学模式实现
 

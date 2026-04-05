@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import asyncio
 from collections.abc import Callable
 from datetime import datetime
 from typing import Any, TypeVar
@@ -15,6 +16,7 @@ from agents.memories.memory_manager import (
     TeacherAgentMemory,
 )
 from core.database import Base
+from core.settings import TIMEZONE
 from orm.message import MessageModel
 from orm.session_memory import SessionMemoryModel
 from orm.student_memory import StudentMemoryModel
@@ -34,6 +36,11 @@ class MemoryPersistence:
             db_session: SQLAlchemy 异步会话
         """
         self.db_session = db_session
+        self._locks: dict[str, asyncio.Lock] = {}
+
+    def _get_lock(self, key: str) -> asyncio.Lock:
+        """获取或创建指定 key 的异步锁."""
+        return self._locks.setdefault(key, asyncio.Lock())
 
     async def _upsert(
         self,
@@ -42,7 +49,7 @@ class MemoryPersistence:
         update_fn: Callable[[T], None],
         create_fn: Callable[[], dict[str, Any]],
     ) -> T:
-        """通用的 upsert 操作.
+        """通用的 upsert 操作（带异步锁防止并发竞态）.
 
         Args:
             model: ORM 模型类
@@ -53,24 +60,30 @@ class MemoryPersistence:
         Returns:
             ORM 模型实例
         """
-        result = await self.db_session.execute(
-            select(model).where(model.session_id == session_id)
-        )
-        existing = result.scalar_one_or_none()
+        lock_key = f"{model.__tablename__}:{session_id}"
+        async with self._get_lock(lock_key):
+            result = await self.db_session.execute(select(model).where(model.session_id == session_id))
+            existing = result.scalar_one_or_none()
 
-        if existing:
-            update_fn(existing)
-            await self.db_session.commit()
-            return existing
+            if existing:
+                update_fn(existing)
+                try:
+                    await self.db_session.commit()
+                except Exception:
+                    await self.db_session.rollback()
+                    raise
+                return existing
 
-        db_record = model(**create_fn())
-        self.db_session.add(db_record)
-        await self.db_session.commit()
-        return db_record
+            db_record = model(**create_fn())
+            self.db_session.add(db_record)
+            try:
+                await self.db_session.commit()
+            except Exception:
+                await self.db_session.rollback()
+                raise
+            return db_record
 
-    async def save_session_memory(
-        self, memory: SessionMemory
-    ) -> SessionMemoryModel:
+    async def save_session_memory(self, memory: SessionMemory) -> SessionMemoryModel:
         """保存会话记忆到数据库.
 
         Args:
@@ -79,26 +92,21 @@ class MemoryPersistence:
         Returns:
             ORM 模型实例
         """
+
         def update_fn(existing: SessionMemoryModel) -> None:
             existing.teaching_summary = memory.teaching_summary
-            existing.message_history = [
-                m.model_dump(mode="json") for m in memory.message_history
-            ]
-            existing.last_updated = datetime.now()
+            existing.message_history = [m.model_dump(mode="json") for m in memory.message_history]
+            existing.last_updated = datetime.now(TIMEZONE)
 
         def create_fn() -> dict[str, Any]:
             return {
                 "session_id": memory.session_id,
-                "message_history": [
-                    m.model_dump(mode="json") for m in memory.message_history
-                ],
+                "message_history": [m.model_dump(mode="json") for m in memory.message_history],
                 "teaching_summary": memory.teaching_summary or None,
-                "last_updated": datetime.now(),
+                "last_updated": datetime.now(TIMEZONE),
             }
 
-        return await self._upsert(
-            SessionMemoryModel, memory.session_id, update_fn, create_fn
-        )
+        return await self._upsert(SessionMemoryModel, memory.session_id, update_fn, create_fn)
 
     async def save_teacher_memory(
         self, session_id: int, teacher_memory: TeacherAgentMemory
@@ -112,6 +120,7 @@ class MemoryPersistence:
         Returns:
             ORM 模型实例
         """
+
         def update_fn(existing: TeacherMemoryModel) -> None:
             existing.covered_topics = teacher_memory.covered_topics
             existing.student_questions = teacher_memory.student_questions
@@ -129,9 +138,7 @@ class MemoryPersistence:
                 "student_misconceptions": teacher_memory.student_misconceptions,
             }
 
-        return await self._upsert(
-            TeacherMemoryModel, session_id, update_fn, create_fn
-        )
+        return await self._upsert(TeacherMemoryModel, session_id, update_fn, create_fn)
 
     async def save_message(self, session_id: int, message: Message) -> MessageModel:
         """保存单条消息到数据库.
@@ -148,7 +155,7 @@ class MemoryPersistence:
             sender=message.sender,
             message_type=message.message_type.value,
             content=message.content,
-            timestamp=message.timestamp or datetime.now(),
+            timestamp=message.timestamp if message.timestamp is not None else datetime.now(TIMEZONE),
         )
         self.db_session.add(db_message)
         await self.db_session.commit()
@@ -167,6 +174,7 @@ class MemoryPersistence:
         Returns:
             ORM 模型实例
         """
+
         def update_fn(existing: StudentMemoryModel) -> None:
             existing.learned_concepts = student_memory.learned_concepts
             existing.confused_points = student_memory.confused_points
@@ -174,7 +182,7 @@ class MemoryPersistence:
             existing.initial_knowledge_level = student_memory.initial_knowledge_level
             existing.current_knowledge_level = student_memory.current_knowledge_level
             existing.learning_rate = student_memory.learning_rate
-            existing.last_updated = datetime.now()
+            existing.last_updated = datetime.now(TIMEZONE)
 
         def create_fn() -> dict[str, Any]:
             return {
@@ -189,16 +197,12 @@ class MemoryPersistence:
                 "initial_knowledge_level": student_memory.initial_knowledge_level,
                 "current_knowledge_level": student_memory.current_knowledge_level,
                 "learning_rate": student_memory.learning_rate,
-                "last_updated": datetime.now(),
+                "last_updated": datetime.now(TIMEZONE),
             }
 
-        return await self._upsert(
-            StudentMemoryModel, session_id, update_fn, create_fn
-        )
+        return await self._upsert(StudentMemoryModel, session_id, update_fn, create_fn)
 
-    async def load_session_memory(
-        self, session_id: int
-    ) -> SessionMemory | None:
+    async def load_session_memory(self, session_id: int) -> SessionMemory | None:
         """从数据库加载会话记忆.
 
         Args:
@@ -208,9 +212,7 @@ class MemoryPersistence:
             会话记忆对象，不存在则返回 None
         """
         result = await self.db_session.execute(
-            select(SessionMemoryModel).where(
-                SessionMemoryModel.session_id == session_id
-            )
+            select(SessionMemoryModel).where(SessionMemoryModel.session_id == session_id)
         )
         record = result.scalar_one_or_none()
 
@@ -230,9 +232,7 @@ class MemoryPersistence:
             message_history=message_history,
         )
 
-    async def load_teacher_memory(
-        self, session_id: int
-    ) -> TeacherAgentMemory | None:
+    async def load_teacher_memory(self, session_id: int) -> TeacherAgentMemory | None:
         """从数据库加载教师记忆.
 
         Args:
@@ -242,9 +242,7 @@ class MemoryPersistence:
             教师记忆对象，不存在则返回 None
         """
         result = await self.db_session.execute(
-            select(TeacherMemoryModel).where(
-                TeacherMemoryModel.session_id == session_id
-            )
+            select(TeacherMemoryModel).where(TeacherMemoryModel.session_id == session_id)
         )
         record = result.scalar_one_or_none()
 
@@ -298,9 +296,7 @@ class MemoryPersistence:
         from orm.teaching_session import TeachingSessionModel
 
         result = await self.db_session.execute(
-            select(TeachingSessionModel).where(
-                TeachingSessionModel.id == session_id
-            )
+            select(TeachingSessionModel).where(TeachingSessionModel.id == session_id)
         )
         record = result.scalar_one_or_none()
         return record.topic if record else ""
@@ -339,9 +335,8 @@ class MemoryPersistence:
         memory.learned_concepts = record.learned_concepts or []
         memory.confused_points = record.confused_points or []
         memory.questions_asked = record.questions_asked or []
-        memory.initial_knowledge_level = record.initial_knowledge_level or 0.0
-        memory.current_knowledge_level = record.current_knowledge_level or 0.0
-        memory.learning_rate = record.learning_rate or 0.05
+        memory.initial_knowledge_level = record.initial_knowledge_level if record.initial_knowledge_level is not None else 0.0
+        memory.current_knowledge_level = record.current_knowledge_level if record.current_knowledge_level is not None else 0.0
+        memory.learning_rate = record.learning_rate if record.learning_rate is not None else 0.05
 
         return memory
-
