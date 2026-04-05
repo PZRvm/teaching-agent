@@ -154,3 +154,99 @@ class TestStudentAgentShouldRespond:
         result = agent.should_respond()
 
         assert isinstance(result, bool)
+
+
+class TestStudentAgentAnswerQuestion:
+    """StudentAgent answer_question 测试."""
+
+    def _make_agent(self, *, level: str = "average", attitude: str = "neutral"):
+        """辅助方法：创建 StudentAgent."""
+        from agents.memories import SessionMemory
+        from agents.student_agent import StudentAgent
+
+        session_mem = SessionMemory(session_id=1, topic="Python基础")
+        profile = StudentProfile(
+            name="张三",
+            level=level,
+            attitude=attitude,
+            learning_ability=6,
+        )
+        mock_llm = MagicMock()
+        mock_llm.invoke.return_value = "Python中的变量用来存储数据，可以用等号赋值。"
+
+        return StudentAgent(
+            session_memory=session_mem,
+            llm=mock_llm,
+            profile=profile,
+        )
+
+    def test_answer_question_calls_llm(self):
+        """测试 answer_question 调用 LLM."""
+        agent = self._make_agent()
+
+        agent.answer_question("什么是Python变量？")
+
+        assert agent.llm.invoke.called
+
+    def test_answer_question_includes_question_in_prompt(self):
+        """测试 answer_question 在 prompt 中包含教师问题."""
+        agent = self._make_agent()
+
+        agent.answer_question("什么是Python变量？")
+
+        messages = agent.llm.invoke.call_args[0][0]
+        user_msg = messages[-1]["content"]
+        assert "Python" in user_msg
+
+    def test_answer_question_includes_student_context(self):
+        """测试 answer_question 的 system prompt 包含学生上下文."""
+        agent = self._make_agent()
+
+        agent.answer_question("如何定义一个Python函数？")
+
+        messages = agent.llm.invoke.call_args[0][0]
+        system_msg = messages[0]["content"]
+
+        assert "张三" in system_msg
+        assert "Python基础" in system_msg
+
+    def test_answer_question_excellent_student_has_higher_quality_prompt(self):
+        """测试优秀学生的 prompt 包含更高质量要求."""
+        agent = self._make_agent(level="excellent")
+
+        agent.answer_question("如何定义一个Python函数？")
+
+        messages = agent.llm.invoke.call_args[0][0]
+        system_msg = messages[0]["content"]
+
+        assert "excellent" in system_msg
+
+    def test_answer_question_basic_student_has_basic_prompt(self):
+        """测试基础学生的 prompt 包含基础水平描述."""
+        agent = self._make_agent(level="basic")
+
+        agent.answer_question("如何定义一个Python函数？")
+
+        messages = agent.llm.invoke.call_args[0][0]
+        system_msg = messages[0]["content"]
+
+        assert "basic" in system_msg
+
+    def test_answer_question_returns_llm_response(self):
+        """测试 answer_question 返回 LLM 响应."""
+        agent = self._make_agent()
+
+        result = agent.answer_question("什么是Python变量？")
+
+        assert result == "Python中的变量用来存储数据，可以用等号赋值。"
+
+    def test_answer_question_records_message_in_session_memory(self):
+        """测试 answer_question 将消息记录到会话记忆."""
+        agent = self._make_agent()
+
+        agent.answer_question("什么是Python变量？")
+
+        assert len(agent.session_memory.message_history) == 1
+        msg = agent.session_memory.message_history[0]
+        assert msg.sender == "张三"
+        assert msg.message_type.value == "answer_to_checkpoint"
