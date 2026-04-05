@@ -313,7 +313,7 @@ def test_full_observation_session_with_console_output():
 
         # 打印课程统计
         print("\n课程统计:")
-        print(f"  总消息数: {len(session_memory.messages)}")
+        print(f"  总消息数: {len(session_memory.message_history)}")
         print(f"  教师讲授主题: {len(teacher_memory.covered_topics)}")
         print("  学生参与情况:")
         for student in students:
@@ -322,7 +322,7 @@ def test_full_observation_session_with_console_output():
 
         # 打印最后几条消息
         print("\n最后几条消息:")
-        for msg in session_memory.messages[-5:]:
+        for msg in session_memory.message_history[-5:]:
             sender = msg.sender
             msg_type = msg.message_type.value
             content = msg.content[:60] + "..." if len(msg.content) > 60 else msg.content
@@ -331,7 +331,7 @@ def test_full_observation_session_with_console_output():
         print(f"\n{'=' * 70}\n")
 
         # 验证
-        assert len(session_memory.messages) > 0
+        assert len(session_memory.message_history) > 0
         assert len(teacher_memory.covered_topics) > 0
         for cp in plan.checkpoints:
             assert cp.state == CheckpointState.COMPLETE
@@ -441,7 +441,7 @@ def test_multi_student_classroom():
         print(f"\n{'=' * 60}")
         print("  课堂统计")
         print(f"{'=' * 60}")
-        print(f"  总消息数: {len(session_memory.messages)}")
+        print(f"  总消息数: {len(session_memory.message_history)}")
         print(f"  教师讲授主题: {len(teacher_memory.covered_topics)}")
         print("  学生参与情况:")
         for student in students:
@@ -451,7 +451,7 @@ def test_multi_student_classroom():
         print(f"{'=' * 60}\n")
 
         # 验证
-        assert len(session_memory.messages) > 0
+        assert len(session_memory.message_history) > 0
         for cp in plan.checkpoints:
             assert cp.state == CheckpointState.COMPLETE
 
