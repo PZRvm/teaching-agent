@@ -7,7 +7,8 @@ import random
 from datetime import datetime
 
 from agents.memories import SessionMemory, StudentAgentMemory
-from core.settings import STUDENT_RESPOND_PROBABILITIES, TIMEZONE
+from core.llm_utils import safe_llm_call
+from core.settings import DEFAULT_RESPOND_PROBABILITY, STUDENT_RESPOND_PROBABILITIES, TIMEZONE
 from schemas.message import Message, MessageType
 from schemas.student import StudentProfile
 
@@ -67,7 +68,7 @@ class StudentAgent:
         Returns:
             True 表示学生选择响应
         """
-        probability = STUDENT_RESPOND_PROBABILITIES.get(self.profile.attitude.value, 0.5)
+        probability = STUDENT_RESPOND_PROBABILITIES.get(self.profile.attitude.value, DEFAULT_RESPOND_PROBABILITY)
         return self.rng.random() < probability
 
     def _build_system_prompt(self) -> str:
@@ -108,15 +109,12 @@ class StudentAgent:
             {"role": "user", "content": user_prompt},
         ]
 
-        try:
-            content = self.llm.invoke(messages)
-        except Exception as e:
-            logger.error(
-                "StudentAgent LLM 调用失败: student=%s, error=%s",
-                self.profile.name,
-                e,
-            )
-            raise RuntimeError(f"学生 {self.profile.name} 的 LLM 调用失败: {e}") from e
+        content = safe_llm_call(
+            self.llm.invoke,
+            f"学生 {self.profile.name}",
+            "LLM 调用",
+            messages,
+        )
 
         if not content or not content.strip():
             logger.warning("StudentAgent LLM 返回空内容: student=%s", self.profile.name)

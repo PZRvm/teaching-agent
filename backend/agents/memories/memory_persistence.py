@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import asyncio
 from collections.abc import Callable
 from datetime import datetime
 from typing import Any, TypeVar
@@ -35,6 +36,13 @@ class MemoryPersistence:
             db_session: SQLAlchemy 异步会话
         """
         self.db_session = db_session
+        self._locks: dict[str, asyncio.Lock] = {}
+
+    def _get_lock(self, key: str) -> asyncio.Lock:
+        """获取或创建指定 key 的异步锁."""
+        if key not in self._locks:
+            self._locks[key] = asyncio.Lock()
+        return self._locks[key]
 
     async def _upsert(
         self,
@@ -43,7 +51,7 @@ class MemoryPersistence:
         update_fn: Callable[[T], None],
         create_fn: Callable[[], dict[str, Any]],
     ) -> T:
-        """通用的 upsert 操作.
+        """通用的 upsert 操作（带异步锁防止并发竞态）.
 
         Args:
             model: ORM 模型类
@@ -54,18 +62,20 @@ class MemoryPersistence:
         Returns:
             ORM 模型实例
         """
-        result = await self.db_session.execute(select(model).where(model.session_id == session_id))
-        existing = result.scalar_one_or_none()
+        lock_key = f"{model.__tablename__}:{session_id}"
+        async with self._get_lock(lock_key):
+            result = await self.db_session.execute(select(model).where(model.session_id == session_id))
+            existing = result.scalar_one_or_none()
 
-        if existing:
-            update_fn(existing)
+            if existing:
+                update_fn(existing)
+                await self.db_session.commit()
+                return existing
+
+            db_record = model(**create_fn())
+            self.db_session.add(db_record)
             await self.db_session.commit()
-            return existing
-
-        db_record = model(**create_fn())
-        self.db_session.add(db_record)
-        await self.db_session.commit()
-        return db_record
+            return db_record
 
     async def save_session_memory(self, memory: SessionMemory) -> SessionMemoryModel:
         """保存会话记忆到数据库.

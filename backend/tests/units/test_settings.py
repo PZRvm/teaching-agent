@@ -99,6 +99,20 @@ class TestTeachingTemperatures:
         assert TEACHING_TEMPERATURES["heuristic"] == 0.5
         assert TEACHING_TEMPERATURES["discussion"] == 0.7
 
+    def test_default_teaching_temperature(self):
+        """测试默认教学温度."""
+        from core.settings import DEFAULT_TEACHING_TEMPERATURE
+
+        assert DEFAULT_TEACHING_TEMPERATURE == 0.3
+        assert isinstance(DEFAULT_TEACHING_TEMPERATURE, float)
+
+    def test_content_judge_temperature(self):
+        """测试内容判断温度."""
+        from core.settings import CONTENT_JUDGE_TEMPERATURE
+
+        assert CONTENT_JUDGE_TEMPERATURE == 0.1
+        assert isinstance(CONTENT_JUDGE_TEMPERATURE, float)
+
 
 class TestStudentRespondProbabilities:
     """学生响应概率配置测试."""
@@ -135,3 +149,11 @@ class TestStudentRespondProbabilities:
             > STUDENT_RESPOND_PROBABILITIES["neutral"]
             > STUDENT_RESPOND_PROBABILITIES["passive"]
         )
+
+    def test_default_respond_probability(self):
+        """测试默认响应概率."""
+        from core.settings import DEFAULT_RESPOND_PROBABILITY
+
+        assert DEFAULT_RESPOND_PROBABILITY == 0.5
+        assert isinstance(DEFAULT_RESPOND_PROBABILITY, float)
+

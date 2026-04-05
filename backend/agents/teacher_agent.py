@@ -2,22 +2,49 @@
 
 from __future__ import annotations
 
-import logging
 from datetime import datetime
 
 from agents.memories import SessionMemory
 from agents.memories.memory_manager import MemoryManager
-from core.settings import TEACHING_TEMPERATURES, TIMEZONE
+from core.llm_utils import safe_llm_call
+from core.settings import (
+    CONTENT_JUDGE_TEMPERATURE,
+    DEFAULT_TEACHING_TEMPERATURE,
+    TEACHING_TEMPERATURES,
+    TIMEZONE,
+)
 from schemas.message import Message, MessageType
 from schemas.student import StudentProfile
-
-logger = logging.getLogger(__name__)
 
 VALID_TEACHING_MODES = ("didactic", "heuristic", "discussion")
 
 
 class TeacherAgent:
     """教师 Agent - 负责讲授内容生成和教学控制."""
+
+    _MODE_INSTRUCTIONS = {
+        "didactic": (
+            "## 教学模式：灌输式\n"
+            "- 以知识点讲解为主，连续讲授，不主动提问\n"
+            "- 专注于清晰、系统地传授知识\n"
+            "- 确保内容覆盖教学主题的所有关键知识点\n"
+            "- 使用具体示例和类比帮助理解\n"
+        ),
+        "heuristic": (
+            "## 教学模式：启发式\n"
+            "- 结合案例教学，在讲授中穿插互动环节\n"
+            "- 每讲授3-5个知识点后，提出一个 checkpoint 问题\n"
+            "- 鼓励学生思考和回答\n"
+            "- 根据学生回答情况调整讲解节奏\n"
+        ),
+        "discussion": (
+            "## 教学模式：讨论式\n"
+            "- 频繁提问，每1-2个知识点后引导一次讨论\n"
+            "- 鼓励学生积极参与讨论和表达观点\n"
+            "- 引导学生通过讨论深化理解\n"
+            "- 对学生的观点给予反馈和补充\n"
+        ),
+    }
 
     def __init__(
         self,
@@ -68,31 +95,7 @@ class TeacherAgent:
         context = self.memory_manager.session_memory.get_agent_context()
         teacher_context = self.memory_manager.teacher_memory.get_system_prompt_addition(topic=topic)
 
-        mode_instructions = {
-            "didactic": (
-                "## 教学模式：灌输式\n"
-                "- 以知识点讲解为主，连续讲授，不主动提问\n"
-                "- 专注于清晰、系统地传授知识\n"
-                "- 确保内容覆盖教学主题的所有关键知识点\n"
-                "- 使用具体示例和类比帮助理解\n"
-            ),
-            "heuristic": (
-                "## 教学模式：启发式\n"
-                "- 结合案例教学，在讲授中穿插互动环节\n"
-                "- 每讲授3-5个知识点后，提出一个 checkpoint 问题\n"
-                "- 鼓励学生思考和回答\n"
-                "- 根据学生回答情况调整讲解节奏\n"
-            ),
-            "discussion": (
-                "## 教学模式：讨论式\n"
-                "- 频繁提问，每1-2个知识点后引导一次讨论\n"
-                "- 鼓励学生积极参与讨论和表达观点\n"
-                "- 引导学生通过讨论深化理解\n"
-                "- 对学生的观点给予反馈和补充\n"
-            ),
-        }
-
-        mode_section = mode_instructions.get(self.teaching_mode, mode_instructions["didactic"])
+        mode_section = self._MODE_INSTRUCTIONS.get(self.teaching_mode, self._MODE_INSTRUCTIONS["didactic"])
 
         return f"""你是教师 agent，正在教授"{topic}"相关内容。
 
@@ -144,11 +147,13 @@ class TeacherAgent:
         """
         messages = self._build_lecture_messages()
 
-        try:
-            content = self.llm.invoke(messages, temperature=self._get_mode_temperature())
-        except Exception as e:
-            logger.error("TeacherAgent LLM 调用失败: error=%s", e)
-            raise RuntimeError(f"教师讲授的 LLM 调用失败: {e}") from e
+        content = safe_llm_call(
+            self.llm.invoke,
+            "教师",
+            "讲授",
+            messages,
+            temperature=self._get_mode_temperature(),
+        )
 
         self._record_lecture(content)
 
@@ -171,12 +176,11 @@ class TeacherAgent:
                 full_content.append(chunk)
                 yield chunk
         except Exception as e:
-            logger.error("TeacherAgent LLM stream 调用失败: error=%s", e)
             raise RuntimeError(f"教师讲授的 LLM stream 调用失败: {e}") from e
-
-        content = "".join(full_content)
-        if content:
-            self._record_lecture(content)
+        finally:
+            content = "".join(full_content)
+            if content:
+                self._record_lecture(content)
 
     def _get_mode_temperature(self) -> float:
         """根据教学模式获取合适的温度值.
@@ -184,7 +188,7 @@ class TeacherAgent:
         Returns:
             温度值
         """
-        return TEACHING_TEMPERATURES.get(self.teaching_mode, 0.3)
+        return TEACHING_TEMPERATURES.get(self.teaching_mode, DEFAULT_TEACHING_TEMPERATURE)
 
     def is_content_complete(self) -> bool:
         """判断教学内容是否已完成.
@@ -208,10 +212,13 @@ class TeacherAgent:
             + "\n\n请只回答「完成」或「未完成」。"
         )
 
-        try:
-            response = self.llm.invoke(prompt, temperature=0.1)
-        except Exception as e:
-            logger.error("TeacherAgent is_content_complete LLM 调用失败: error=%s", e)
-            raise RuntimeError(f"教师内容完成度判断的 LLM 调用失败: {e}") from e
+        response = safe_llm_call(
+            self.llm.invoke,
+            "教师",
+            "内容完成度判断",
+            prompt,
+            temperature=CONTENT_JUDGE_TEMPERATURE,
+        )
 
-        return response.strip() == "完成"
+        stripped = response.strip().rstrip("。！？")
+        return stripped == "完成"

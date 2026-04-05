@@ -25,10 +25,6 @@ class StudentAgentMemory:
     current_knowledge_level: float = 0.0
     learning_rate: float = 0.05
 
-    def __post_init__(self) -> None:
-        """初始化后计算学习速率."""
-        self.learning_rate = self.learning_ability * 0.01
-
     @classmethod
     def from_profile(cls, profile: StudentProfile) -> StudentAgentMemory:
         """从 StudentProfile 创建."""
@@ -37,6 +33,7 @@ class StudentAgentMemory:
             level=profile.level,
             attitude=profile.attitude,
             learning_ability=profile.learning_ability,
+            learning_rate=profile.learning_ability * 0.01,
         )
 
     def should_remember_concept(self, concept: str, rng: random.Random) -> bool:

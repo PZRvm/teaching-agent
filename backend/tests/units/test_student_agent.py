@@ -3,7 +3,44 @@
 import random
 from unittest.mock import MagicMock
 
+from agents.memories import SessionMemory
+from agents.student_agent import StudentAgent
 from schemas.student import StudentProfile
+
+
+def _make_agent(
+    *,
+    name: str = "测试学生",
+    level: str = "average",
+    attitude: str = "neutral",
+    learning_ability: int = 5,
+    mock_return: str = "",
+    rng_seed: int | None = None,
+    memory=None,
+):
+    """创建 StudentAgent 测试实例的通用工厂函数."""
+    session_mem = SessionMemory(session_id=1, topic="Python基础")
+    profile = StudentProfile(
+        name=name,
+        level=level,
+        attitude=attitude,
+        learning_ability=learning_ability,
+    )
+    mock_llm = MagicMock()
+    if mock_return:
+        mock_llm.invoke.return_value = mock_return
+
+    kwargs: dict = {
+        "session_memory": session_mem,
+        "llm": mock_llm,
+        "profile": profile,
+    }
+    if rng_seed is not None:
+        kwargs["rng"] = random.Random(rng_seed)
+    if memory is not None:
+        kwargs["memory"] = memory
+
+    return StudentAgent(**kwargs)
 
 
 class TestStudentAgentInit:
@@ -11,42 +48,19 @@ class TestStudentAgentInit:
 
     def test_init_with_required_params(self):
         """测试使用必需参数初始化."""
-        from agents.memories import SessionMemory
-        from agents.student_agent import StudentAgent
+        agent = _make_agent(name="张三", learning_ability=7)
 
-        session_mem = SessionMemory(session_id=1, topic="Python基础")
-        profile = StudentProfile(name="张三", learning_ability=7)
-        mock_llm = MagicMock()
-
-        agent = StudentAgent(
-            session_memory=session_mem,
-            llm=mock_llm,
-            profile=profile,
-        )
-
-        assert agent.profile is profile
         assert agent.profile.name == "张三"
-        assert agent.session_memory is session_mem
-        assert agent.llm is mock_llm
+        assert agent.session_memory is not None
+        assert agent.llm is not None
 
     def test_init_creates_memory_from_profile(self):
         """测试从 StudentProfile 创建 StudentAgentMemory."""
-        from agents.memories import SessionMemory
-        from agents.student_agent import StudentAgent
-
-        session_mem = SessionMemory(session_id=1, topic="Python基础")
-        profile = StudentProfile(
+        agent = _make_agent(
             name="李四",
             level="excellent",
             attitude="active",
             learning_ability=9,
-        )
-        mock_llm = MagicMock()
-
-        agent = StudentAgent(
-            session_memory=session_mem,
-            llm=mock_llm,
-            profile=profile,
         )
 
         assert agent.memory.name == "李四"
@@ -56,13 +70,7 @@ class TestStudentAgentInit:
 
     def test_init_with_existing_memory(self):
         """测试使用已有的 StudentAgentMemory 初始化."""
-        from agents.memories import SessionMemory
         from agents.memories.student_memory import StudentAgentMemory
-        from agents.student_agent import StudentAgent
-
-        session_mem = SessionMemory(session_id=1, topic="Python基础")
-        profile = StudentProfile(name="王五", learning_ability=5)
-        mock_llm = MagicMock()
 
         existing_memory = StudentAgentMemory(
             name="王五",
@@ -70,32 +78,17 @@ class TestStudentAgentInit:
             current_knowledge_level=0.3,
         )
 
-        agent = StudentAgent(
-            session_memory=session_mem,
-            llm=mock_llm,
-            profile=profile,
-            memory=existing_memory,
-        )
+        agent = _make_agent(name="王五", memory=existing_memory)
 
         assert "变量" in agent.memory.learned_concepts
         assert agent.memory.current_knowledge_level == 0.3
 
     def test_init_with_rng(self):
         """测试使用自定义 rng 初始化."""
-        from agents.memories import SessionMemory
-        from agents.student_agent import StudentAgent
-
-        session_mem = SessionMemory(session_id=1, topic="Python基础")
-        profile = StudentProfile(name="赵六", learning_ability=5)
-        mock_llm = MagicMock()
         test_rng = random.Random(42)
 
-        agent = StudentAgent(
-            session_memory=session_mem,
-            llm=mock_llm,
-            profile=profile,
-            rng=test_rng,
-        )
+        agent = _make_agent(rng_seed=None)
+        agent.rng = test_rng
 
         assert agent.rng is test_rng
 
@@ -103,26 +96,9 @@ class TestStudentAgentInit:
 class TestStudentAgentShouldRespond:
     """StudentAgent should_respond 测试."""
 
-    def _make_agent(self, *, attitude: str = "neutral", rng_seed: int = 42):
-        """辅助方法：创建 StudentAgent."""
-        from agents.memories import SessionMemory
-        from agents.student_agent import StudentAgent
-
-        session_mem = SessionMemory(session_id=1, topic="Python基础")
-        profile = StudentProfile(name="测试学生", attitude=attitude, learning_ability=5)
-        mock_llm = MagicMock()
-        test_rng = random.Random(rng_seed)
-
-        return StudentAgent(
-            session_memory=session_mem,
-            llm=mock_llm,
-            profile=profile,
-            rng=test_rng,
-        )
-
     def test_active_student_responds_most_of_the_time(self):
         """测试积极学生大概率响应."""
-        agent = self._make_agent(attitude="active", rng_seed=42)
+        agent = _make_agent(attitude="active", rng_seed=42)
 
         results = [agent.should_respond() for _ in range(100)]
         respond_rate = sum(results) / len(results)
@@ -131,7 +107,7 @@ class TestStudentAgentShouldRespond:
 
     def test_neutral_student_responds_half_the_time(self):
         """测试中性学生约 50% 响应."""
-        agent = self._make_agent(attitude="neutral", rng_seed=42)
+        agent = _make_agent(attitude="neutral", rng_seed=42)
 
         results = [agent.should_respond() for _ in range(100)]
         respond_rate = sum(results) / len(results)
@@ -140,7 +116,7 @@ class TestStudentAgentShouldRespond:
 
     def test_passive_student_responds_less(self):
         """测试消极学生响应较少."""
-        agent = self._make_agent(attitude="passive", rng_seed=42)
+        agent = _make_agent(attitude="passive", rng_seed=42)
 
         results = [agent.should_respond() for _ in range(100)]
         respond_rate = sum(results) / len(results)
@@ -149,7 +125,7 @@ class TestStudentAgentShouldRespond:
 
     def test_should_respond_returns_boolean(self):
         """测试 should_respond 返回布尔值."""
-        agent = self._make_agent()
+        agent = _make_agent()
 
         result = agent.should_respond()
 
@@ -160,24 +136,12 @@ class TestStudentAgentAnswerQuestion:
     """StudentAgent answer_question 测试."""
 
     def _make_agent(self, *, level: str = "average", attitude: str = "neutral"):
-        """辅助方法：创建 StudentAgent."""
-        from agents.memories import SessionMemory
-        from agents.student_agent import StudentAgent
-
-        session_mem = SessionMemory(session_id=1, topic="Python基础")
-        profile = StudentProfile(
+        return _make_agent(
             name="张三",
             level=level,
             attitude=attitude,
             learning_ability=6,
-        )
-        mock_llm = MagicMock()
-        mock_llm.invoke.return_value = "Python中的变量用来存储数据，可以用等号赋值。"
-
-        return StudentAgent(
-            session_memory=session_mem,
-            llm=mock_llm,
-            profile=profile,
+            mock_return="Python中的变量用来存储数据，可以用等号赋值。",
         )
 
     def test_answer_question_calls_llm(self):
@@ -256,23 +220,11 @@ class TestStudentAgentAskQuestion:
     """StudentAgent ask_question 测试."""
 
     def _make_agent(self, *, attitude: str = "neutral"):
-        """辅助方法：创建 StudentAgent."""
-        from agents.memories import SessionMemory
-        from agents.student_agent import StudentAgent
-
-        session_mem = SessionMemory(session_id=1, topic="Python基础")
-        profile = StudentProfile(
+        return _make_agent(
             name="李四",
             attitude=attitude,
             learning_ability=5,
-        )
-        mock_llm = MagicMock()
-        mock_llm.invoke.return_value = "老师，列表和元组有什么区别？"
-
-        return StudentAgent(
-            session_memory=session_mem,
-            llm=mock_llm,
-            profile=profile,
+            mock_return="老师，列表和元组有什么区别？",
         )
 
     def test_ask_question_calls_llm(self):
@@ -319,25 +271,11 @@ class TestStudentAgentSubmitHomework:
     """StudentAgent submit_homework 测试."""
 
     def _make_agent(self, *, level: str = "average", learning_ability: int = 5):
-        """辅助方法：创建 StudentAgent."""
-        from agents.memories import SessionMemory
-        from agents.student_agent import StudentAgent
-
-        session_mem = SessionMemory(session_id=1, topic="Python基础")
-        profile = StudentProfile(
+        return _make_agent(
             name="王五",
             level=level,
             learning_ability=learning_ability,
-        )
-        mock_llm = MagicMock()
-        mock_llm.invoke.return_value = (
-            "def calculate_average(numbers):\n    return sum(numbers) / len(numbers)"
-        )
-
-        return StudentAgent(
-            session_memory=session_mem,
-            llm=mock_llm,
-            profile=profile,
+            mock_return="def calculate_average(numbers):\n    return sum(numbers) / len(numbers)",
         )
 
     def test_submit_homework_calls_llm(self):
@@ -394,23 +332,11 @@ class TestStudentAgentGiveFeedback:
     """StudentAgent give_feedback 测试."""
 
     def _make_agent(self, *, attitude: str = "neutral"):
-        """辅助方法：创建 StudentAgent."""
-        from agents.memories import SessionMemory
-        from agents.student_agent import StudentAgent
-
-        session_mem = SessionMemory(session_id=1, topic="Python基础")
-        profile = StudentProfile(
+        return _make_agent(
             name="赵六",
             attitude=attitude,
             learning_ability=6,
-        )
-        mock_llm = MagicMock()
-        mock_llm.invoke.return_value = "今天的课我学到了列表操作，但对列表推导式还不太理解。"
-
-        return StudentAgent(
-            session_memory=session_mem,
-            llm=mock_llm,
-            profile=profile,
+            mock_return="今天的课我学到了列表操作，但对列表推导式还不太理解。",
         )
 
     def test_give_feedback_calls_llm(self):

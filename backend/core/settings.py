@@ -27,5 +27,14 @@ TIMEZONE = ZoneInfo(_APP["app"]["timezone"])
 # 教学模式 → 温度
 TEACHING_TEMPERATURES: dict[str, float] = _LLM["teaching_temperatures"]
 
+# 默认温度（教学模式未匹配时）
+DEFAULT_TEACHING_TEMPERATURE: float = 0.3
+
+# 内容完成度判断温度（需要高确定性）
+CONTENT_JUDGE_TEMPERATURE: float = 0.1
+
 # 学生态度 → 响应概率
 STUDENT_RESPOND_PROBABILITIES: dict[str, float] = _LLM["student_respond_probabilities"]
+
+# 默认响应概率（态度未匹配时）
+DEFAULT_RESPOND_PROBABILITY: float = 0.5
