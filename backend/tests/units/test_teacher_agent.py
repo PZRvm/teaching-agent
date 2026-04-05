@@ -527,3 +527,60 @@ class TestTeacherAgentDiscussionQuestion:
         agent.ask_discussion_question()
         assert len(agent.session_memory.message_history) == 1
         assert agent.session_memory.message_history[0].message_type == MessageType.CHECKPOINT_QUESTION
+
+
+class TestTeacherAgentReplyToStudent:
+    """TeacherAgent reply_to_student 测试."""
+
+    def _make_agent(self, teaching_mode: str = "heuristic"):
+        """辅助方法：创建 TeacherAgent."""
+        from agents.memories import SessionMemory, TeacherAgentMemory
+        from agents.memories.memory_manager import MemoryManager
+        from agents.teacher_agent import TeacherAgent
+
+        session_mem = SessionMemory(session_id=1, topic="Python基础")
+        teacher_mem = TeacherAgentMemory()
+        mm = MemoryManager(session_memory=session_mem, teacher_memory=teacher_mem)
+        mock_llm = MagicMock()
+        mock_llm.invoke.return_value = "回答得很好！变量确实有局部和全局两种作用域。"
+        return TeacherAgent(
+            session_memory=session_mem,
+            llm=mock_llm,
+            teaching_mode=teaching_mode,
+            memory_manager=mm,
+        )
+
+    def test_reply_to_student_calls_llm(self):
+        """测试 reply_to_student 调用 LLM."""
+        agent = self._make_agent()
+        agent.reply_to_student(student_name="张三", student_message="变量有局部和全局作用域。")
+        assert len(agent.llm.invoke.call_args_list) == 1
+
+    def test_reply_to_student_prompt_includes_student_name(self):
+        """测试 prompt 包含学生名字."""
+        agent = self._make_agent()
+        agent.reply_to_student(student_name="张三", student_message="变量有局部和全局作用域。")
+        messages = agent.llm.invoke.call_args[0][0]
+        user_msg = messages[1]["content"]
+        assert "张三" in user_msg
+
+    def test_reply_to_student_prompt_includes_student_message(self):
+        """测试 prompt 包含学生消息内容."""
+        agent = self._make_agent()
+        agent.reply_to_student(student_name="张三", student_message="变量有局部和全局作用域。")
+        messages = agent.llm.invoke.call_args[0][0]
+        user_msg = messages[1]["content"]
+        assert "变量有局部和全局作用域" in user_msg
+
+    def test_reply_to_student_returns_content(self):
+        """测试返回 LLM 生成的回复内容."""
+        agent = self._make_agent()
+        result = agent.reply_to_student(student_name="张三", student_message="变量有局部和全局作用域。")
+        assert result == "回答得很好！变量确实有局部和全局两种作用域。"
+
+    def test_reply_to_student_records_as_teacher_reply(self):
+        """测试记录为 TEACHER_REPLY 消息."""
+        agent = self._make_agent()
+        agent.reply_to_student(student_name="张三", student_message="变量有局部和全局作用域。")
+        assert len(agent.session_memory.message_history) == 1
+        assert agent.session_memory.message_history[0].message_type == MessageType.TEACHER_REPLY

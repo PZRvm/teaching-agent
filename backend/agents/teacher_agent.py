@@ -276,6 +276,44 @@ class TeacherAgent:
         self._record_message(content, MessageType.CHECKPOINT_QUESTION)
         return content
 
+    def reply_to_student(self, student_name: str, student_message: str) -> str:
+        """回复学生的回答或提问.
+
+        Args:
+            student_name: 学生名字
+            student_message: 学生的回答或提问内容
+
+        Returns:
+            教师的回复内容
+
+        Raises:
+            RuntimeError: LLM 调用失败或返回空内容时
+        """
+        system_prompt = self._build_system_prompt()
+
+        user_prompt = (
+            f"学生「{student_name}」说：{student_message}\n\n"
+            f"请对这位学生的回答/提问给予反馈。"
+        )
+        messages = [
+            {"role": "system", "content": system_prompt},
+            {"role": "user", "content": user_prompt},
+        ]
+
+        content = safe_llm_call(
+            self.llm.invoke,
+            "教师",
+            "回复学生",
+            messages,
+            temperature=self._get_mode_temperature(),
+        )
+
+        if not content or not content.strip():
+            raise RuntimeError("教师回复学生 LLM 返回空内容")
+
+        self._record_message(content, MessageType.TEACHER_REPLY)
+        return content
+
     def is_content_complete(self) -> bool:
         """判断教学内容是否已完成.
 
