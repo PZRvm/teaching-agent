@@ -95,40 +95,37 @@ Mode: Builder
 ```mermaid
 flowchart TB
     Start([用户进入应用]) --> Mode{选择模式}
-    
+
     Mode -->|教师模式| TeacherFlow[教师模式流程]
     Mode -->|观察模式| ObservationFlow[观察模式流程]
-    
+
     subgraph TeacherFlow [教师模式：用户扮演教师]
-        T1[配置教学会话<br/>- 输入教学主题<br/>- 选择教学模式<br/>- 配置学生] --> 
-        T2[开始教学<br/>教师与Students互动]
-        T2 --> 
-        T3{教学模式}
-        T3 -->|灌输式| Didactic[连续讲授<br/>无互动提问]
-        T3 -->|启发式| Heuristic[讲授+提问<br/>checkpoint检查]
-        T3 -->|讨论式| Discussion[频繁提问<br/>引导讨论]
-        Didactic --> T4[布置作业]
-        Heuristic --> T4
-        Discussion --> T4
+        T1[配置教学会话<br/>- 输入教学主题<br/>- 配置学生] -->
+        T1b[LLM 生成检查点计划<br/>真人教师可编辑]
+        T1b -->
+        T2[开始教学<br/>用户自由操作<br/>按检查点推进]
+        T2 --> T4[布置作业<br/>最后一个检查点后]
         T4 --> T5[学生提交作业]
         T5 --> T6[教师评分反馈]
         T6 --> T7[课程结束反馈]
         T7 --> EndTeaching([教师模式结束])
     end
-    
+
     subgraph ObservationFlow [观察模式：用户观看agent互动]
         O1[配置观察会话<br/>- 输入教学主题<br/>- 选择教学模式<br/>- 配置学生] -->
-        O2[开始观察<br/>Agents自动互动]
+        O1b[LLM 生成检查点计划<br/>自动教学结构]
+        O1b -->
+        O2[开始观察<br/>Agents按检查点自动互动]
         O2 -->
-        O3[实时观看对话<br/>只读模式]
+        O3[实时观看对话<br/>只读模式<br/>显示检查点进度]
         O3 -->
-        O4[会话结束<br/>教学完成]
+        O4[会话结束<br/>所有检查点完成]
         O4 -->
         O5[生成分析报告<br/>量化指标]
         O5 -->
         EndObservation([观察模式结束])
     end
-    
+
     style TeacherFlow fill:#e1f5ff
     style ObservationFlow fill:#fff3e0
 ```
@@ -141,28 +138,30 @@ flowchart TB
 flowchart TB
     Start([用户进入应用]) --> SelectTab[选择「观察模式」标签]
     SelectTab --> Config[配置观察会话]
-    
+
     Config --> InputTopic[输入教学主题<br/>一次方程/一次函数/二叉树遍历等]
     Config --> SelectMode[选择教学模式<br/>灌输式/启发式/讨论式]
     Config --> ConfigStudents[配置学生<br/>StudentFactory: 手动/随机/JSON]
-    
+
     InputTopic --> ClickStart
     SelectMode --> ClickStart
     ConfigStudents --> ClickStart[点击「开始观察」]
-    
-    ClickStart --> CreateSession[系统创建只读会话<br/>agents自动互动]
-    CreateSession --> WatchRealtime[前端实时显示对话<br/>只读模式]
-    
-    WatchRealtime --> ShowStatus[显示会话状态<br/>当前模式/已进行时间/消息数量]
+
+    ClickStart --> GenPlan[LLM 生成检查点计划<br/>3-8 个检查点]
+    GenPlan --> CreateSession[系统创建只读会话<br/>agents按检查点自动互动]
+    CreateSession --> WatchRealtime[前端实时显示对话<br/>只读模式 + 检查点进度]
+
+    WatchRealtime --> ShowStatus[显示会话状态<br/>当前模式/检查点进度/已进行时间]
     ShowStatus --> TeachingEnd{会话结束?}
-    
-    TeachingEnd -->|教学完成| GenerateReport[生成并展示分析报告<br/>量化指标: 参与度/正确率/互动频率等]
+
+    TeachingEnd -->|所有检查点完成| GenerateReport[生成并展示分析报告<br/>量化指标: 参与度/正确率/互动频率等]
     GenerateReport --> End([结束])
-    
+
     style Start fill:#e1f5ff
     style End fill:#c8e6c9
     style ClickStart fill:#ffd8b1
     style GenerateReport fill:#d4edda
+    style GenPlan fill:#e8eaf6
 ```
 
 ### Observation Metrics Schema
@@ -346,11 +345,561 @@ class ObservationAnalyzer:
         pass
 ```
 
+## Teacher Mode Architecture
+
+### User Flow
+
+```mermaid
+flowchart TB
+    Start([用户进入应用]) --> SelectTab[选择「教师模式」标签]
+    SelectTab --> Config[配置教学会话]
+
+    Config --> InputTopic[输入教学主题]
+    Config --> ConfigStudents[配置学生<br/>StudentFactory: 手动/随机/JSON]
+
+    InputTopic --> ClickStart
+    ConfigStudents --> ClickStart[点击「开始教学」]
+
+    ClickStart --> GenPlan[LLM 生成检查点计划]
+    GenPlan --> EditPlan[真人教师编辑检查点<br/>标题/知识点/示例/问题]
+    EditPlan --> CreateSession[系统创建教师模式会话]
+    CreateSession --> TeachView[进入教学界面<br/>WebSocket 双向通信<br/>显示检查点进度]
+
+    TeachView --> UserAction{用户操作}
+    UserAction -->|输入教学内容| Broadcast[广播给学生 agents]
+    UserAction -->|向全体提问| CollectAnswers[收集学生回答]
+    UserAction -->|指定学生提问| DirectAnswer[指定学生回答]
+    UserAction -->|跳转到下一检查点| AdvanceCP[手动推进<br/>强制结束当前互动]
+    UserAction -->|布置作业| CollectHomework[收集学生作业]
+    UserAction -->|结束教学| EndSession[课程结束]
+
+    Broadcast --> TeachView
+    CollectAnswers --> TeachView
+    DirectAnswer --> TeachView
+    AdvanceCP --> TeachView
+    CollectHomework --> TeachView
+
+    style Start fill:#e1f5ff
+    style EndSession fill:#c8e6c9
+    style ClickStart fill:#ffd8b1
+    style GenPlan fill:#e8eaf6
+    style EditPlan fill:#e8eaf6
+```
+
+### 核心设计：用户驱动的交互
+
+教师模式与观察模式的核心区别：**教师模式中，用户（真人教师）替代了 TeacherAgent 的决策角色**。
+
+| 维度 | 观察模式 | 教师模式 |
+|------|---------|---------|
+| 教师角色 | TeacherAgent（AI 自动决策） | 用户（真人教师手动操作） |
+| 教学模式选择 | 必选（灌输式/启发式/讨论式） | **不需要**（用户自行决定教学方式） |
+| 检查点计划 | LLM 生成后自动执行 | LLM 生成后**真人教师可编辑** |
+| 检查点推进 | 自动按顺序推进 | 自动推进 + **教师可手动跳转** |
+| 提问发起 | AI 教师自动提问 | 用户手动输入教学内容和问题 |
+| 学生指定 | 无人回答时随机选择 | **用户主动指定某个学生** |
+| 对话节奏 | 自动循环，按检查点推进 | 用户控制节奏，可手动推进检查点 |
+| 教学内容完成 | 遍历完所有检查点 | 遍历完所有检查点 或 用户手动结束 |
+| 旁听学习 | 自动触发 | 自动触发（与观察模式相同） |
+
+### 教师模式交互流程
+
+教师模式下，用户通过 WebSocket 发送操作指令，后端将指令分发给学生 agents 并返回结果。
+
+**用户操作类型**：
+
+1. **broadcast_lecture** — 用户输入讲授内容，广播给所有学生
+   - 系统将用户输入作为 `lecture` 类型消息记录
+   - 旁听学习：所有学生通过 MemoryManager 接收内容
+
+2. **ask_question_to_all** — 向全体学生提问
+   - 所有学生基于 `should_respond()` 决定是否回答
+   - 如果无人回答，用户可以再指定某个学生回答
+   - 回答通过 WebSocket 实时推送
+
+3. **ask_question_to_student** — 向指定学生提问
+   - 用户选择一个学生，输入问题
+   - 被指定的学生必须回答，不受 `should_respond()` 影响
+   - 进入场景 A 对话循环
+
+4. **assign_homework** — 布置作业
+   - 用户输入作业题目，广播给所有学生
+   - 所有学生提交作业，系统通过 LLM 评分
+
+5. **end_teaching** — 结束教学
+   - 请求所有学生提交课程反馈
+   - 会话结束
+
+### 场景 A：教师模式下的对话循环（用户指定学生）
+
+教师模式下的场景 A 与观察模式类似，但有以下区别：
+
+1. **提问来源**: 用户手动输入问题，而非 TeacherAgent 生成
+2. **学生指定**: 用户主动选择回答的学生，而非随机选择
+3. **对话结束**: 用户主动选择不再继续对话
+
+```
+用户输入问题 → 指定学生回答 → 教师回复（用户手动输入）
+  → 学生继续回复 → ... → 用户选择结束对话 → 旁听学习
+```
+
+### 场景 B：教师模式下的学生主动提问（讨论式）
+
+在讨论式模式下，积极的学生（`attitude=积极`）可能主动提问。流程与观察模式相同：
+
+```
+学生主动提问 ask_question → 教师回复（用户手动输入）
+  → 学生追问 → ... → 任一方选择结束 → 旁听学习
+```
+
+### WebSocket 消息协议（教师模式）
+
+```python
+# 用户 → 后端（操作指令）
+{
+    "type": "broadcast_lecture",
+    "content": "今天我们学习一次函数..."
+}
+
+{
+    "type": "ask_question_to_all",
+    "content": "什么是一次函数的定义？"
+}
+
+{
+    "type": "ask_question_to_student",
+    "content": "请回答这个问题",
+    "student_name": "张三"
+}
+
+{
+    "type": "teacher_reply",
+    "content": "回答得很好！",
+    "student_name": "张三"
+}
+
+{
+    "type": "end_dialogue",          # 用户主动结束当前对话
+    "student_name": "张三"
+}
+
+{
+    "type": "assign_homework",
+    "content": "完成课后习题1-5题"
+}
+
+{
+    "type": "end_teaching"
+}
+
+# 后端 → 用户（学生响应 + 状态更新）
+{
+    "type": "student_answer",
+    "student_name": "张三",
+    "content": "一次函数是 y=kx+b...",
+    "message_type": "answer_to_checkpoint"
+}
+
+{
+    "type": "student_question",
+    "student_name": "李四",
+    "content": "老师，k可以是0吗？",
+    "message_type": "question_to_teacher"
+}
+
+{
+    "type": "session_state",
+    "data": {
+        "session_id": 1,
+        "teaching_mode": "discussion",
+        "phase": "teaching",
+        "student_agents": [...]
+    }
+}
+```
+
+### TeacherSessionController
+
+教师模式的后端编排器，负责将用户操作分发给学生 agents：
+
+```python
+# backend/models/session/teacher_controller.py
+
+class TeacherSessionController:
+    """教师模式编排器 - 将用户操作分发给学生 agents."""
+
+    def __init__(
+        self,
+        student_agents: list[StudentAgent],
+        memory_manager: MemoryManager,
+    ) -> None:
+        self.student_agents = student_agents
+        self.memory_manager = memory_manager
+        self._active_dialogue: dict[str, bool] = {}  # student_name -> 是否在对话中
+
+    async def handle_broadcast_lecture(self, content: str) -> Message:
+        """处理用户广播讲授内容."""
+
+    async def handle_ask_to_all(self, question: str) -> list[Message]:
+        """处理向全体提问，返回学生回答列表."""
+
+    async def handle_ask_to_student(self, student_name: str, question: str) -> Message:
+        """处理向指定学生提问."""
+
+    async def handle_teacher_reply(self, student_name: str, content: str) -> Message:
+        """处理用户对学生的回复（场景 A 对话循环中）."""
+
+    async def handle_end_dialogue(self, student_name: str) -> None:
+        """用户主动结束与某个学生的对话，触发旁听学习."""
+
+    async def handle_assign_homework(self, content: str) -> list[Message]:
+        """布置作业并收集学生提交."""
+
+    async def handle_end_teaching(self) -> list[Message]:
+        """结束教学，收集学生反馈."""
+```
+
+**关键设计决策**：
+- TeacherSessionController 不持有 TeacherAgent，因为教师由用户扮演
+- 教师模式不需要选择教学模式，用户自行决定教学方式（讲授、提问、讨论均可随时切换）
+- 用户通过 WebSocket 发送操作指令，Controller 处理后返回学生响应
+- 旁听学习机制与观察模式相同：对话结束后触发 `update_knowledge`
+- 对话结束由用户主动触发（发送 `end_dialogue` 指令），至少一轮后才能结束
+
+## Checkpoint-Based Teaching Flow
+
+### 概述
+
+检查点系统将教学流程从"LLM 自行判断何时完成"重构为"遍历检查点数组"的显式状态机。两种模式共享相同的检查点系统和状态机。
+
+**详细设计文档**: `docs/designs/pangzerui-main-design-20260405-203128.md`
+
+### 检查点状态机
+
+```
+PENDING ──→ TEACHING ──→ QUESTIONS ──→ COMPLETE
+                │              │
+                └──────────────┘
+                     ↑
+           （教师模式手动推进）
+```
+
+| 状态 | 含义 | 进入触发条件 |
+|------|------|-------------|
+| PENDING | 检查点尚未开始 | 计划生成后的初始状态 |
+| TEACHING | 教师 agent 正在讲授该检查点的内容 | 编排器开始该检查点 |
+| QUESTIONS | 教师完成内容讲授，正在处理学生互动 | 教师 agent 发出该检查点内容完成信号 |
+| COMPLETE | 所有知识点已覆盖 + 学生互动已处理 | 所有问题已解决 或 手动强制推进 |
+
+**灌输式模式例外**: 直接 `TEACHING → COMPLETE`，跳过 QUESTIONS 状态。
+
+### 检查点 Schema
+
+```python
+class CheckpointState(str, Enum):
+    PENDING = "pending"
+    TEACHING = "teaching"
+    QUESTIONS = "questions"
+    COMPLETE = "complete"
+
+class Checkpoint(BaseModel):
+    """单个检查点的完整教学计划。"""
+    title: str                          # 例如 "一次函数的定义"
+    key_point: str                       # 例如 "y=kx+b 及其图象性质"
+    checkpoint_question: str            # 检查理解的问题
+    state: CheckpointState = CheckpointState.PENDING
+
+class CheckpointPlan(BaseModel):
+    """一节课的完整检查点计划。"""
+    topic: str
+    teaching_mode: str                  # "didactic"/"heuristic"/"discussion"/"teacher"
+    checkpoints: list[Checkpoint]
+    current_index: int = 0
+```
+
+### 检查点计划生成
+
+新服务 `CheckpointPlanService`，一次 LLM 调用生成完整计划：
+
+```python
+class CheckpointPlanService:
+    async def generate_plan(
+        self,
+        topic: str,
+        teaching_mode: str,
+        num_checkpoints: int | None = None,  # 未指定时由 LLM 决定
+    ) -> CheckpointPlan:
+        """根据主题生成检查点计划。"""
+```
+
+LLM prompt 要求：
+1. 将主题拆分为 3-8 个检查点（取决于主题复杂度）
+2. 为每个检查点生成：
+   - title: 检查点标题（简短，如"Python 变量与数据类型"）
+   - key_point: 本检查点的核心知识点（单个字符串）
+   - checkpoint_question: 检查理解的问题
+3. 按教学顺序排列检查点（基础优先，应用在后）
+4. 根据教学模式调整详细程度：
+   - didactic: 清晰、聚焦的知识点
+   - heuristic: 知识点 + 引导思考的检查问题
+   - discussion: 开放式知识点 + 讨论问题
+   - teacher: 通用知识点，作为教学参考
+
+**失败处理**（三层降级策略）:
+1. Layer 1: `with_structured_output(CheckpointPlan)` — 最可靠，直接返回 Pydantic 对象
+2. Layer 2: `Pydantic.model_validate_json(raw_response)` — 手动解析 LLM 原始输出
+3. Layer 3: 返回最小 1 检查点计划覆盖整个主题 — 保底方案
+每层失败后自动降级到下一层，并记录日志。
+
+**实现方式**: LangChain `with_structured_output(CheckpointPlan)`
+
+**生成 UX**: 计划生成可能需要 10-30 秒。前端应显示等待动画（loading spinner + "正在生成教学计划..."提示），而非等待空白。不需要流式传输。
+
+### SessionOrchestrator 变更
+
+核心循环从 `is_content_complete()` 循环重构为检查点迭代：
+
+```python
+# 旧: while not is_content_complete():
+#         teach() → questions() → ...
+
+# 新: for checkpoint in plan:
+#         teach_checkpoint(checkpoint) → questions() → ...
+```
+
+```python
+class SessionOrchestrator:
+    def __init__(self, ..., checkpoint_plan: CheckpointPlan):
+        self.checkpoint_plan = checkpoint_plan
+
+    async def run_autonomous_session(self, teaching_mode: str) -> None:
+        for i, checkpoint in enumerate(self.checkpoint_plan.checkpoints):
+            self.checkpoint_plan.current_index = i
+            await self._teach_checkpoint(checkpoint, teaching_mode)
+        await self._assign_homework()       # 只在最后一个检查点之后
+        await self._collect_homework_and_feedback()
+
+    async def _teach_checkpoint(self, checkpoint: Checkpoint, mode: str):
+        checkpoint.state = CheckpointState.TEACHING
+        await self._ws_push_checkpoint_state(checkpoint)
+        await self._deliver_checkpoint_lecture(checkpoint)
+
+        if mode in ("heuristic", "discussion"):
+            checkpoint.state = CheckpointState.QUESTIONS
+            await self._ws_push_checkpoint_state(checkpoint)
+            await self._handle_checkpoint_questions(checkpoint)
+
+        checkpoint.state = CheckpointState.COMPLETE
+        await self._ws_push_checkpoint_state(checkpoint)
+        await self._trigger_observer_learning_for_checkpoint(checkpoint)
+```
+
+**核心变更**: `_deliver_checkpoint_lecture` 通过 `TeacherAgentMemory` 将 `checkpoint.key_point` 注入到教师 agent 的 system prompt，使 agent 专门讲授该知识点。
+
+**is_content_complete() 保留**: 原有的 `is_content_complete()` 方法保留为后备验证。每个检查点完成后可调用一次，确认教学内容确实覆盖完毕。这不是主循环条件，而是安全网。
+
+**MemoryManager 集成**: 检查点 COMPLETE 时，`key_point` 自动通过 `TeacherAgentMemory.record_covered_topic()` 记录。
+
+**作业时机**: 只在最后一个检查点完成后布置，符合真实课堂行为。
+
+### 教师模式检查点集成
+
+教师模式增加检查点编辑和手动推进能力：
+
+```python
+class TeacherSessionController:
+    async def handle_edit_checkpoints(self, plan: CheckpointPlan) -> CheckpointPlan:
+        """真人教师编辑检查点计划（开始前）。"""
+
+    async def handle_advance_checkpoint(self) -> Checkpoint:
+        """真人教师手动跳转到下一个检查点。
+        如果当前检查点有未处理完毕的学生问题，强行结束。"""
+        current = self._get_current_checkpoint()
+        if current and current.state in (CheckpointState.TEACHING, CheckpointState.QUESTIONS):
+            await self._force_end_current_dialogue()  # asyncio.Task.cancel()
+            current.state = CheckpointState.COMPLETE
+        next_cp = self._advance_to_next_pending()
+        next_cp.state = CheckpointState.TEACHING
+        return next_cp
+
+    async def _force_end_current_dialogue(self):
+        """强制结束当前正在进行的对话（asyncio 取消）。
+        三个清理步骤：
+        1. 取消学生 agent 正在进行的 LLM 调用（asyncio.Task.cancel()）
+        2. 回滚 MemoryManager 中本检查点的部分状态（如未完成的参与记录）
+        3. 推送 checkpoint_state_change WebSocket 事件通知前端
+        """
+```
+
+### WebSocket 检查点事件
+
+```python
+# 后端 → 前端：检查点状态变更
+{
+    "type": "checkpoint_state_change",
+    "data": {
+        "index": 2,
+        "checkpoint": {
+            "title": "一次函数的图像",
+            "state": "teaching",
+            "key_point": "斜率决定倾斜程度，截距决定y轴交点"
+        },
+        "progress": { "current": 2, "total": 5, "completed": 1 }
+    }
+}
+
+# 前端 → 后端（教师模式）：手动推进
+{ "type": "advance_checkpoint" }
+```
+
+### 检查点 API 端点
+
+```python
+# 生成检查点计划
+POST /checkpoint-plan/generate
+请求:  { "topic": "一次函数", "teaching_mode": "heuristic" }  # "didactic"/"heuristic"/"discussion"/"teacher"
+响应:  CheckpointPlan
+
+# 获取/编辑检查点计划（教师模式，会话创建后、开始前）
+GET  /checkpoint-plan/{session_id}
+PUT  /checkpoint-plan/{session_id}
+
+# 手动推进（教师模式）
+POST /sessions/{session_id}/advance-checkpoint
+```
+
+**检查点持久化**: 使用独立的 `checkpoint_plans` 表存储检查点计划（`session_id` 外键关联 `teaching_sessions`，`plan_data` JSON 列存储完整 `CheckpointPlan`）。每个检查点状态变更时更新该字段。 schemas 和 service 均放在 `backend/models/checkpoint/` 目录下。
+
+### 检查点流程图
+
+**观察模式**:
+
+```mermaid
+flowchart LR
+    A[输入主题] --> B[LLM 生成检查点计划]
+    B --> C[自动开始教学]
+    C --> D[检查点 1: TEACHING]
+    D --> E[检查点 1: QUESTIONS]
+    E --> F[检查点 1: COMPLETE]
+    F --> G[检查点 2: TEACHING]
+    G --> H[...]
+    H --> I[所有检查点 COMPLETE]
+    I --> J[布置作业 + 反馈]
+```
+
+**教师模式**:
+
+```mermaid
+flowchart LR
+    A[输入主题] --> B[LLM 生成检查点计划]
+    B --> C[真人教师编辑检查点]
+    C --> D[开始教学]
+    D --> E[检查点 1: TEACHING]
+    E --> F[检查点 1: QUESTIONS]
+    F --> G{教师操作}
+    G -->|继续| H[检查点 1: COMPLETE]
+    G -->|跳过| I[强制结束 → COMPLETE]
+    H --> J[检查点 2: TEACHING]
+    I --> J
+    J --> K[...]
+    K --> L[布置作业 + 反馈]
+```
+
 ## Agent Interaction Flow
 
-### Teacher-Student Message Sequence
+### 核心规则
 
-教师和学生 agent 之间通过以下消息类型进行交互，展示一个完整的教学互动循环：
+**只要参与对话，双方都有结束对话的权利。但双方必须完成至少一轮完整对话后，才能选择结束。**
+
+- 教师和学生都可以在任何对话中决定不再继续（选择不回复 / 返回空内容）
+- **至少一轮约束**: 对话必须完成一次完整的「提问→回答/回复」交换后，任何一方才能选择结束。第一轮不允许为空或拒绝
+- **旁听学习**: 当教师与某个学生对话时，其他未参与的学生在旁听。对话结束后，旁听学生基于自身的 `attitude`/`learning_ability` 参数，有概率从对话内容中学习到新概念（调用 `update_knowledge`）
+
+### 场景 A: 教师提问（启发式 / 讨论式）
+
+教师发起提问，双方均可结束对话。完整循环如下：
+
+1. **教师提问**: 教师通过 `ask_checkpoint_question` 或 `ask_discussion_question` 向学生提问
+   - 可以**指定某个学生**回答（此时其他学生不需要回答）
+   - 也可以**向全体提问**（所有学生基于 `should_respond()` 概率决定是否回答）
+2. **无人回答**: 如果向全体提问但无人回答，教师可以**指定某个学生**回答
+3. **学生回答**: 被指定或主动回答的学生通过 `answer_question` 提交回答
+4. **教师回复**: 教师通过 `reply_to_student` 对学生的回答进行评价和反馈（第一轮必须回复）
+5. **双方决定**: 完成至少一轮后，教师或学生均可决定结束
+   - **教师结束**: 教师返回空/不继续，对话终止
+   - **学生结束**: 学生 `should_respond()` 返回 False 或回答为空，对话终止
+   - **继续**: 双方都选择继续，回到步骤 4
+6. **旁听学习**: 对话结束后，所有未参与对话的旁听学生尝试从对话中学习（概率性调用 `update_knowledge`）
+
+```mermaid
+flowchart TD
+    A[教师提问] --> B{是否指定学生?}
+    B -->|是| C[指定学生回答]
+    B -->|否, 向全体| D[学生基于 should_respond 决定是否回答]
+    D --> E{有人回答?}
+    E -->|否| F[教师指定某学生回答]
+    E -->|是| G[学生回答]
+    F --> G
+    G --> H[教师回复 reply_to_student<br/>第一轮必须回复]
+    H --> I{至少一轮完成?}
+    I -->|否| J[学生回复 → 回到 H]
+    I -->|是| K{教师继续?}
+    K -->|否| L[旁听学生尝试学习]
+    K -->|是| M{学生是否回复?}
+    M -->|否| L
+    M -->|是| H
+    L --> N[对话结束]
+```
+
+### 场景 B: 学生主动提问（讨论式为主）
+
+学生发起提问，双方均可结束对话。完整循环如下：
+
+1. **学生提问**: 学生通过 `ask_question` 主动向教师提出问题
+2. **教师回复**: 教师通过 `reply_to_student` 回答学生的提问（第一轮必须回复）
+3. **双方决定**: 完成至少一轮后，教师或学生均可决定结束
+   - **学生结束**: 学生 `should_respond()` 返回 False 或不再追问，对话终止
+   - **教师结束**: 教师返回空/不继续，对话终止
+   - **继续**: 双方都选择继续，回到步骤 2
+4. **旁听学习**: 对话结束后，所有未参与对话的旁听学生尝试从对话中学习（概率性调用 `update_knowledge`）
+
+```mermaid
+flowchart TD
+    A[学生主动提问 ask_question] --> B[教师回复 reply_to_student<br/>第一轮必须回复]
+    B --> C{至少一轮完成?}
+    C -->|否| D[学生追问 → 回到 B]
+    C -->|是| E{学生继续追问?}
+    E -->|否| F[旁听学生尝试学习]
+    E -->|是| G{教师继续回复?}
+    G -->|否| F
+    G -->|是| H[学生继续提问]
+    H --> B
+    F --> I[对话结束]
+```
+
+### 指定学生机制
+
+指定学生的方式因模式不同而异：
+
+**观察模式（AI 教师自动决策）**：
+1. **提问后指定**: AI 教师向全体提问后无人回答，随机选择一个学生回答（`random.choice`）
+
+**教师模式（用户手动操作）**：
+1. **提问时指定**: 用户在提出问题时直接选择某个学生，此时其他学生不需要回答
+2. **提问后指定**: 用户向全体提问后无人回答，用户手动选择某个学生来回答
+
+被指定的学生必须回答问题，不受 `should_respond()` 概率的影响。
+
+### 旁听学习机制
+
+当教师与某个学生进行一对一对话时，其他学生处于**旁听**状态：
+
+- **触发时机**: 一段对话结束后（一方选择结束），一次性触发旁听学习
+- **学习方式**: 旁听学生基于自身的 `attitude`（态度）和 `learning_ability`（学习能力）参数，有概率从对话中学习到新概念
+- **实现**: 调用 `StudentAgentMemory.update_knowledge(concept)` 对对话中涉及的知识点进行概率性记忆
+- **不影响**: 旁听学生不参与对话，不会产生任何消息
+
+### 完整教学消息序列
 
 ```mermaid
 sequenceDiagram
@@ -361,49 +910,60 @@ sequenceDiagram
 
     Note over T,All: Phase 1: 讲授阶段
     T->>All: lecture(讲授)<br/>输出知识点
-    
+
     rect rgb(240, 248, 255)
-    Note over T,All: Phase 2: 互动阶段（启发式/讨论式）
-    T->>All: interactive_question(互动提问)<br/>提出checkpoint问题
-    S1->>T: answer_question(回答问题)<br/>基于已学内容回答
-    S2->>T: answer_question(回答问题)<br/>不同质量回答
-    T->>S1: reply_to_student(回复反馈)<br/>评价回答质量
+    Note over T,All: Phase 2: 教师提问互动（场景 A）
+    T->>All: checkpoint_question / discussion_question
+    Note over T: 可指定学生或向全体提问
+    S1->>T: answer_question(回答问题)
+    T->>S1: reply_to_student(回复反馈, 第一轮必须回复)
+    Note over T,S1: 至少一轮完成后，双方均可结束
+    S1->>T: answer_question(继续回复)
+    T->>S1: reply_to_student(继续回应)
+    Note over T,S1: 教师或学生选择不继续, 对话结束
+    Note over S2,All: 旁听学生(S2等)概率性学习<br/>update_knowledge()
     end
-    
+
     rect rgb(255, 243, 224)
-    Note over S1,T: Phase 2.5: 学生主动提问（讨论式）
-    S2->>T: reply_to_teacher(主动提问)<br/>基于困惑点提问
-    T->>S2: reply_to_student(回复)<br/>可选: 判断是否回复
+    Note over S2,T: Phase 2.5: 学生主动提问（场景 B）
+    S2->>T: ask_question(主动提问)
+    T->>S2: reply_to_student(回复, 第一轮必须回复)
+    Note over T,S2: 至少一轮完成后，双方均可结束
+    S2->>T: ask_question(追问)
+    T->>S2: reply_to_student(回复)
+    Note over T,S2: 教师或学生选择不继续, 对话结束
+    Note over S1,All: 旁听学生(S1等)概率性学习<br/>update_knowledge()
     end
-    
+
     rect rgb(237, 242, 244)
     Note over T,All: Phase 3: 作业阶段
-    T->>All: assign_homework(布置作业)<br/>会话结束时
-    S1->>T: do_homework(提交作业)
-    S2->>T: do_homework(提交作业)
-    T->>S1: grade_homework(评分)<br/>LLM评价作业
+    T->>All: assign_homework(布置作业)
+    S1->>T: submit_homework(提交作业)
+    S2->>T: submit_homework(提交作业)
+    T->>S1: grade_homework(评分)
     T->>S2: grade_homework(评分)
     end
-    
+
     rect rgb(252, 243, 216)
     Note over T,All: Phase 4: 结束阶段
     T->>All: end_feedback(请求反馈)
-    S1->>T: course_feedback(课程反馈)
-    S2->>T: course_feedback(课程反馈)
+    S1->>T: give_feedback(课程反馈)
+    S2->>T: give_feedback(课程反馈)
     end
 ```
 
 ### Message Type Flow Matrix
 
-| 教师消息类型 | 学生响应消息类型 | 发生条件 |
-|-------------|---------------|---------|
-| `lecture` | 无（被动接收） | 所有模式 |
-| `interactive_question` | `answer_question` | 启发式、讨论式 |
-| `reply_to_student` | 无（被动接收反馈） | 所有模式 |
-| `assign_homework` | `do_homework` | 所有模式（会话结束） |
-| `grade_homework` | 无（被动接收评分） | 所有模式 |
-| `end_feedback` | `course_feedback` | 所有模式（会话最后） |
-| 无（学生主动） | `reply_to_teacher` | 讨论式（积极学生） |
+| 教师消息类型 | 学生响应消息类型 | 发生条件 | 对话结束权 |
+|-------------|---------------|---------|-----------|
+| `lecture` | 无（被动接收） | 所有模式 | — |
+| `checkpoint_question` / `discussion_question` | `answer_question` | 启发式、讨论式 | 双方（至少一轮后） |
+| `reply_to_student`（回复学生回答） | `answer_question`（继续回复）或 不回复 | 教师提问场景循环中 | 双方（至少一轮后） |
+| `reply_to_student`（回复学生提问） | `ask_question`（追问）或 停止 | 学生提问场景循环中 | 双方（至少一轮后） |
+| `assign_homework` | `submit_homework` | 所有模式（会话结束） | — |
+| `grade_homework` | 无（被动接收评分） | 所有模式 | — |
+| `end_feedback` | `give_feedback` | 所有模式（会话最后） | — |
+| 无（学生主动） | `ask_question` | 讨论式（积极学生） | 双方（至少一轮后） |
 
 ## Agent Message Types
 
@@ -415,8 +975,8 @@ sequenceDiagram
    - 讨论式：讲授后立即引导讨论
 
 2. **互动提问 (interactive_question)**: 教师向学生提问
-   - 启发式：每讲授3-5个知识点后提问一次
-   - 讨论式：频繁提问，每1-2个知识点后一次
+   - 启发式：每个检查点讲授后提问一次
+   - 讨论式：每个检查点讲授后引导讨论
 
 3. **回复学生 (reply_to_student)**: 针对学生回答/提问的反馈
    - 所有模式：支持，但频率不同
@@ -992,7 +1552,7 @@ class SessionOrchestrator:
 
     async def _run_heuristic_teaching(self):
         """启发式教学：讲授 + checkpoint问题"""
-        # 讲授3-5个知识点
+        # 讲授检查点知识点
         lecture_content = await self.teacher_agent.deliver_lecture()
         await self.memory_manager.process_message(Message(...))
 
@@ -1701,9 +2261,9 @@ flowchart TB
 
 | 模式 | 教师行为 | 学生行为预期 |
 |------|----------|--------------|
-| 灌输式 | 连续讲授，不提问 | 被动听讲，很少互动 |
-| 启发式 | 讲授3-5个知识点后提问 | 思考后回答，偶有主动提问 |
-| 讨论式 | 频繁提问，引导讨论 | 积极参与，多主动发言 |
+| 灌输式 | 连续讲授检查点，跳过QUESTIONS状态 | 被动听讲，很少互动 |
+| 启发式 | 每个检查点讲授后提问 | 思考后回答，偶有主动提问 |
+| 讨论式 | 每个检查点讲授后开放式讨论 | 积极参与，多主动发言 |
 
 ## Conversation Control Strategy
 
@@ -1718,46 +2278,30 @@ flowchart TB
 
 ```mermaid
 flowchart TB
-    Start([Parameter Setting<br/>配置完成]) --> ClickStart[用户点击「开始教学」]
-    ClickStart --> Teaching{教学模式}
-    
-    subgraph Didactic [灌输式模式 - Didactic]
-        Teaching -->|灌输式| D1[教师连续讲授<br/>单向输出知识点]
-        D1 --> D_Check{教学内容<br/>完成?}
-        D_Check -->|否| D1
-        D_Check -->|是| AssignHomework[布置作业]
+    Start([Parameter Setting<br/>配置完成]) --> GenPlan[LLM 生成检查点计划]
+    GenPlan --> ClickStart[用户点击「开始教学」]
+    ClickStart --> CheckpointLoop{遍历检查点}
+
+    subgraph CheckpointIteration [检查点循环]
+        CheckpointLoop --> CP_Teaching[TEACHING: 教师 agent 按 key_point 讲授]
+        CP_Teaching --> CP_Questions{需要互动?}
+        CP_Questions -->|启发式/讨论式| CP_Q[QUESTIONS: 处理学生互动]
+        CP_Questions -->|灌输式| CP_Complete
+        CP_Q --> CP_Complete[COMPLETE: 记录知识点到 MemoryManager]
+        CP_Complete --> NextCP{还有下一个检查点?}
+        NextCP -->|是| CheckpointLoop
+        NextCP -->|否| AssignHomework
     end
-    
-    subgraph Heuristic [启发式模式 - Heuristic]
-        Teaching -->|启发式| H1[教师讲授3-5个知识点]
-        H1 --> H2[教师提出checkpoint问题]
-        H2 --> H3[学生思考后回答]
-        H3 --> H4[教师给予反馈]
-        H4 --> H_Check{教学内容<br/>完成?}
-        H_Check -->|否| H1
-        H_Check -->|是| AssignHomework
-    end
-    
-    subgraph Discussion [讨论式模式 - Discussion]
-        Teaching -->|讨论式| Disc1[教师简述案例]
-        Disc1 --> Disc2[引导讨论<br/>频繁提问]
-        Disc2 --> Disc3[学生积极发言]
-        Disc3 --> Disc4[教师总结]
-        Disc4 --> Disc_Check{教学内容<br/>完成?}
-        Disc_Check -->|否| Disc1
-        Disc_Check -->|是| AssignHomework
-    end
-    
-    AssignHomework[布置作业] --> Submit[学生提交作业]
+
+    AssignHomework[布置作业<br/>最后一个检查点后] --> Submit[学生提交作业]
     Submit --> Grade[教师评分<br/>使用LLM评价]
     Grade --> Feedback[课程结束反馈<br/>请求学生反馈]
     Feedback --> End([会话结束])
-    
-    style Didactic fill:#ffe6e6
-    style Heuristic fill:#e6f3ff
-    style Discussion fill:#e6ffe6
+
+    style CheckpointIteration fill:#e8eaf6
     style Start fill:#fff4e6
     style End fill:#e8f5e9
+    style GenPlan fill:#e8eaf6
 ```
 
 **三种教学模式的交互循环详情**：
@@ -1774,17 +2318,17 @@ flowchart LR
 
     subgraph 启发式[启发式 - 讲授+提问模式]
         direction TB
-        H1[讲授3-5个知识点] --> H2[提出checkpoint问题]
+        H1[讲授检查点知识点] --> H2[提出checkpoint问题]
         H2 --> H3[学生回答]
         H3 --> H4[教师反馈<br/>调整教学]
-        H4 --> H5{教学内容<br/>完成?}
+        H4 --> H5{检查点<br/>完成?}
         H5 -->|否| H1
         H5 -->|是| H6[布置作业]
     end
 
     subgraph 讨论式[讨论式 - 互动讨论模式]
         direction TB
-        Disc1[简述案例] --> Disc2[引导提问<br/>每1-2个知识点]
+        Disc1[讲授检查点知识点] --> Disc2[引导提问<br/>开放式讨论]
         Disc2 --> Disc3[学生发言]
         Disc3 --> Disc4[教师总结<br/>引导深入]
         Disc4 --> Disc5{教学内容<br/>完成?}
@@ -1801,9 +2345,9 @@ flowchart LR
 
 | 模式 | 教师行为 | 学生行为预期 |
 |------|----------|--------------|
-| 灌输式 | 连续讲授，不提问，单向输出 | 被动听讲，无互动 |
-| 启发式 | 讲授3-5个知识点后提问1次 | 思考后回答，偶有主动提问 |
-| 讨论式 | 频繁提问(每1-2个知识点)，引导学生讨论 | 积极参与，多主动发言 |
+| 灌输式 | 连续讲授检查点，不提问，单向输出 | 被动听讲，无互动 |
+| 启发式 | 每个检查点讲授后提问1次 | 思考后回答，偶有主动提问 |
+| 讨论式 | 每个检查点讲授后引导讨论 | 积极参与，多主动发言 |
 
 ### Streaming vs Turn-Based
 

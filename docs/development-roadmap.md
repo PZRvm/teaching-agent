@@ -238,12 +238,12 @@
 
 2. 启发式模式
    - [✓] system prompt设计
-   - [✓] 讲授3-5个知识点后提问
+   - [✓] 每个检查点讲授后提问
    - [✓] ask_checkpoint_question() 方法
 
 3. 讨论式模式
    - [✓] system prompt设计
-   - [✓] 频繁提问（每1-2个知识点）
+   - [✓] 每个检查点讲授后引导讨论
    - [✓] ask_discussion_question() 方法
 
 4. 作业和反馈
@@ -263,39 +263,210 @@
 
 ---
 
+### Phase 6.5: Checkpoint System（检查点系统）
+
+**目标**: 实现检查点 schema、LLM 计划生成服务和 API 端点
+
+**任务列表**:
+1. 检查点 Schemas
+   - [✓] `backend/models/checkpoint/schemas.py`
+   - [✓] CheckpointState 枚举（PENDING/TEACHING/QUESTIONS/COMPLETE）
+   - [✓] Checkpoint 模型（title, key_point, checkpoint_question, state）
+   - [✓] CheckpointPlan 模型（topic, teaching_mode: str, checkpoints, current_index）
+     - [✓] teaching_mode 使用 `str` 类型，教师模式传值 `"teacher"`（非 None）
+
+2. CheckpointPlanService
+   - [✓] `backend/models/checkpoint/service.py`
+   - [✓] generate_plan() — LLM 调用生成完整检查点计划
+   - [✓] LLM prompt 设计（按教学模式调整详细程度）
+   - [✓] 三层降级失败处理：
+     - [✓] Layer 1: `with_structured_output(CheckpointPlan)` → Pydantic 对象
+     - [✓] Layer 2: `Pydantic.model_validate_json(raw)` → 手动解析 LLM 原始输出
+     - [✓] Layer 3: 返回最小 1 检查点计划覆盖整个主题
+   - [ ] 前端等待动画：生成期间显示 loading spinner + 提示文字（10-30 秒等待）(待前端实现)
+
+3. 检查点持久化
+   - [✓] 新建 `checkpoint_plans` 独立表（session_id 外键 → teaching_sessions.id，plan_data JSON 列）
+   - [✓] `CheckpointPlanModel` ORM（`backend/orm/checkpoint_plan.py`）
+   - [✓] Alembic migration（003_create_checkpoint_plans_table）
+   - [✓] `CheckpointPlanPersistence` 服务（`backend/models/checkpoint/persistence_service.py`）
+   - [✓] 状态变更时更新该字段
+   - [✓] 并发安全（with_for_update() 行锁）
+
+4. 检查点 API 端点
+   - [✓] POST /checkpoint-plans/ — 创建检查点计划
+   - [✓] GET /checkpoint-plans/{session_id} — 获取检查点计划
+   - [✓] PUT /checkpoint-plans/{session_id}/checkpoints/{index}/state — 更新检查点状态
+   - [✓] PUT /checkpoint-plans/{session_id}/advance — 推进到下一个检查点（额外实现）
+   - [✓] DELETE /checkpoint-plans/{session_id} — 删除检查点计划（额外实现）
+
+5. 测试（详细测试清单）
+   - [✓] CheckpointState 枚举值验证（4 个状态）
+   - [✓] Checkpoint 模型创建 + 默认 state=PENDING
+   - [✓] CheckpointPlan 模型创建 + 默认 current_index=0
+   - [✓] CheckpointPlan.teaching_mode 接受 4 个值（didactic/heuristic/discussion/teacher）
+   - [✓] generate_plan() — 正常生成（Mock LLM 返回有效 JSON）
+   - [✓] generate_plan() — Layer 1 失败 → 降级到 Layer 2
+   - [✓] generate_plan() — Layer 2 也失败 → 降级到 Layer 3（1 检查点）
+   - [✓] generate_plan() — 空检查点列表 → Layer 3 兜底
+   - [✓] generate_plan() — 不同教学模式生成不同详细程度
+   - [✓] generate_plan() — teaching_mode="teacher" 时正常工作
+   - [✓] API POST /checkpoint-plans/ — 200 + 有效响应
+   - [✓] API POST /checkpoint-plans/ — 缺少参数 → 422
+   - [✓] API GET /checkpoint-plans/{session_id} — 200
+   - [✓] API GET /checkpoint-plans/{session_id} — 不存在 → 404
+   - [✓] API PUT /checkpoint-plans/{session_id}/checkpoints/{index}/state — 200
+   - [✓] API PUT /checkpoint-plans/{session_id}/advance — 200
+   - [✓] 持久化 — 生成后存储到 checkpoint_plans 独立表
+   - [✓] 持久化 — 状态更新后 JSON 字段正确更新
+   - [✓] CheckpointPlan JSON 序列化/反序列化往返测试
+   - [✓] 灌输式模式跳过 QUESTIONS 状态验证
+   - [✓] 并发安全测试（with_for_update 行锁测试）
+
+**验收标准**:
+- [✓] 输入主题和教学模式，返回结构化的 CheckpointPlan
+- [✓] 每个检查点包含 title, key_point, checkpoint_question
+- [✓] 灌输式/启发式/讨论式生成的检查点详细程度不同
+- [✓] LLM 返回格式错误时三层降级正常工作
+- [✓] API 端点正常工作
+- [✓] CheckpointPlan 持久化到 checkpoint_plans 独立表
+- [✓] teaching_mode="teacher" 在教师模式下正常工作
+
+**详细设计**: `docs/designs/pangzerui-main-design-20260405-203128.md`
+**工程评审**: 已通过 gstack review，修复并发问题（行锁 + 错误处理）
+
+**完成时间**: 2026-04-06
+**测试覆盖**: 75 个测试全部通过（17 单元测试 + 6 集成测试）
+
+---
+
 ### Phase 7: SessionOrchestrator（观察模式核心）
 
-**目标**: 实现观察模式的自动教学流程编排
+**目标**: 实现观察模式的自动教学流程编排（基于检查点）
 
 **任务列表**:
 1. SessionOrchestrator基础结构
-   - [ ] `backend/services/session_orchestrator.py`
-   - [ ] __init__ with teacher_agent and student_agents
+   - [ ] `backend/models/session/orchestrator.py`
+   - [ ] __init__ with teacher_agent, student_agents, checkpoint_plan
 
-2. run_autonomous_session() 主循环
-   - [ ] 循环直到教学内容完成
+2. run_autonomous_session() 主循环（基于检查点）
+   - [ ] 遍历检查点数组（替代 is_content_complete() 循环）
+   - [ ] is_content_complete() 保留为后备验证（每个检查点完成后可选调用）
    - [ ] 根据teaching_mode调用不同方法
 
-3. 三种模式的run_*_teaching方法
-   - [ ] _run_didactic_teaching()
-   - [ ] _run_heuristic_teaching()
-   - [ ] _run_discussion_teaching()
+3. 检查点驱动教学
+   - [ ] _teach_checkpoint() — 状态机驱动（TEACHING → QUESTIONS → COMPLETE）
+   - [ ] _deliver_checkpoint_lecture() — 将 checkpoint.key_point 注入教师 agent system prompt
+   - [ ] _handle_checkpoint_questions() — 可取消的协程（支持 asyncio.Task.cancel()）
+   - [ ] _trigger_observer_learning_for_checkpoint() — 检查点完成后记录知识点到 MemoryManager
+   - [ ] _ws_push_checkpoint_state() — WebSocket 推送检查点状态变更
 
-4. 内容完成判断
-   - [ ] _is_teaching_content_complete()
-   - [ ] 教师Agent判断内容是否完成（可基于知识点覆盖率）
+4. 对话循环（场景 A / 场景 B）
+   - [ ] _teacher_question_dialogue_loop() — 场景 A: 教师提问，双方均可结束（至少一轮后）
+   - [ ] _student_question_dialogue_loop() — 场景 B: 学生提问，双方均可结束（至少一轮后）
+   - [ ] _collect_student_answers() — 收集学生回答，返回 (学生, 回答内容) 列表
+   - [ ] _designate_student() — 无人回答时随机指定学生
+   - [ ] _single_student_answer() — 让被指定学生回答
+   - [ ] _trigger_observer_learning() — 旁听学生概率性学习（update_knowledge）
+   - [ ] max_rounds=10 防止无限循环
 
 5. 作业和反馈流程
-   - [ ] _assign_homework()
+   - [ ] _assign_homework()（只在最后一个检查点之后）
    - [ ] _collect_homework_and_feedback()
 
+6. 观察模式 API
+   - [ ] `backend/models/observation/router.py` — POST /observation/start, GET /observation/{id}/report
+   - [ ] `backend/models/observation/schemas/` — ObservationConfig, ObservationStartResponse, metrics, report
+
+7. WebSocket 端点
+   - [ ] `backend/models/session/router_websocket.py` — ws/{session_id}
+   - [ ] checkpoint_state_change 事件推送
+
+8. 前置修改
+   - [ ] Message schema 添加 receiver 字段（默认 "all"）
+
 **验收标准**:
-- [ ] 能自动运行完整教学流程
-- [ ] 教学内容完成后自动结束（不依赖时长）
-- [ ] 能布置作业和收集反馈
+- [ ] 能自动运行完整教学流程（基于检查点）
+- [ ] 遍历完所有检查点后自动结束
+- [ ] 灌输式跳过 QUESTIONS 状态
+- [ ] 检查点状态变更通过 WebSocket 实时推送
+- [ ] 能布置作业和收集反馈（最后一个检查点之后）
+- [ ] 双方均可结束对话（至少一轮完成后）
+- [ ] 旁听学生概率性学习触发
+- [ ] 检查点完成后 key_point 记录到 MemoryManager
 - [ ] 验证：创建观察会话，自动运行到结束
 
+**详细计划**: `docs/superpowers/plans/2026-04-05-session-orchestrator.md`
+**检查点设计**: `docs/designs/pangzerui-main-design-20260405-203128.md`
+
 **预计时间**: 3-4小时
+
+---
+
+### Phase 7.5: TeacherSessionController（教师模式核心）
+
+**目标**: 实现教师模式的后端编排逻辑，将用户操作分发给学生 agents（支持检查点）
+
+**任务列表**:
+1. TeacherSessionController 基础结构
+   - [ ] `backend/models/session/teacher_controller.py`
+   - [ ] __init__ with student_agents, memory_manager, checkpoint_plan
+   - [ ] _active_dialogue 状态追踪
+
+2. 用户操作处理方法
+   - [ ] handle_broadcast_lecture() — 广播讲授内容给全体学生
+   - [ ] handle_ask_to_all() — 向全体提问，收集回答
+   - [ ] handle_ask_to_student() — 向指定学生提问（用户主动选择）
+   - [ ] handle_teacher_reply() — 用户回复学生（场景 A 对话循环）
+   - [ ] handle_end_dialogue() — 用户主动结束对话，触发旁听学习
+
+3. 检查点操作方法
+   - [ ] handle_edit_checkpoints() — 真人教师编辑检查点计划（开始前）
+   - [ ] handle_advance_checkpoint() — 手动跳转到下一个检查点
+   - [ ] _force_end_current_dialogue() — 强制结束当前对话，三个清理步骤：
+     1. 取消学生 agent 正在进行的 LLM 调用（asyncio.Task.cancel()）
+     2. 回滚 MemoryManager 中本检查点的部分状态（如未完成的参与记录）
+     3. 推送 checkpoint_state_change WebSocket 事件通知前端
+   - [ ] _advance_to_next_pending() — 前进到下一个 PENDING 检查点
+
+4. 作业和结束流程
+   - [ ] handle_assign_homework() — 布置作业，收集提交，LLM 评分（最后一个检查点之后）
+   - [ ] handle_end_teaching() — 结束教学，收集学生反馈
+
+5. 对话状态管理
+   - [ ] 至少一轮对话完成后才能结束（与观察模式相同的约束）
+   - [ ] 旁听学习：对话结束后触发 update_knowledge（复用观察模式逻辑）
+   - [ ] _handle_checkpoint_questions() 必须实现为可取消的协程（except asyncio.CancelledError）
+
+6. 检查点 API
+   - [ ] GET /checkpoint-plan/{session_id} — 获取检查点计划
+   - [ ] PUT /checkpoint-plan/{session_id} — 编辑检查点计划
+   - [ ] POST /sessions/{session_id}/advance-checkpoint — 手动推进
+
+**与 Phase 7（观察模式）的区别**:
+- 教师模式没有 TeacherAgent，教师由用户扮演
+- 教师模式不需要选择教学模式，用户自行决定教学方式
+- 学生指定由用户手动操作，而非随机选择
+- 教学节奏由用户控制 + 检查点结构（可手动推进）
+- 对话结束由用户主动触发（end_dialogue 指令）
+- 用户可在上课前编辑检查点计划
+
+**验收标准**:
+- [ ] 用户能编辑检查点计划（标题/知识点/示例/问题）
+- [ ] 用户能手动推进到下一个检查点，强制结束当前互动
+- [ ] 用户能广播讲授内容给全体学生
+- [ ] 用户能向全体提问并收集回答
+- [ ] 用户能指定某个学生回答问题
+- [ ] 用户能与指定学生进行多轮对话
+- [ ] 至少一轮后才能结束对话
+- [ ] 对话结束后旁听学生触发学习
+- [ ] 用户能布置作业并收到 LLM 评分
+- [ ] 用户能结束教学并收到学生反馈
+
+**详细计划**: 待制作
+**检查点设计**: `docs/designs/pangzerui-main-design-20260405-203128.md`
+
+**预计时间**: 2-3小时
 
 ---
 
@@ -429,17 +600,19 @@
 
 **任务列表**:
 1. TeacherConfig组件
-   - [ ] 配置界面（复用StudentFactory）
+   - [ ] 配置界面（复用StudentFactory，不需要选择教学模式）
    - [ ] "开始教学"按钮
 
 2. TeacherView组件
-   - [ ] 用户输入区域
+   - [ ] 用户输入区域（讲授、提问、回复）
+   - [ ] 学生选择器（指定学生回答）
    - [ ] 学生响应显示
    - [ ] 消息列表（复用）
 
 **验收标准**:
-- [ ] 能配置并开始教师模式
-- [ ] 能输入教学内容
+- [ ] 能配置并开始教师模式（无需选择教学模式）
+- [ ] 能输入教学内容和问题
+- [ ] 能选择指定学生回答问题
 - [ ] 能看到学生响应
 - [ ] 能布置作业和查看反馈
 - [ ] 验证：完整体验一次教师模式流程
@@ -478,7 +651,7 @@
 
 ## 总预计时间
 
-27-38小时（3-5个工作日，假设每天8小时）
+30-42小时（3-5个工作日，假设每天8小时）
 
 ## 依赖关系
 
@@ -495,7 +668,11 @@ Phase 5 (学生Agent) ← 独立，可并行
     ↓
 Phase 6 (三种模式)
     ↓
-Phase 7 (Orchestrator)
+Phase 6.5 (Checkpoint System - 检查点系统)
+    ↓
+Phase 7 (Orchestrator - 观察模式，基于检查点)
+    ↓
+Phase 7.5 (TeacherController - 教师模式，检查点编辑/推进)
     ↓
 Phase 8 (WebSocket)
     ↓
@@ -512,7 +689,7 @@ Phase 13 (测试)
 
 ## 快速开始
 
-**当前进度**: Phase 6 已完成 ✅
+**当前进度**: Phase 6.5/7 进行中（检查点系统设计已完成，待实施），Phase 7.5 设计已完成（待制作详细计划）
 
 ✅ **已完成**:
 - Phase 1: 基础设施与数据层
@@ -553,5 +730,39 @@ Phase 13 (测试)
   - `backend/tests/units/test_teacher_agent.py` - 新增 40 个测试（共 200 个单测）
   - 所有新方法均有正常路径和错误路径测试覆盖
 
-📋 **下一步**: Phase 7 - SessionOrchestrator（观察模式核心）
+📝 **设计文档更新**:
+- `docs/design.md` - Agent Interaction Flow 章节
+  - 核心规则: 双方均可结束对话（至少一轮完成后）
+  - 场景 A: 教师提问 → 双方可结束
+  - 场景 B: 学生提问 → 双方可结束
+  - 旁听学习: 对话结束后概率性触发 update_knowledge
+  - 指定学生机制: 观察模式随机选择 / 教师模式用户手动指定
+  - Message Type Flow Matrix: 对话结束权统一为"双方（至少一轮后）"
+- `docs/design.md` - Teacher Mode Architecture 章节（新增）
+  - 核心区别: 用户替代 TeacherAgent 的决策角色
+  - 6 种用户操作类型: broadcast_lecture / ask_question_to_all / ask_question_to_student / teacher_reply / end_dialogue / end_teaching
+  - WebSocket 消息协议定义
+  - TeacherSessionController 后端编排器设计
+  - 场景 A/B 在教师模式下的差异说明
+- `docs/design.md` - Checkpoint-Based Teaching Flow 章节（新增）
+  - 检查点状态机: PENDING → TEACHING → QUESTIONS → COMPLETE
+  - Checkpoint / CheckpointPlan schema 定义
+  - CheckpointPlanService LLM 计划生成
+  - SessionOrchestrator 从 is_content_complete() 重构为检查点迭代
+  - 教师模式检查点编辑和手动推进
+  - WebSocket checkpoint_state_change 事件
+  - 检查点 API 端点
+  - 观察模式/教师模式检查点流程图
+- `docs/design.md` - System Flow Overview 更新
+  - 教师模式流程增加 LLM 生成检查点 + 编辑步骤
+  - 观察模式流程增加 LLM 生成检查点 + 检查点进度显示
+- `docs/design.md` - Phase Transitions 更新
+  - 从三种教学模式独立循环重构为统一的检查点循环
+- `docs/designs/pangzerui-main-design-20260405-203128.md`（新增）
+  - 完整的检查点系统设计文档（由 /office-hours 生成）
+
+📋 **下一步**:
+- Phase 6.5 - Checkpoint System 实施（schemas + CheckpointPlanService + API）
+- Phase 7 - SessionOrchestrator 实施（计划已完成，基于检查点重构）
+- Phase 7.5 - TeacherSessionController 实施（设计已完成，待制作详细计划）
 
