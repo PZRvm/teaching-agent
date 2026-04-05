@@ -18,6 +18,24 @@ def pytest_configure(config: pytest.Config) -> None:
     """注册自定义 marker."""
     config.addinivalue_line("markers", "integration: 真实 LLM API 集成测试（需要网络和 API key）")
 
+    # 配置日志输出到文件
+    import logging
+    from pathlib import Path
+
+    logs_dir = Path(__file__).parent.parent / "logs"
+    logs_dir.mkdir(exist_ok=True)
+
+    # 配置 root logger
+    logging.basicConfig(
+        level=logging.INFO,
+        format="%(asctime)s [%(levelname)s] %(name)s - %(message)s",
+        handlers=[
+            logging.FileHandler(logs_dir / "tests.log"),
+            logging.StreamHandler(sys.stdout)
+        ],
+        force=True  # 强制重新配置
+    )
+
 
 # Test database URL (in-memory SQLite)
 TEST_DATABASE_URL = "sqlite+aiosqlite:///:memory:"
