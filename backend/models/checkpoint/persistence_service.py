@@ -77,13 +77,19 @@ class CheckpointPlanPersistence:
             session_id: 教学会话 ID
             checkpoint_index: 检查点索引
             new_state: 新状态
+
+        Raises:
+            ValueError: 如果检查点计划不存在
         """
         result = await self.db_session.execute(
-            select(CheckpointPlanModel).where(
-                CheckpointPlanModel.session_id == session_id
-            )
+            select(CheckpointPlanModel)
+            .where(CheckpointPlanModel.session_id == session_id)
+            .with_for_update()  # Lock row to prevent race conditions
         )
-        record = result.scalar_one()
+        record = result.scalar_one_or_none()
+
+        if record is None:
+            raise ValueError(f"Checkpoint plan for session {session_id} not found")
 
         # 更新 JSON 字段中的状态
         plan_data = record.plan_data.copy()
@@ -100,13 +106,20 @@ class CheckpointPlanPersistence:
 
         Args:
             session_id: 教学会话 ID
+
+        Raises:
+            ValueError: 如果检查点计划不存在
+            IndexError: 如果已经到达最后一个检查点
         """
         result = await self.db_session.execute(
-            select(CheckpointPlanModel).where(
-                CheckpointPlanModel.session_id == session_id
-            )
+            select(CheckpointPlanModel)
+            .where(CheckpointPlanModel.session_id == session_id)
+            .with_for_update()  # Lock row to prevent race conditions
         )
-        record = result.scalar_one()
+        record = result.scalar_one_or_none()
+
+        if record is None:
+            raise ValueError(f"Checkpoint plan for session {session_id} not found")
 
         plan_data = record.plan_data.copy()
         new_index = plan_data["current_index"] + 1

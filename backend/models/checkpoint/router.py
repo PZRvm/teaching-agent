@@ -108,6 +108,9 @@ async def update_checkpoint_state(
 
     Returns:
         成功消息
+
+    Raises:
+        HTTPException: 状态值无效或计划不存在时返回错误
     """
     # 验证状态值
     try:
@@ -119,11 +122,17 @@ async def update_checkpoint_state(
         ) from None
 
     service = CheckpointPlanPersistence(db)
-    await service.update_checkpoint_state(
-        session_id=session_id,
-        checkpoint_index=checkpoint_index,
-        new_state=new_state,
-    )
+    try:
+        await service.update_checkpoint_state(
+            session_id=session_id,
+            checkpoint_index=checkpoint_index,
+            new_state=new_state,
+        )
+    except ValueError as e:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail=str(e),
+        ) from None
 
     return {"message": "Checkpoint state updated successfully"}
 
@@ -150,10 +159,17 @@ async def advance_checkpoint(
 
     try:
         await service.advance_checkpoint(session_id=session_id)
-    except IndexError:
+    except ValueError as e:
+        # Checkpoint plan not found
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail=str(e),
+        ) from None
+    except IndexError as e:
+        # Already at last checkpoint
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
-            detail="Cannot advance beyond last checkpoint",
+            detail=str(e),
         ) from None
 
     plan = await service.load_plan(session_id=session_id)
