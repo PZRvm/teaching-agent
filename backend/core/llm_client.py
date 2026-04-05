@@ -60,8 +60,7 @@ class LLMClient:
         api_key = os.environ.get("OPENAI_API_KEY", "")
         if not api_key:
             raise ValueError(
-                "未设置 OPENAI_API_KEY 环境变量。"
-                "请在 .env 文件中配置 OPENAI_API_KEY=your_api_key"
+                "未设置 OPENAI_API_KEY 环境变量。请在 .env 文件中配置 OPENAI_API_KEY=your_api_key"
             )
 
         return cls(

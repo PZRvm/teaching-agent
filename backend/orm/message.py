@@ -20,4 +20,6 @@ class MessageModel(Base, AsyncAttrs):
     sender: Mapped[str] = mapped_column(String(50))
     message_type: Mapped[str] = mapped_column(String(50))
     content: Mapped[str] = mapped_column(Text)
-    timestamp: Mapped[datetime] = mapped_column(DateTime, default=lambda: datetime.now(ZoneInfo("Asia/Shanghai")))
+    timestamp: Mapped[datetime] = mapped_column(
+        DateTime, default=lambda: datetime.now(ZoneInfo("Asia/Shanghai"))
+    )

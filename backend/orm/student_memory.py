@@ -18,7 +18,9 @@ class StudentMemoryModel(Base):
     session_id: Mapped[int] = mapped_column(sa.ForeignKey("teaching_sessions.id"))
     student_name: Mapped[str] = mapped_column(sa.String(50))
     level: Mapped[StudentLevel] = mapped_column(sa.Enum(StudentLevel), default=StudentLevel.AVERAGE)
-    attitude: Mapped[StudentAttitude] = mapped_column(sa.Enum(StudentAttitude), default=StudentAttitude.NEUTRAL)
+    attitude: Mapped[StudentAttitude] = mapped_column(
+        sa.Enum(StudentAttitude), default=StudentAttitude.NEUTRAL
+    )
     learning_ability: Mapped[int] = mapped_column(sa.Integer, default=5)
 
     learned_concepts: Mapped[list[str]] = mapped_column(sa.JSON, default=list)

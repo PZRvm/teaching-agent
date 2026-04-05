@@ -107,9 +107,7 @@ class TestTeacherAgentInit:
 class TestTeacherAgentLecture:
     """TeacherAgent 讲授功能测试."""
 
-    def _make_agent(
-        self, teaching_mode: str = "didactic", covered_topics: list[str] | None = None
-    ):
+    def _make_agent(self, teaching_mode: str = "didactic", covered_topics: list[str] | None = None):
         """辅助方法：创建 TeacherAgent."""
         from agents.memories import SessionMemory, TeacherAgentMemory
         from agents.memories.memory_manager import MemoryManager
@@ -414,7 +412,9 @@ class TestTeacherAgentStreamErrors:
 class TestTeacherAgentCheckpointQuestion:
     """TeacherAgent ask_checkpoint_question 测试."""
 
-    def _make_agent(self, teaching_mode: str = "heuristic", covered_topics: list[str] | None = None):
+    def _make_agent(
+        self, teaching_mode: str = "heuristic", covered_topics: list[str] | None = None
+    ):
         """辅助方法：创建 TeacherAgent."""
         from agents.memories import SessionMemory, TeacherAgentMemory
         from agents.memories.memory_manager import MemoryManager
@@ -467,13 +467,17 @@ class TestTeacherAgentCheckpointQuestion:
         agent = self._make_agent()
         agent.ask_checkpoint_question()
         assert len(agent.session_memory.message_history) == 1
-        assert agent.session_memory.message_history[0].message_type == MessageType.CHECKPOINT_QUESTION
+        assert (
+            agent.session_memory.message_history[0].message_type == MessageType.CHECKPOINT_QUESTION
+        )
 
 
 class TestTeacherAgentDiscussionQuestion:
     """TeacherAgent ask_discussion_question 测试."""
 
-    def _make_agent(self, teaching_mode: str = "discussion", covered_topics: list[str] | None = None):
+    def _make_agent(
+        self, teaching_mode: str = "discussion", covered_topics: list[str] | None = None
+    ):
         """辅助方法：创建 TeacherAgent."""
         from agents.memories import SessionMemory, TeacherAgentMemory
         from agents.memories.memory_manager import MemoryManager
@@ -487,7 +491,9 @@ class TestTeacherAgentDiscussionQuestion:
 
         mm = MemoryManager(session_memory=session_mem, teacher_memory=teacher_mem)
         mock_llm = MagicMock()
-        mock_llm.invoke.return_value = "大家觉得在实际项目中，什么时候应该用列表，什么时候应该用元组？"
+        mock_llm.invoke.return_value = (
+            "大家觉得在实际项目中，什么时候应该用列表，什么时候应该用元组？"
+        )
         return TeacherAgent(
             session_memory=session_mem,
             llm=mock_llm,
@@ -526,7 +532,9 @@ class TestTeacherAgentDiscussionQuestion:
         agent = self._make_agent()
         agent.ask_discussion_question()
         assert len(agent.session_memory.message_history) == 1
-        assert agent.session_memory.message_history[0].message_type == MessageType.CHECKPOINT_QUESTION
+        assert (
+            agent.session_memory.message_history[0].message_type == MessageType.CHECKPOINT_QUESTION
+        )
 
 
 class TestTeacherAgentReplyToStudent:
@@ -575,7 +583,9 @@ class TestTeacherAgentReplyToStudent:
     def test_reply_to_student_returns_content(self):
         """测试返回 LLM 生成的回复内容."""
         agent = self._make_agent()
-        result = agent.reply_to_student(student_name="张三", student_message="变量有局部和全局作用域。")
+        result = agent.reply_to_student(
+            student_name="张三", student_message="变量有局部和全局作用域。"
+        )
         assert result == "回答得很好！变量确实有局部和全局两种作用域。"
 
     def test_reply_to_student_records_as_teacher_reply(self):
@@ -664,13 +674,17 @@ class TestTeacherAgentGradeHomework:
     def test_grade_homework_calls_llm(self):
         """测试 grade_homework 调用 LLM."""
         agent = self._make_agent()
-        agent.grade_homework(student_name="张三", homework_content="def sort(lst): return sorted(lst)")
+        agent.grade_homework(
+            student_name="张三", homework_content="def sort(lst): return sorted(lst)"
+        )
         assert len(agent.llm.invoke.call_args_list) == 1
 
     def test_grade_homework_prompt_includes_student_name(self):
         """测试 prompt 包含学生名字."""
         agent = self._make_agent()
-        agent.grade_homework(student_name="张三", homework_content="def sort(lst): return sorted(lst)")
+        agent.grade_homework(
+            student_name="张三", homework_content="def sort(lst): return sorted(lst)"
+        )
         messages = agent.llm.invoke.call_args[0][0]
         user_msg = messages[1]["content"]
         assert "张三" in user_msg
@@ -678,7 +692,9 @@ class TestTeacherAgentGradeHomework:
     def test_grade_homework_prompt_includes_homework_content(self):
         """测试 prompt 包含作业内容."""
         agent = self._make_agent()
-        agent.grade_homework(student_name="张三", homework_content="def sort(lst): return sorted(lst)")
+        agent.grade_homework(
+            student_name="张三", homework_content="def sort(lst): return sorted(lst)"
+        )
         messages = agent.llm.invoke.call_args[0][0]
         user_msg = messages[1]["content"]
         assert "def sort" in user_msg
@@ -688,13 +704,17 @@ class TestTeacherAgentGradeHomework:
         from core.settings import CONTENT_JUDGE_TEMPERATURE
 
         agent = self._make_agent()
-        agent.grade_homework(student_name="张三", homework_content="def sort(lst): return sorted(lst)")
+        agent.grade_homework(
+            student_name="张三", homework_content="def sort(lst): return sorted(lst)"
+        )
         assert agent.llm.invoke.call_args[1].get("temperature") == CONTENT_JUDGE_TEMPERATURE
 
     def test_grade_homework_records_as_homework_feedback(self):
         """测试记录为 HOMEWORK_FEEDBACK 消息."""
         agent = self._make_agent()
-        agent.grade_homework(student_name="张三", homework_content="def sort(lst): return sorted(lst)")
+        agent.grade_homework(
+            student_name="张三", homework_content="def sort(lst): return sorted(lst)"
+        )
         assert len(agent.session_memory.message_history) == 1
         assert agent.session_memory.message_history[0].message_type == MessageType.HOMEWORK_FEEDBACK
 

@@ -95,7 +95,9 @@ class TeacherAgent:
         context = self.memory_manager.session_memory.get_agent_context()
         teacher_context = self.memory_manager.teacher_memory.get_system_prompt_addition(topic=topic)
 
-        mode_section = self._MODE_INSTRUCTIONS.get(self.teaching_mode, self._MODE_INSTRUCTIONS["didactic"])
+        mode_section = self._MODE_INSTRUCTIONS.get(
+            self.teaching_mode, self._MODE_INSTRUCTIONS["didactic"]
+        )
 
         return f"""你是教师 agent，正在教授"{topic}"相关内容。
 
@@ -292,8 +294,7 @@ class TeacherAgent:
         system_prompt = self._build_system_prompt()
 
         user_prompt = (
-            f"学生「{student_name}」说：{student_message}\n\n"
-            f"请对这位学生的回答/提问给予反馈。"
+            f"学生「{student_name}」说：{student_message}\n\n请对这位学生的回答/提问给予反馈。"
         )
         messages = [
             {"role": "system", "content": system_prompt},

@@ -156,4 +156,3 @@ class TestStudentRespondProbabilities:
 
         assert DEFAULT_RESPOND_PROBABILITY == 0.5
         assert isinstance(DEFAULT_RESPOND_PROBABILITY, float)
-

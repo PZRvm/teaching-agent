@@ -40,16 +40,16 @@ class TestTeacherAgentRealLecture:
             teaching_mode="didactic",
         )
 
-        print(f"\n{'='*60}")
+        print(f"\n{'=' * 60}")
         print("[灌输式] Python变量与数据类型")
-        print(f"{'='*60}")
+        print(f"{'=' * 60}")
 
         chunks = []
         for chunk in agent.deliver_lecture_stream():
             print(chunk, end="", flush=True)
             chunks.append(chunk)
 
-        print(f"\n{'='*60}\n")
+        print(f"\n{'=' * 60}\n")
 
         content = "".join(chunks)
         assert isinstance(content, str)
@@ -68,16 +68,16 @@ class TestTeacherAgentRealLecture:
             teaching_mode="heuristic",
         )
 
-        print(f"\n{'='*60}")
+        print(f"\n{'=' * 60}")
         print("[启发式] Python条件语句")
-        print(f"{'='*60}")
+        print(f"{'=' * 60}")
 
         chunks = []
         for chunk in agent.deliver_lecture_stream():
             print(chunk, end="", flush=True)
             chunks.append(chunk)
 
-        print(f"\n{'='*60}\n")
+        print(f"\n{'=' * 60}\n")
 
         content = "".join(chunks)
         assert isinstance(content, str)
@@ -96,16 +96,16 @@ class TestTeacherAgentRealLecture:
             teaching_mode="discussion",
         )
 
-        print(f"\n{'='*60}")
+        print(f"\n{'=' * 60}")
         print("[讨论式] Python循环结构")
-        print(f"{'='*60}")
+        print(f"{'=' * 60}")
 
         chunks = []
         for chunk in agent.deliver_lecture_stream():
             print(chunk, end="", flush=True)
             chunks.append(chunk)
 
-        print(f"\n{'='*60}\n")
+        print(f"\n{'=' * 60}\n")
 
         content = "".join(chunks)
         assert isinstance(content, str)

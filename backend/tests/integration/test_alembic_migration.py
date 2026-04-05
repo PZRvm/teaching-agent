@@ -83,7 +83,13 @@ class TestAlembicMigration:
 
         conn.close()
 
-        required_columns = {"id", "session_id", "message_history", "teaching_summary", "last_updated"}
+        required_columns = {
+            "id",
+            "session_id",
+            "message_history",
+            "teaching_summary",
+            "last_updated",
+        }
         for col_name in required_columns:
             assert col_name in columns, f"缺少列: {col_name}"
 
@@ -117,7 +123,15 @@ class TestAlembicMigration:
 
         conn.close()
 
-        required_columns = {"id", "session_id", "covered_topics", "student_questions", "student_participation", "teaching_progress", "student_misconceptions"}
+        required_columns = {
+            "id",
+            "session_id",
+            "covered_topics",
+            "student_questions",
+            "student_participation",
+            "teaching_progress",
+            "student_misconceptions",
+        }
         for col_name in required_columns:
             assert col_name in columns, f"缺少列: {col_name}"
 
@@ -130,7 +144,9 @@ class TestAlembicMigration:
         cursor = conn.cursor()
 
         # 检查 session_memories 表的外键定义
-        cursor.execute("SELECT sql FROM sqlite_master WHERE type='table' AND name='session_memories'")
+        cursor.execute(
+            "SELECT sql FROM sqlite_master WHERE type='table' AND name='session_memories'"
+        )
         result = cursor.fetchone()
         schema_sql = result[0] if result else ""
 
@@ -138,4 +154,6 @@ class TestAlembicMigration:
 
         # SQLite 的外键约束在 CREATE TABLE 语句中定义
         # 实际启用需要在每次连接时执行 PRAGMA foreign_keys = ON
-        assert "FOREIGN KEY(session_id) REFERENCES teaching_sessions (id)" in schema_sql, f"缺少外键约束定义。实际 schema: {schema_sql}"
+        assert "FOREIGN KEY(session_id) REFERENCES teaching_sessions (id)" in schema_sql, (
+            f"缺少外键约束定义。实际 schema: {schema_sql}"
+        )

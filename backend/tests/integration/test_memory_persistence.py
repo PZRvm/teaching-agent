@@ -52,9 +52,7 @@ class TestMemoryPersistenceSave:
         from orm.session_memory import SessionMemoryModel
 
         result = await db_session.execute(
-            select(SessionMemoryModel).where(
-                SessionMemoryModel.session_id == session_id
-            )
+            select(SessionMemoryModel).where(SessionMemoryModel.session_id == session_id)
         )
         record = result.scalar_one()
         assert record is not None
@@ -80,9 +78,7 @@ class TestMemoryPersistenceSave:
         await persistence.save_session_memory(memory)
 
         result = await db_session.execute(
-            select(SessionMemoryModel).where(
-                SessionMemoryModel.session_id == session_id
-            )
+            select(SessionMemoryModel).where(SessionMemoryModel.session_id == session_id)
         )
         record = result.scalar_one()
         assert record.teaching_summary == "已讲授变量和数据类型"
@@ -104,9 +100,7 @@ class TestMemoryPersistenceSave:
         await persistence.save_teacher_memory(session_id, teacher_mem)
 
         result = await db_session.execute(
-            select(TeacherMemoryModel).where(
-                TeacherMemoryModel.session_id == session_id
-            )
+            select(TeacherMemoryModel).where(TeacherMemoryModel.session_id == session_id)
         )
         record = result.scalar_one()
         assert record is not None
@@ -134,9 +128,7 @@ class TestMemoryPersistenceSave:
         await persistence.save_teacher_memory(session_id, teacher_mem)
 
         result = await db_session.execute(
-            select(TeacherMemoryModel).where(
-                TeacherMemoryModel.session_id == session_id
-            )
+            select(TeacherMemoryModel).where(TeacherMemoryModel.session_id == session_id)
         )
         record = result.scalar_one()
         assert "变量" in record.covered_topics
@@ -166,9 +158,7 @@ class TestMemoryPersistenceSave:
         await persistence.save_student_memory(session_id, student_mem)
 
         result = await db_session.execute(
-            select(StudentMemoryModel).where(
-                StudentMemoryModel.session_id == session_id
-            )
+            select(StudentMemoryModel).where(StudentMemoryModel.session_id == session_id)
         )
         record = result.scalar_one()
         assert record is not None
@@ -202,9 +192,7 @@ class TestMemoryPersistenceSave:
         await persistence.save_student_memory(session_id, student_mem)
 
         result = await db_session.execute(
-            select(StudentMemoryModel).where(
-                StudentMemoryModel.session_id == session_id
-            )
+            select(StudentMemoryModel).where(StudentMemoryModel.session_id == session_id)
         )
         record = result.scalar_one()
         assert "变量" in record.learned_concepts
@@ -244,9 +232,7 @@ class TestMemoryPersistenceSave:
 class TestMemoryPersistenceLoad:
     """MemoryPersistence 加载操作测试."""
 
-    async def test_load_session_memory_exists(
-        self, db_session: AsyncSession
-    ):
+    async def test_load_session_memory_exists(self, db_session: AsyncSession):
         """测试加载已存在的会话记忆."""
 
         from agents.memories.memory_persistence import MemoryPersistence
@@ -268,9 +254,7 @@ class TestMemoryPersistenceLoad:
         assert loaded.session_id == session_id
         assert loaded.teaching_summary == "已讲授变量"
 
-    async def test_load_session_memory_not_exists(
-        self, db_session: AsyncSession
-    ):
+    async def test_load_session_memory_not_exists(self, db_session: AsyncSession):
         """测试加载不存在的会话记忆返回 None."""
         from agents.memories.memory_persistence import MemoryPersistence
 
@@ -278,9 +262,7 @@ class TestMemoryPersistenceLoad:
         loaded = await persistence.load_session_memory(99999)
         assert loaded is None
 
-    async def test_load_session_memory_with_messages(
-        self, db_session: AsyncSession
-    ):
+    async def test_load_session_memory_with_messages(self, db_session: AsyncSession):
         """测试加载会话记忆包含消息历史."""
 
         from agents.memories.memory_persistence import MemoryPersistence
@@ -316,9 +298,7 @@ class TestMemoryPersistenceLoad:
         assert loaded.message_history[0].sender == "teacher"
         assert loaded.message_history[1].sender == "张三"
 
-    async def test_load_teacher_memory_exists(
-        self, db_session: AsyncSession
-    ):
+    async def test_load_teacher_memory_exists(self, db_session: AsyncSession):
         """测试加载已存在的教师记忆."""
 
         from agents.memories.memory_persistence import MemoryPersistence
@@ -340,9 +320,7 @@ class TestMemoryPersistenceLoad:
         assert "函数" in loaded.covered_topics
         assert loaded.student_participation == {"张三": 1}
 
-    async def test_load_teacher_memory_not_exists(
-        self, db_session: AsyncSession
-    ):
+    async def test_load_teacher_memory_not_exists(self, db_session: AsyncSession):
         """测试加载不存在的教师记忆返回 None."""
         from agents.memories.memory_persistence import MemoryPersistence
 
@@ -350,9 +328,7 @@ class TestMemoryPersistenceLoad:
         loaded = await persistence.load_teacher_memory(99999)
         assert loaded is None
 
-    async def test_load_student_memory_exists(
-        self, db_session: AsyncSession
-    ):
+    async def test_load_student_memory_exists(self, db_session: AsyncSession):
         """测试加载已存在的学生记忆."""
 
         from agents.memories.memory_manager import StudentAgentMemory
@@ -376,9 +352,7 @@ class TestMemoryPersistenceLoad:
         assert "变量" in loaded.learned_concepts
         assert loaded.current_knowledge_level == 0.2
 
-    async def test_load_student_memory_not_exists(
-        self, db_session: AsyncSession
-    ):
+    async def test_load_student_memory_not_exists(self, db_session: AsyncSession):
         """测试加载不存在的学生记忆返回 None."""
         from agents.memories.memory_persistence import MemoryPersistence
 
@@ -393,9 +367,7 @@ class TestMemoryPersistenceLoad:
 class TestMemoryIntegration:
     """记忆系统完整流程集成测试."""
 
-    async def test_full_flow_save_and_restore(
-        self, db_session: AsyncSession
-    ):
+    async def test_full_flow_save_and_restore(self, db_session: AsyncSession):
         """完整流程：创建会话 → 处理消息 → 持久化 → 加载恢复."""
         import random
 
@@ -417,9 +389,7 @@ class TestMemoryIntegration:
             summary_update_interval=5,
             student_rng=random.Random(42),
         )
-        manager.register_student(
-            StudentProfile(name="张三", learning_ability=8)
-        )
+        manager.register_student(StudentProfile(name="张三", learning_ability=8))
 
         # 3. 处理多条消息
         messages = [
@@ -468,12 +438,8 @@ class TestMemoryIntegration:
 
         # 5. 持久化
         await persistence.save_session_memory(manager.session_memory)
-        await persistence.save_teacher_memory(
-            session_id, manager.teacher_memory
-        )
-        await persistence.save_student_memory(
-            session_id, manager.student_memories["张三"]
-        )
+        await persistence.save_teacher_memory(session_id, manager.teacher_memory)
+        await persistence.save_student_memory(session_id, manager.student_memories["张三"])
         for msg in manager.session_memory.message_history:
             await persistence.save_message(session_id, msg)
 
@@ -497,9 +463,7 @@ class TestMemoryIntegration:
         assert loaded_student.name == "张三"
         assert loaded_student.learning_ability == 8
 
-    async def test_save_and_load_empty_session(
-        self, db_session: AsyncSession
-    ):
+    async def test_save_and_load_empty_session(self, db_session: AsyncSession):
         """测试空会话的保存和加载."""
 
         from agents.memories.memory_manager import MemoryManager
@@ -514,12 +478,8 @@ class TestMemoryIntegration:
         manager.register_student(StudentProfile(name="张三", learning_ability=5))
 
         await persistence.save_session_memory(manager.session_memory)
-        await persistence.save_teacher_memory(
-            session_id, manager.teacher_memory
-        )
-        await persistence.save_student_memory(
-            session_id, manager.student_memories["张三"]
-        )
+        await persistence.save_teacher_memory(session_id, manager.teacher_memory)
+        await persistence.save_student_memory(session_id, manager.student_memories["张三"])
 
         loaded_session = await persistence.load_session_memory(session_id)
         loaded_teacher = await persistence.load_teacher_memory(session_id)
@@ -531,4 +491,3 @@ class TestMemoryIntegration:
         assert loaded_teacher.covered_topics == []
         assert loaded_student is not None
         assert loaded_student.learned_concepts == []
-

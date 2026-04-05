@@ -41,7 +41,10 @@ class TestLLMClient:
         """测试 from_config() 在无 API key 时抛出 ValueError."""
         import pytest
 
-        with patch.dict("os.environ", {}, clear=True), pytest.raises(ValueError, match="OPENAI_API_KEY"):
+        with (
+            patch.dict("os.environ", {}, clear=True),
+            pytest.raises(ValueError, match="OPENAI_API_KEY"),
+        ):
             LLMClient.from_config()
 
     @patch("core.llm_client.ChatOpenAI")

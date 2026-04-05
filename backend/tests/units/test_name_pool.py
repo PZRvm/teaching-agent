@@ -22,5 +22,3 @@ def test_get_random_name():
     assert isinstance(name2, str)
     assert len(name1) > 1
     assert len(name2) > 1
-
-

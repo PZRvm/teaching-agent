@@ -62,7 +62,9 @@ class MemoryPersistence:
         """
         lock_key = f"{model.__tablename__}:{session_id}"
         async with self._get_lock(lock_key):
-            result = await self.db_session.execute(select(model).where(model.session_id == session_id))
+            result = await self.db_session.execute(
+                select(model).where(model.session_id == session_id)
+            )
             existing = result.scalar_one_or_none()
 
             if existing:
@@ -155,7 +157,9 @@ class MemoryPersistence:
             sender=message.sender,
             message_type=message.message_type.value,
             content=message.content,
-            timestamp=message.timestamp if message.timestamp is not None else datetime.now(TIMEZONE),
+            timestamp=message.timestamp
+            if message.timestamp is not None
+            else datetime.now(TIMEZONE),
         )
         self.db_session.add(db_message)
         await self.db_session.commit()
@@ -335,8 +339,12 @@ class MemoryPersistence:
         memory.learned_concepts = record.learned_concepts or []
         memory.confused_points = record.confused_points or []
         memory.questions_asked = record.questions_asked or []
-        memory.initial_knowledge_level = record.initial_knowledge_level if record.initial_knowledge_level is not None else 0.0
-        memory.current_knowledge_level = record.current_knowledge_level if record.current_knowledge_level is not None else 0.0
+        memory.initial_knowledge_level = (
+            record.initial_knowledge_level if record.initial_knowledge_level is not None else 0.0
+        )
+        memory.current_knowledge_level = (
+            record.current_knowledge_level if record.current_knowledge_level is not None else 0.0
+        )
         memory.learning_rate = record.learning_rate if record.learning_rate is not None else 0.05
 
         return memory

@@ -370,9 +370,7 @@ class TestStudentAgentMemory:
 class TestMemoryManager:
     """MemoryManager 测试."""
 
-    def _make_message(
-        self, sender: str, msg_type: MessageType, content: str
-    ) -> Message:
+    def _make_message(self, sender: str, msg_type: MessageType, content: str) -> Message:
         """辅助方法：创建消息."""
         return Message(
             sender=sender,
@@ -445,12 +443,8 @@ class TestMemoryManager:
             extract_knowledge_fn=lambda content: ["变量"],
         )
 
-        manager.process_message(
-            self._make_message("teacher", MessageType.LECTURE, "讲变量")
-        )
-        manager.process_message(
-            self._make_message("teacher", MessageType.LECTURE, "再讲变量")
-        )
+        manager.process_message(self._make_message("teacher", MessageType.LECTURE, "讲变量"))
+        manager.process_message(self._make_message("teacher", MessageType.LECTURE, "再讲变量"))
 
         assert manager.teacher_memory.covered_topics == ["变量"]
 
@@ -468,9 +462,7 @@ class TestMemoryManager:
         profile = StudentProfile(name="张三", learning_ability=10)
         manager.register_student(profile)
 
-        manager.process_message(
-            self._make_message("teacher", MessageType.LECTURE, "讲变量")
-        )
+        manager.process_message(self._make_message("teacher", MessageType.LECTURE, "讲变量"))
 
         # 学习能力10的学生几乎一定记住
         student_mem = manager.student_memories["张三"]
@@ -483,9 +475,7 @@ class TestMemoryManager:
         session_mem = SessionMemory(session_id=1, topic="Python基础")
         manager = MemoryManager(session_memory=session_mem)
 
-        msg = self._make_message(
-            "teacher", MessageType.CHECKPOINT_QUESTION, "什么是变量?"
-        )
+        msg = self._make_message("teacher", MessageType.CHECKPOINT_QUESTION, "什么是变量?")
         manager.process_message(msg)
         assert len(session_mem.message_history) == 1
 
@@ -508,9 +498,7 @@ class TestMemoryManager:
         session_mem = SessionMemory(session_id=1, topic="Python基础")
         manager = MemoryManager(session_memory=session_mem)
 
-        msg = self._make_message(
-            "张三", MessageType.QUESTION_TO_TEACHER, "什么是变量?"
-        )
+        msg = self._make_message("张三", MessageType.QUESTION_TO_TEACHER, "什么是变量?")
         manager.process_message(msg)
 
         assert "张三" in manager.teacher_memory.student_questions

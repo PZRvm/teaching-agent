@@ -39,7 +39,9 @@ class TestStudentMemoryMigration:
             "learning_rate",
             "last_updated",
         }
-        assert column_names == expected_columns, f"列不匹配: 期望 {expected_columns}, 实际 {column_names}"
+        assert column_names == expected_columns, (
+            f"列不匹配: 期望 {expected_columns}, 实际 {column_names}"
+        )
 
     async def test_student_memories_model_indexes(self):
         """测试 StudentMemoryModel 是否定义了索引."""
@@ -51,9 +53,9 @@ class TestStudentMemoryMigration:
             "ix_student_memories_session_id",
             "ix_student_memories_session_student",
         }
-        assert expected_indexes.issubset(
-            index_names
-        ), f"索引不匹配: 期望包含 {expected_indexes}, 实际 {index_names}"
+        assert expected_indexes.issubset(index_names), (
+            f"索引不匹配: 期望包含 {expected_indexes}, 实际 {index_names}"
+        )
 
     async def test_student_memories_foreign_key(self):
         """测试 StudentMemoryModel 外键是否正确."""
