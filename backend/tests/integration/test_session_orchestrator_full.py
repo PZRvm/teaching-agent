@@ -542,7 +542,7 @@ def test_multi_student_classroom():
         print("  学生参与情况:")
         for student in students:
             participation = teacher_memory.student_participation.get(student.profile.name, 0)
-            learned = len(student.memory.knowledge_points)
+            learned = len(student.memory.learned_concepts)
             print(f"    {student.profile.name}: {participation} 次参与, 学会 {learned} 个知识点")
         print("=" * 70 + "\n")
 
