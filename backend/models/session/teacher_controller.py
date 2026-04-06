@@ -1,0 +1,47 @@
+"""TeacherSessionController - 教师模式核心控制器."""
+
+from collections.abc import Callable
+from typing import Optional
+
+from agents.student_agent import StudentAgent
+from agents.memories.memory_manager import MemoryManager
+from models.checkpoint.schemas import CheckpointPlan
+
+
+class TeacherSessionController:
+    """教师模式手动教学流程控制器.
+
+    用户扮演教师角色，通过 WebSocket 命令控制教学流程。
+    支持检查点驱动的手动教学，用户可编辑检查点、手动推进、控制对话节奏。
+
+    核心特性：
+    - 无 TeacherAgent（用户提供教学内容）
+    - 至少一轮对话约束（与观察模式相同）
+    - 旁听学习机制（复用观察模式逻辑）
+    - 检查点手动推进（强制结束当前对话）
+    """
+
+    def __init__(
+        self,
+        *,
+        student_agents: list[StudentAgent],
+        memory_manager: MemoryManager,
+        checkpoint_plan: CheckpointPlan,
+        ws_push_callback: Optional[Callable] = None,
+    ):
+        """初始化教师模式控制器.
+
+        Args:
+            student_agents: 学生 agent 列表
+            memory_manager: 记忆管理器
+            checkpoint_plan: 检查点计划
+            ws_push_callback: WebSocket 推送回调（用于测试）
+        """
+        self.student_agents = student_agents
+        self.memory_manager = memory_manager
+        self.checkpoint_plan = checkpoint_plan
+        self._ws_push_callback = ws_push_callback
+
+        # 对话状态追踪
+        self._active_dialogue: Optional[dict] = None  # 当前活跃对话 {student_name: round_count}
+        self._dialogue_round_count: int = 0  # 当前对话轮数
