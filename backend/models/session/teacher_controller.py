@@ -101,3 +101,43 @@ class TeacherSessionController:
                 timestamp=datetime.now(),
             )
             self.memory_manager.session_memory.message_history.append(answer_message)
+
+    def handle_ask_to_student(self, question: str, student_name: str) -> None:
+        """向单个学生提问并收集回答.
+
+        Args:
+            question: 教师提出的问题
+            student_name: 目标学生名称
+
+        流程：
+            1. 记录 checkpoint_question 消息到 SessionMemory（发送给特定学生）
+            2. 找到目标学生并调用 ask_question() 收集回答
+            3. 记录学生的 answer_to_checkpoint 消息
+        """
+        # 记录教师提问（发送给特定学生）
+        question_message = Message(
+            sender="teacher",
+            message_type=MessageType.CHECKPOINT_QUESTION,
+            content=question,
+            receiver=student_name,
+            timestamp=datetime.now(),
+        )
+        self.memory_manager.session_memory.message_history.append(question_message)
+
+        # 找到目标学生并收集回答
+        target_student = None
+        for student in self.student_agents:
+            if student.name == student_name:
+                target_student = student
+                break
+
+        if target_student is not None:
+            answer = target_student.ask_question(question)
+            answer_message = Message(
+                sender=student_name,
+                message_type=MessageType.ANSWER_TO_CHECKPOINT,
+                content=answer,
+                receiver="teacher",
+                timestamp=datetime.now(),
+            )
+            self.memory_manager.session_memory.message_history.append(answer_message)
