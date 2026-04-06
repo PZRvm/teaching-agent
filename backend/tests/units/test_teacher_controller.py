@@ -561,6 +561,85 @@ class TestHandleCollectHomework:
         assert len(submission_messages) == 0
 
 
+class TestHandleEndTeaching:
+    """handle_end_teaching 方法测试"""
+
+    def test_handle_end_teaching_collects_feedback_from_all_students(self):
+        """测试收集所有学生反馈"""
+        # Arrange
+        mock_student1 = Mock()
+        mock_student1.name = "张三"
+        mock_student1.give_feedback = Mock(return_value="这节课讲得很好，我学到了很多")
+
+        mock_student2 = Mock()
+        mock_student2.name = "李四"
+        mock_student2.give_feedback = Mock(return_value="内容有点难，希望能多讲几遍")
+
+        mock_memory_manager = Mock()
+        mock_memory_manager.session_memory = Mock()
+        mock_memory_manager.session_memory.message_history = []
+
+        controller = TeacherSessionController(
+            student_agents=[mock_student1, mock_student2],
+            memory_manager=mock_memory_manager,
+            checkpoint_plan=Mock(),
+            ws_push_callback=None
+        )
+
+        # Act
+        result = controller.handle_end_teaching()
+
+        # Assert - 所有学生都被要求提供反馈
+        mock_student1.give_feedback.assert_called_once()
+        mock_student2.give_feedback.assert_called_once()
+
+        # Assert - 返回值包含所有反馈
+        assert "feedbacks" in result
+        assert len(result["feedbacks"]) == 2
+        assert "这节课讲得很好，我学到了很多" in result["feedbacks"]
+        assert "内容有点难，希望能多讲几遍" in result["feedbacks"]
+
+        # Assert - 反馈消息被记录
+        messages = mock_memory_manager.session_memory.message_history
+        feedback_messages = [m for m in messages if m.message_type.value == "end_feedback"]
+        assert len(feedback_messages) == 2
+        assert feedback_messages[0].sender in ["张三", "李四"]
+        assert feedback_messages[1].sender in ["张三", "李四"]
+
+    def test_handle_end_teaching_with_student_without_feedback(self):
+        """测试有学生未提供反馈时的处理"""
+        # Arrange
+        mock_student = Mock()
+        mock_student.name = "张三"
+        mock_student.give_feedback = Mock(return_value=None)  # 未提供反馈
+
+        mock_memory_manager = Mock()
+        mock_memory_manager.session_memory = Mock()
+        mock_memory_manager.session_memory.message_history = []
+
+        controller = TeacherSessionController(
+            student_agents=[mock_student],
+            memory_manager=mock_memory_manager,
+            checkpoint_plan=Mock(),
+            ws_push_callback=None
+        )
+
+        # Act
+        result = controller.handle_end_teaching()
+
+        # Assert - 学生被要求提供反馈
+        mock_student.give_feedback.assert_called_once()
+
+        # Assert - 返回值不包含该学生的反馈（None 值被过滤）
+        assert "feedbacks" in result
+        assert len(result["feedbacks"]) == 0
+
+        # Assert - 没有反馈消息被记录（因为学生未提供反馈）
+        messages = mock_memory_manager.session_memory.message_history
+        feedback_messages = [m for m in messages if m.message_type.value == "end_feedback"]
+        assert len(feedback_messages) == 0
+
+
 class TestMessageTypeEnums:
     """MessageType 枚举测试"""
 

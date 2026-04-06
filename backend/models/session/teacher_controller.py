@@ -237,3 +237,30 @@ class TeacherSessionController:
                     timestamp=datetime.now(),
                 )
                 self.memory_manager.session_memory.message_history.append(message)
+
+    def handle_end_teaching(self) -> dict[str, list[str]]:
+        """结束教学，收集所有学生反馈.
+
+        Returns:
+            {"feedbacks": ["学生1反馈", "学生2反馈", ...]} 包含所有学生反馈的列表
+
+        流程：
+            1. 遍历所有学生，调用 give_feedback() 收集反馈
+            2. 记录每个学生的 end_feedback 消息（如果有反馈）
+            3. 返回反馈列表（过滤 None 值）
+        """
+        feedbacks = []
+        for student in self.student_agents:
+            feedback = student.give_feedback()
+            if feedback is not None:
+                feedbacks.append(feedback)
+                message = Message(
+                    sender=student.name,
+                    message_type=MessageType.END_FEEDBACK,
+                    content=feedback,
+                    receiver="teacher",
+                    timestamp=datetime.now(),
+                )
+                self.memory_manager.session_memory.message_history.append(message)
+
+        return {"feedbacks": feedbacks}
