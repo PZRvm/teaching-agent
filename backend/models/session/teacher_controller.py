@@ -189,3 +189,14 @@ class TeacherSessionController:
         # 清除对话状态
         self._active_dialogue = None
         self._dialogue_round_count = 0
+
+    def handle_advance_checkpoint(self) -> None:
+        """手动推进到下一个检查点.
+
+        流程：
+            1. 如果有活跃对话，强制结束对话（触发旁听学习）
+            2. 清除对话状态
+        """
+        # 如果有活跃对话，先结束对话（触发旁听学习）
+        if self._dialogue_round_count > 0 and self._active_dialogue is not None:
+            self.handle_end_dialogue()

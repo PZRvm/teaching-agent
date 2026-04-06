@@ -385,6 +385,82 @@ class TestHandleEndDialogue:
         mock_student1.update_knowledge.assert_not_called()
 
 
+class TestHandleAdvanceCheckpoint:
+    """handle_advance_checkpoint 方法测试"""
+
+    def test_handle_advance_checkpoint_clears_active_dialogue(self):
+        """测试推进检查点强制结束当前对话"""
+        # Arrange
+        mock_student1 = Mock()
+        mock_student1.name = "张三"
+        mock_student1.update_knowledge = Mock()
+
+        mock_student2 = Mock()
+        mock_student2.name = "李四"
+        mock_student2.update_knowledge = Mock()
+
+        mock_checkpoint_plan = Mock()
+        mock_checkpoint_plan.checkpoints = [
+            Mock(title="检查点1", state=CheckpointState.COMPLETE),
+            Mock(title="检查点2", state=CheckpointState.TEACHING),
+        ]
+
+        mock_memory_manager = Mock()
+        mock_memory_manager.session_memory = Mock()
+        mock_memory_manager.session_memory.message_history = []
+
+        controller = TeacherSessionController(
+            student_agents=[mock_student1, mock_student2],
+            memory_manager=mock_memory_manager,
+            checkpoint_plan=mock_checkpoint_plan,
+            ws_push_callback=None
+        )
+
+        # 建立对话状态
+        controller.handle_teacher_reply("回复张三", "张三")
+        assert controller._active_dialogue is not None
+        assert controller._dialogue_round_count == 1
+
+        # Act - 推进检查点
+        controller.handle_advance_checkpoint()
+
+        # Assert - 对话被强制结束
+        assert controller._active_dialogue is None
+        assert controller._dialogue_round_count == 0
+
+        # Assert - 旁听学习被触发
+        mock_student2.update_knowledge.assert_called_once()
+
+    def test_handle_advance_checkpoint_with_no_active_dialogue(self):
+        """测试没有活跃对话时推进检查点不触发旁听学习"""
+        # Arrange
+        mock_student = Mock()
+        mock_student.name = "张三"
+        mock_student.update_knowledge = Mock()
+
+        mock_checkpoint_plan = Mock()
+        mock_checkpoint_plan.checkpoints = [
+            Mock(title="检查点1", state=CheckpointState.COMPLETE),
+        ]
+
+        mock_memory_manager = Mock()
+        mock_memory_manager.session_memory = Mock()
+        mock_memory_manager.session_memory.message_history = []
+
+        controller = TeacherSessionController(
+            student_agents=[mock_student],
+            memory_manager=mock_memory_manager,
+            checkpoint_plan=mock_checkpoint_plan,
+            ws_push_callback=None
+        )
+
+        # Act - 直接推进检查点（没有活跃对话）
+        controller.handle_advance_checkpoint()
+
+        # Assert - 旁听学习不被触发（因为没有对话）
+        mock_student.update_knowledge.assert_not_called()
+
+
 
 
 
