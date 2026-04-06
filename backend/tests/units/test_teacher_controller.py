@@ -561,6 +561,16 @@ class TestHandleCollectHomework:
         assert len(submission_messages) == 0
 
 
+class TestMessageTypeEnums:
+    """MessageType 枚举测试"""
+
+    def test_message_type_has_reply_to_student(self):
+        """测试 MessageType 包含 REPLY_TO_STUDENT"""
+        # Assert - 验证枚举值存在
+        assert hasattr(MessageType, "REPLY_TO_STUDENT")
+        assert MessageType.REPLY_TO_STUDENT.value == "reply_to_student"
+
+
 
 
 
