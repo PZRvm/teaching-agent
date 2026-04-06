@@ -68,3 +68,36 @@ class TeacherSessionController:
         )
 
         self.memory_manager.session_memory.message_history.append(message)
+
+    def handle_ask_to_all(self, question: str) -> None:
+        """向全体学生提问并收集回答.
+
+        Args:
+            question: 教师提出的问题
+
+        流程：
+            1. 记录 checkpoint_question 消息到 SessionMemory
+            2. 遍历所有学生，调用 ask_question() 收集回答
+            3. 记录每个学生的 answer_to_checkpoint 消息
+        """
+        # 记录教师提问
+        question_message = Message(
+            sender="teacher",
+            message_type=MessageType.CHECKPOINT_QUESTION,
+            content=question,
+            receiver="all",
+            timestamp=datetime.now(),
+        )
+        self.memory_manager.session_memory.message_history.append(question_message)
+
+        # 收集所有学生的回答
+        for student in self.student_agents:
+            answer = student.ask_question(question)
+            answer_message = Message(
+                sender=student.name,
+                message_type=MessageType.ANSWER_TO_CHECKPOINT,
+                content=answer,
+                receiver="teacher",
+                timestamp=datetime.now(),
+            )
+            self.memory_manager.session_memory.message_history.append(answer_message)
