@@ -1,11 +1,14 @@
 """TeacherSessionController - 教师模式核心控制器."""
 
+from datetime import datetime
+
 from collections.abc import Callable
 from typing import Optional
 
 from agents.student_agent import StudentAgent
 from agents.memories.memory_manager import MemoryManager
 from models.checkpoint.schemas import CheckpointPlan
+from models.session.schemas import Message, MessageType
 
 
 class TeacherSessionController:
@@ -45,3 +48,23 @@ class TeacherSessionController:
         # 对话状态追踪
         self._active_dialogue: Optional[dict] = None  # 当前活跃对话 {student_name: round_count}
         self._dialogue_round_count: int = 0  # 当前对话轮数
+
+    def handle_broadcast_lecture(self, content: str) -> None:
+        """处理用户广播讲授内容.
+
+        Args:
+            content: 用户（教师）提供的讲授内容
+
+        流程：
+            1. 记录 lecture 消息到 SessionMemory
+            2. 推送 WebSocket 事件（可选）
+        """
+        message = Message(
+            sender="teacher",
+            message_type=MessageType.LECTURE,
+            content=content,
+            receiver="all",
+            timestamp=datetime.now(),
+        )
+
+        self.memory_manager.session_memory.message_history.append(message)
