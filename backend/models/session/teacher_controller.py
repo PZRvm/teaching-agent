@@ -1,12 +1,10 @@
 """TeacherSessionController - 教师模式核心控制器."""
 
+from collections.abc import Callable
 from datetime import datetime
 
-from collections.abc import Callable
-from typing import Optional
-
-from agents.student_agent import StudentAgent
 from agents.memories.memory_manager import MemoryManager
+from agents.student_agent import StudentAgent
 from models.checkpoint.schemas import CheckpointPlan
 from models.session.schemas import Message, MessageType
 
@@ -30,7 +28,7 @@ class TeacherSessionController:
         student_agents: list[StudentAgent],
         memory_manager: MemoryManager,
         checkpoint_plan: CheckpointPlan,
-        ws_push_callback: Optional[Callable] = None,
+        ws_push_callback: Callable | None = None,
     ):
         """初始化教师模式控制器.
 
@@ -46,7 +44,7 @@ class TeacherSessionController:
         self._ws_push_callback = ws_push_callback
 
         # 对话状态追踪
-        self._active_dialogue: Optional[dict] = None  # 当前活跃对话 {student_name: round_count}
+        self._active_dialogue: dict | None = None  # 当前活跃对话 {student_name: round_count}
         self._dialogue_round_count: int = 0  # 当前对话轮数
 
     def handle_broadcast_lecture(self, content: str) -> None:

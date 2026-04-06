@@ -2,13 +2,13 @@
 
 import pytest
 
-from models.session.teacher_controller import TeacherSessionController
-from models.checkpoint.schemas import Checkpoint, CheckpointPlan, CheckpointState
 from agents.memories.memory_manager import MemoryManager
 from agents.memories.session_memory import SessionMemory
 from agents.memories.teacher_memory import TeacherAgentMemory
 from agents.student_agent import StudentAgent
-from schemas.student import StudentLevel, StudentAttitude
+from models.checkpoint.schemas import Checkpoint, CheckpointPlan, CheckpointState
+from models.session.teacher_controller import TeacherSessionController
+from schemas.student import StudentAttitude, StudentLevel
 
 
 @pytest.fixture
@@ -45,11 +45,15 @@ def sample_checkpoint_plan():
 def sample_student_agents(sample_memory_manager):
     """创建测试用学生 agents."""
     students = []
-    for i, (level, attitude) in enumerate([
-        (StudentLevel.EXCELLENT, StudentAttitude.ACTIVE),
-        (StudentLevel.AVERAGE, StudentAttitude.NEUTRAL),
-    ], start=1):
+    for i, (level, attitude) in enumerate(
+        [
+            (StudentLevel.EXCELLENT, StudentAttitude.ACTIVE),
+            (StudentLevel.AVERAGE, StudentAttitude.NEUTRAL),
+        ],
+        start=1,
+    ):
         from schemas.student import StudentProfile
+
         profile = StudentProfile(
             name=f"Student{i}",
             level=level,
@@ -58,13 +62,14 @@ def sample_student_agents(sample_memory_manager):
         )
         # 使用 mock LLM
         from unittest.mock import Mock
+
         mock_llm = Mock()
         mock_llm.invoke = Mock(return_value="Mock response")
-        students.append(StudentAgent(
-            session_memory=sample_memory_manager.session_memory,
-            profile=profile,
-            llm=mock_llm
-        ))
+        students.append(
+            StudentAgent(
+                session_memory=sample_memory_manager.session_memory, profile=profile, llm=mock_llm
+            )
+        )
     return students
 
 
@@ -93,8 +98,9 @@ def create_test_controller():
     Returns:
         TeacherSessionController 实例，包含模拟数据
     """
-    from schemas.student import StudentProfile
     from unittest.mock import Mock
+
+    from schemas.student import StudentProfile
 
     # 创建测试用检查点计划
     plan = CheckpointPlan(
@@ -128,11 +134,7 @@ def create_test_controller():
 
     # 创建控制器
     return TeacherSessionController(
-        student_agents=[StudentAgent(
-            session_memory=session_memory,
-            profile=profile,
-            llm=mock_llm
-        )],
+        student_agents=[StudentAgent(session_memory=session_memory, profile=profile, llm=mock_llm)],
         memory_manager=memory_manager,
         checkpoint_plan=plan,
         ws_push_callback=None,

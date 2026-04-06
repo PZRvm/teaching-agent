@@ -1,17 +1,11 @@
 """TeacherSessionController 单元测试."""
 
-import pytest
 from unittest.mock import Mock
 
-from datetime import datetime
-from unittest.mock import Mock
-
+from models.checkpoint.schemas import CheckpointState
+from models.session.schemas import MessageType
 from models.session.teacher_controller import TeacherSessionController
-from models.session.schemas import Message, MessageType
-from models.checkpoint.schemas import Checkpoint, CheckpointPlan, CheckpointState
-from agents.memories import SessionMemory, TeacherAgentMemory
-from agents.student_agent import StudentAgent
-from schemas.student import StudentLevel, StudentAttitude, StudentProfile
+from schemas.student import StudentAttitude, StudentLevel, StudentProfile
 
 
 class TestTeacherSessionControllerInit:
@@ -30,7 +24,7 @@ class TestTeacherSessionControllerInit:
             student_agents=mock_student_agents,
             memory_manager=mock_memory_manager,
             checkpoint_plan=mock_checkpoint_plan,
-            ws_push_callback=mock_ws_callback
+            ws_push_callback=mock_ws_callback,
         )
 
         # Assert
@@ -56,7 +50,7 @@ class TestHandleBroadcastLecture:
             student_agents=[Mock()],
             memory_manager=mock_memory_manager,
             checkpoint_plan=Mock(),
-            ws_push_callback=None
+            ws_push_callback=None,
         )
         lecture_content = "今天我们学习 Python 变量的基本概念"
 
@@ -97,7 +91,7 @@ class TestHandleAskToAll:
             student_agents=[mock_student1, mock_student2],
             memory_manager=mock_memory_manager,
             checkpoint_plan=Mock(),
-            ws_push_callback=None
+            ws_push_callback=None,
         )
         question = "Python 中的变量和数学中的变量有什么区别？"
 
@@ -143,7 +137,7 @@ class TestHandleAskToStudent:
             student_agents=[mock_student1, mock_student2],
             memory_manager=mock_memory_manager,
             checkpoint_plan=Mock(),
-            ws_push_callback=None
+            ws_push_callback=None,
         )
         question = "请张三回答：Python 中列表和元组的区别是什么？"
 
@@ -181,7 +175,7 @@ class TestHandleAskToStudent:
             student_agents=[mock_student],
             memory_manager=mock_memory_manager,
             checkpoint_plan=Mock(),
-            ws_push_callback=None
+            ws_push_callback=None,
         )
         question = "请王五回答：这个问题"
         nonexistent_student = "王五"
@@ -213,7 +207,7 @@ class TestHandleTeacherReply:
             student_agents=[mock_student],
             memory_manager=mock_memory_manager,
             checkpoint_plan=Mock(),
-            ws_push_callback=None
+            ws_push_callback=None,
         )
         reply_content = "张三的回答很好，列表是可变的，元组是不可变的"
 
@@ -243,7 +237,7 @@ class TestHandleTeacherReply:
             student_agents=[mock_student],
             memory_manager=mock_memory_manager,
             checkpoint_plan=Mock(),
-            ws_push_callback=None
+            ws_push_callback=None,
         )
 
         # Act - 多轮对话
@@ -268,7 +262,7 @@ class TestHandleTeacherReply:
             student_agents=[mock_student],
             memory_manager=mock_memory_manager,
             checkpoint_plan=Mock(),
-            ws_push_callback=None
+            ws_push_callback=None,
         )
 
         # Act
@@ -301,7 +295,7 @@ class TestHandleEndDialogue:
             student_agents=[mock_student1, mock_student2],
             memory_manager=mock_memory_manager,
             checkpoint_plan=Mock(),
-            ws_push_callback=None
+            ws_push_callback=None,
         )
 
         # 先建立对话状态
@@ -318,14 +312,13 @@ class TestHandleEndDialogue:
     def test_handle_end_dialogue_triggers_observer_learning(self):
         """测试结束对话触发旁听学习"""
         # Arrange
-        from schemas.student import StudentLevel, StudentAttitude, StudentProfile
 
         # 创建两个学生：张三参与对话，李四旁听
         profile1 = StudentProfile(
             name="张三",
             level=StudentLevel.AVERAGE,
             attitude=StudentAttitude.ACTIVE,
-            learning_ability=8
+            learning_ability=8,
         )
         mock_student1 = Mock()
         mock_student1.name = "张三"
@@ -335,7 +328,7 @@ class TestHandleEndDialogue:
             name="李四",
             level=StudentLevel.AVERAGE,
             attitude=StudentAttitude.NEUTRAL,
-            learning_ability=6
+            learning_ability=6,
         )
         mock_student2 = Mock()
         mock_student2.name = "李四"
@@ -350,7 +343,7 @@ class TestHandleEndDialogue:
             student_agents=[mock_student1, mock_student2],
             memory_manager=mock_memory_manager,
             checkpoint_plan=Mock(),
-            ws_push_callback=None
+            ws_push_callback=None,
         )
 
         # Act - 张三和教师对话后结束
@@ -375,7 +368,7 @@ class TestHandleEndDialogue:
             student_agents=[mock_student1],
             memory_manager=mock_memory_manager,
             checkpoint_plan=Mock(),
-            ws_push_callback=None
+            ws_push_callback=None,
         )
 
         # Act - 直接结束对话（没有进行任何对话轮）
@@ -413,7 +406,7 @@ class TestHandleAdvanceCheckpoint:
             student_agents=[mock_student1, mock_student2],
             memory_manager=mock_memory_manager,
             checkpoint_plan=mock_checkpoint_plan,
-            ws_push_callback=None
+            ws_push_callback=None,
         )
 
         # 建立对话状态
@@ -451,7 +444,7 @@ class TestHandleAdvanceCheckpoint:
             student_agents=[mock_student],
             memory_manager=mock_memory_manager,
             checkpoint_plan=mock_checkpoint_plan,
-            ws_push_callback=None
+            ws_push_callback=None,
         )
 
         # Act - 直接推进检查点（没有活跃对话）
@@ -475,7 +468,7 @@ class TestHandleAssignHomework:
             student_agents=[Mock()],
             memory_manager=mock_memory_manager,
             checkpoint_plan=Mock(),
-            ws_push_callback=None
+            ws_push_callback=None,
         )
         homework_content = "完成 Python 列表和元组的练习题"
 
@@ -514,7 +507,7 @@ class TestHandleCollectHomework:
             student_agents=[mock_student1, mock_student2],
             memory_manager=mock_memory_manager,
             checkpoint_plan=Mock(),
-            ws_push_callback=None
+            ws_push_callback=None,
         )
 
         # Act
@@ -546,7 +539,7 @@ class TestHandleCollectHomework:
             student_agents=[mock_student],
             memory_manager=mock_memory_manager,
             checkpoint_plan=Mock(),
-            ws_push_callback=None
+            ws_push_callback=None,
         )
 
         # Act
@@ -583,7 +576,7 @@ class TestHandleEndTeaching:
             student_agents=[mock_student1, mock_student2],
             memory_manager=mock_memory_manager,
             checkpoint_plan=Mock(),
-            ws_push_callback=None
+            ws_push_callback=None,
         )
 
         # Act
@@ -621,7 +614,7 @@ class TestHandleEndTeaching:
             student_agents=[mock_student],
             memory_manager=mock_memory_manager,
             checkpoint_plan=Mock(),
-            ws_push_callback=None
+            ws_push_callback=None,
         )
 
         # Act
@@ -648,9 +641,3 @@ class TestMessageTypeEnums:
         # Assert - 验证枚举值存在
         assert hasattr(MessageType, "REPLY_TO_STUDENT")
         assert MessageType.REPLY_TO_STUDENT.value == "reply_to_student"
-
-
-
-
-
-
