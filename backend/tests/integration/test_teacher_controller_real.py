@@ -54,8 +54,8 @@ async def test_teacher_controller_with_real_llm(db_session: AsyncSession):
     await persistence.save_plan(session_id=session.id, plan=plan)
 
     # Arrange - 创建学生（使用真实 LLM）
-    from core.llm_utils import get_llm_client
-    llm_client = get_llm_client()
+    from core.llm_client import LLMClient  # noqa: E402
+    llm_client = LLMClient()
 
     profile = StudentProfile(
         name="测试学生",
@@ -150,8 +150,8 @@ async def test_homework_flow_with_real_llm(db_session: AsyncSession):
     await persistence.save_plan(session_id=session.id, plan=plan)
 
     # Arrange - 创建学生
-    from core.llm_utils import get_llm_client
-    llm_client = get_llm_client()
+    from core.llm_client import LLMClient  # noqa: E402
+    llm_client = LLMClient()
 
     profile = StudentProfile(
         name="测试学生",
