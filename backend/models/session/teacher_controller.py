@@ -200,3 +200,21 @@ class TeacherSessionController:
         # 如果有活跃对话，先结束对话（触发旁听学习）
         if self._dialogue_round_count > 0 and self._active_dialogue is not None:
             self.handle_end_dialogue()
+
+    def handle_assign_homework(self, content: str) -> None:
+        """布置作业.
+
+        Args:
+            content: 作业内容
+
+        流程：
+            1. 记录 ASSIGN_HOMEWORK 消息到 SessionMemory
+        """
+        message = Message(
+            sender="teacher",
+            message_type=MessageType.ASSIGN_HOMEWORK,
+            content=content,
+            receiver="all",
+            timestamp=datetime.now(),
+        )
+        self.memory_manager.session_memory.message_history.append(message)

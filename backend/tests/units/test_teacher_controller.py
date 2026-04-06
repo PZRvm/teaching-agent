@@ -461,6 +461,37 @@ class TestHandleAdvanceCheckpoint:
         mock_student.update_knowledge.assert_not_called()
 
 
+class TestHandleAssignHomework:
+    """handle_assign_homework 方法测试"""
+
+    def test_handle_assign_homework_records_to_memory(self):
+        """测试布置作业记录到记忆系统"""
+        # Arrange
+        mock_memory_manager = Mock()
+        mock_memory_manager.session_memory = Mock()
+        mock_memory_manager.session_memory.message_history = []
+
+        controller = TeacherSessionController(
+            student_agents=[Mock()],
+            memory_manager=mock_memory_manager,
+            checkpoint_plan=Mock(),
+            ws_push_callback=None
+        )
+        homework_content = "完成 Python 列表和元组的练习题"
+
+        # Act
+        controller.handle_assign_homework(homework_content)
+
+        # Assert - 作业消息被记录
+        messages = mock_memory_manager.session_memory.message_history
+        assert len(messages) == 1
+        assert messages[0].sender == "teacher"
+        assert messages[0].content == homework_content
+        assert messages[0].message_type.value == "assign_homework"
+        assert messages[0].receiver == "all"
+        assert messages[0].timestamp is not None
+
+
 
 
 
