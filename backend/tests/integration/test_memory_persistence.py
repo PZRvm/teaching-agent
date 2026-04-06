@@ -205,7 +205,7 @@ class TestMemoryPersistenceSave:
 
         from agents.memories.memory_persistence import MemoryPersistence
         from orm.message import MessageModel
-        from schemas.message import Message, MessageType
+        from schemas import Message, MessageType
 
         session_id = await _create_teaching_session(db_session)
 
@@ -266,7 +266,7 @@ class TestMemoryPersistenceLoad:
         """测试加载会话记忆包含消息历史."""
 
         from agents.memories.memory_persistence import MemoryPersistence
-        from schemas.message import Message, MessageType
+        from schemas import Message, MessageType
 
         session_id = await _create_teaching_session(db_session)
         persistence = MemoryPersistence(db_session)
@@ -373,7 +373,7 @@ class TestMemoryIntegration:
 
         from agents.memories.memory_manager import MemoryManager
         from agents.memories.memory_persistence import MemoryPersistence
-        from schemas.message import Message, MessageType
+        from schemas import Message, MessageType
         from schemas.student import StudentProfile
 
         # 1. 创建教学会话

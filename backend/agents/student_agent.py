@@ -9,7 +9,7 @@ from datetime import datetime
 from agents.memories import SessionMemory, StudentAgentMemory
 from core.llm_utils import safe_llm_call
 from core.settings import DEFAULT_RESPOND_PROBABILITY, STUDENT_RESPOND_PROBABILITIES, TIMEZONE
-from schemas.message import Message, MessageType
+from models.session.schemas import Message, MessageType
 from schemas.student import StudentProfile
 
 logger = logging.getLogger(__name__)

@@ -23,7 +23,7 @@ def test_acceptance_criteria():
     from agents.teacher_agent import TeacherAgent
     from models.checkpoint.schemas import Checkpoint, CheckpointPlan
     from models.session.orchestrator import SessionOrchestrator
-    from schemas.message import MessageType
+    from schemas import MessageType
     from schemas.student import StudentAttitude, StudentLevel, StudentProfile
 
     async def test():

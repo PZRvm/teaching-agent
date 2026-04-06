@@ -212,7 +212,7 @@ class TestMessage:
 
     def test_valid_message(self):
         """Test creating valid message."""
-        from schemas.message import Message, MessageType
+        from schemas import Message, MessageType
 
         message = Message(
             sender="teacher",
@@ -224,7 +224,7 @@ class TestMessage:
 
     def test_content_empty(self):
         """Test content validation - empty."""
-        from schemas.message import Message, MessageType
+        from schemas import Message, MessageType
 
         with pytest.raises(ValidationError):
             Message(
@@ -235,7 +235,7 @@ class TestMessage:
 
     def test_message_create_with_session_id(self):
         """Test MessageCreate schema."""
-        from schemas.message import MessageCreate, MessageType
+        from schemas import MessageCreate, MessageType
 
         message_create = MessageCreate(
             session_id=1,
@@ -250,7 +250,7 @@ class TestMessage:
         """Test Message 支持 receiver 字段."""
         from datetime import datetime
 
-        from schemas.message import Message, MessageType
+        from schemas import Message, MessageType
 
         msg = Message(
             sender="teacher",

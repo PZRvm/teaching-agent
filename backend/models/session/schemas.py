@@ -1,4 +1,4 @@
-"""消息相关的 Pydantic schemas."""
+"""Session 相关的 Pydantic schemas."""
 
 from datetime import datetime
 from enum import Enum

@@ -2,7 +2,7 @@
 
 from unittest.mock import MagicMock
 
-from schemas.message import MessageType
+from schemas import MessageType
 from schemas.student import StudentProfile
 
 

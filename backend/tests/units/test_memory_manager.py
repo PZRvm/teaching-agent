@@ -3,7 +3,7 @@
 import random
 from datetime import datetime
 
-from schemas.message import Message, MessageType
+from schemas import Message, MessageType
 from schemas.student import StudentAttitude, StudentLevel, StudentProfile
 
 

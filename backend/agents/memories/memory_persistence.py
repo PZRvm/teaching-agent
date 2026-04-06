@@ -21,7 +21,7 @@ from orm.message import MessageModel
 from orm.session_memory import SessionMemoryModel
 from orm.student_memory import StudentMemoryModel
 from orm.teacher_memory import TeacherMemoryModel
-from schemas.message import Message, MessageType
+from models.session.schemas import Message, MessageType
 
 T = TypeVar("T", bound=Base)
 

@@ -13,7 +13,7 @@ from core.settings import (
     TEACHING_TEMPERATURES,
     TIMEZONE,
 )
-from schemas.message import Message, MessageType
+from models.session.schemas import Message, MessageType
 from schemas.student import StudentProfile
 
 VALID_TEACHING_MODES = ("didactic", "heuristic", "discussion")

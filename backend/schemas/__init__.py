@@ -2,7 +2,9 @@
 
 # ============== Student Related ==============
 # ============== Message Related ==============
-from schemas.message import (
+# Note: Message schemas are now defined in models.session.schemas
+# Re-exporting here for backward compatibility
+from models.session.schemas import (
     Message,
     MessageCreate,
     MessageResponse,

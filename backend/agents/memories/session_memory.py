@@ -4,7 +4,7 @@ from __future__ import annotations
 
 from dataclasses import dataclass, field
 
-from schemas.message import Message
+from schemas import Message
 
 
 @dataclass

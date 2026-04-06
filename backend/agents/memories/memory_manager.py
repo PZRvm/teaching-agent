@@ -7,7 +7,7 @@ from dataclasses import dataclass, field
 from agents.memories.session_memory import SessionMemory
 from agents.memories.student_memory import StudentAgentMemory
 from agents.memories.teacher_memory import TeacherAgentMemory
-from schemas.message import Message, MessageType
+from models.session.schemas import Message, MessageType
 from schemas.student import StudentProfile
 
 

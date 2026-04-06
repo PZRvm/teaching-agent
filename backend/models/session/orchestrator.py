@@ -140,7 +140,7 @@ class SessionOrchestrator:
         # 记录到会话记忆
         from datetime import datetime
 
-        from schemas.message import Message, MessageType
+        from models.session.schemas import Message, MessageType
 
         message = Message(
             sender="teacher",
@@ -173,7 +173,7 @@ class SessionOrchestrator:
         # 记录问题到会话记忆
         from datetime import datetime
 
-        from schemas.message import Message, MessageType
+        from models.session.schemas import Message, MessageType
 
         message = Message(
             sender="teacher",
@@ -240,7 +240,7 @@ class SessionOrchestrator:
         """
         from datetime import datetime
 
-        from schemas.message import Message, MessageType
+        from models.session.schemas import Message, MessageType
 
         message = Message(
             sender=student_name,
@@ -271,7 +271,7 @@ class SessionOrchestrator:
         # 记录到会话记忆
         from datetime import datetime
 
-        from schemas.message import Message, MessageType
+        from models.session.schemas import Message, MessageType
 
         message = Message(
             sender="teacher",
@@ -287,7 +287,7 @@ class SessionOrchestrator:
         """收集作业和反馈."""
         from datetime import datetime
 
-        from schemas.message import Message, MessageType
+        from models.session.schemas import Message, MessageType
 
         # 收集每个学生的作业
         for student in self.student_agents:
