@@ -54,6 +54,21 @@ class SessionOrchestrator:
 
         最后一个检查点完成后布置作业和收集反馈。
         """
+        # 输出课程开始标题
+        topic = self.checkpoint_plan.topic
+        mode = self.checkpoint_plan.teaching_mode
+        mode_names = {"didactic": "灌输式", "heuristic": "启发式", "discussion": "讨论式"}
+        mode_cn = mode_names.get(mode, mode)
+
+        print(f"\n{'#' * 70}")
+        print(f"# 自动教学会话开始")
+        print(f"{'#' * 70}")
+        print(f"  主题: {topic}")
+        print(f"  模式: {mode_cn}")
+        print(f"  检查点数量: {len(self.checkpoint_plan.checkpoints)}")
+        print(f"  学生数量: {len(self.student_agents)}")
+        print(f"{'#' * 70}")
+
         for i, checkpoint in enumerate(self.checkpoint_plan.checkpoints):
             # 更新当前索引
             self.checkpoint_plan.current_index = i
@@ -108,8 +123,19 @@ class SessionOrchestrator:
         # 记录当前知识点到教师记忆
         self.memory_manager.teacher_memory.record_covered_topic(checkpoint.key_point)
 
+        # 输出检查点标题
+        print(f"\n{'=' * 70}")
+        print(f"📚 检查点: {checkpoint.title}")
+        print(f"{'=' * 70}")
+
         # 调用教师 agent 生成讲授内容（同步方法）
         lecture_content = self.teacher_agent.deliver_lecture()
+
+        # 实时输出讲授内容
+        print(f"\n👨‍🏫 教师讲授:")
+        print("-" * 70)
+        print(f"  {lecture_content}")
+        print("-" * 70)
 
         # 记录到会话记忆
         from datetime import datetime
@@ -137,6 +163,12 @@ class SessionOrchestrator:
         """
         # 教师提出检查点问题（同步方法）
         question_content = self.teacher_agent.ask_checkpoint_question()
+
+        # 实时输出提问内容
+        print(f"\n❓ 教师提问:")
+        print("-" * 70)
+        print(f"  {question_content}")
+        print("-" * 70)
 
         # 记录问题到会话记忆
         from datetime import datetime
@@ -178,6 +210,11 @@ class SessionOrchestrator:
             # 收集所有响应学生的回答
             for student in responding_students:
                 answer = student.answer_question("Please answer the question.")
+                # 实时输出学生回答
+                print(f"\n🙋 {student.profile.name} 回答:")
+                print("-" * 70)
+                print(f"  {answer}")
+                print("-" * 70)
                 self._record_student_message(student.profile.name, answer)
 
     async def _single_student_answer(self, student: "StudentAgent") -> None:
@@ -187,6 +224,11 @@ class SessionOrchestrator:
             student: 被指定的学生 agent
         """
         answer = student.answer_question("Please answer the question.")
+        # 实时输出学生回答
+        print(f"\n🙋 {student.profile.name} 回答（指定）:")
+        print("-" * 70)
+        print(f"  {answer}")
+        print("-" * 70)
         self._record_student_message(student.profile.name, answer)
 
     def _record_student_message(self, student_name: str, content: str) -> None:
@@ -212,8 +254,19 @@ class SessionOrchestrator:
 
     async def _assign_homework(self) -> None:
         """布置作业."""
+        # 输出作业环节标题
+        print(f"\n{'=' * 70}")
+        print("📝 作业环节")
+        print(f"{'=' * 70}")
+
         # 调用教师 agent 布置作业（同步方法）
         homework_content = self.teacher_agent.assign_homework()
+
+        # 实时输出作业内容
+        print(f"\n👨‍🏫 教师布置作业:")
+        print("-" * 70)
+        print(f"  {homework_content}")
+        print("-" * 70)
 
         # 记录到会话记忆
         from datetime import datetime
@@ -240,6 +293,13 @@ class SessionOrchestrator:
         for student in self.student_agents:
             # 学生提交作业（需要提供作业提示）
             homework = student.submit_homework("Please complete your homework.")
+
+            # 实时输出学生作业
+            print(f"\n📚 {student.profile.name} 提交作业:")
+            print("-" * 70)
+            print(f"  {homework}")
+            print("-" * 70)
+
             homework_message = Message(
                 sender=student.profile.name,
                 message_type=MessageType.HOMEWORK_SUBMISSION,
@@ -251,6 +311,13 @@ class SessionOrchestrator:
 
             # 教师批改作业并反馈（同步方法，需要学生名）
             feedback = self.teacher_agent.grade_homework(student.profile.name, homework)
+
+            # 实时输出教师反馈
+            print(f"\n✅ 教师给 {student.profile.name} 的反馈:")
+            print("-" * 70)
+            print(f"  {feedback}")
+            print("-" * 70)
+
             feedback_message = Message(
                 sender="teacher",
                 message_type=MessageType.HOMEWORK_FEEDBACK,
@@ -262,6 +329,14 @@ class SessionOrchestrator:
 
         # 教师总结反馈（同步方法）
         end_feedback = self.teacher_agent.end_feedback()
+
+        # 实时输出课程总结
+        print(f"\n{'=' * 70}")
+        print("🏁 教师课程总结")
+        print(f"{'=' * 70}")
+        print(f"  {end_feedback}")
+        print(f"{'=' * 70}\n")
+
         end_message = Message(
             sender="teacher",
             message_type=MessageType.END_FEEDBACK,
