@@ -167,4 +167,33 @@ class TestHandleAskToStudent:
         assert len(answer_messages) == 1
         assert answer_messages[0].sender == "张三"
 
+    def test_handle_ask_to_student_with_nonexistent_student_does_not_crash(self):
+        """测试向不存在的学生提问不会崩溃"""
+        # Arrange
+        mock_student = Mock()
+        mock_student.name = "张三"
+
+        mock_memory_manager = Mock()
+        mock_memory_manager.session_memory = Mock()
+        mock_memory_manager.session_memory.message_history = []
+
+        controller = TeacherSessionController(
+            student_agents=[mock_student],
+            memory_manager=mock_memory_manager,
+            checkpoint_plan=Mock(),
+            ws_push_callback=None
+        )
+        question = "请王五回答：这个问题"
+        nonexistent_student = "王五"
+
+        # Act - should not raise exception
+        controller.handle_ask_to_student(question, nonexistent_student)
+
+        # Assert - 问题消息被记录，但没有回答（因为学生不存在）
+        messages = mock_memory_manager.session_memory.message_history
+        assert len(messages) == 1  # 只有问题消息，没有回答消息
+        assert messages[0].message_type.value == "checkpoint_question"
+        assert messages[0].receiver == "王五"
+
+
 
