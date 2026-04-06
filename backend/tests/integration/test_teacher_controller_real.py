@@ -55,7 +55,7 @@ async def test_teacher_controller_with_real_llm(db_session: AsyncSession):
 
     # Arrange - 创建学生（使用真实 LLM）
     from core.llm_client import LLMClient  # noqa: E402
-    llm_client = LLMClient()
+    llm_client = LLMClient.from_config()
 
     profile = StudentProfile(
         name="测试学生",
@@ -151,7 +151,7 @@ async def test_homework_flow_with_real_llm(db_session: AsyncSession):
 
     # Arrange - 创建学生
     from core.llm_client import LLMClient  # noqa: E402
-    llm_client = LLMClient()
+    llm_client = LLMClient.from_config()
 
     profile = StudentProfile(
         name="测试学生",
