@@ -218,3 +218,22 @@ class TeacherSessionController:
             timestamp=datetime.now(),
         )
         self.memory_manager.session_memory.message_history.append(message)
+
+    def handle_collect_homework(self) -> None:
+        """收集所有学生作业提交.
+
+        流程：
+            1. 遍历所有学生，调用 submit_homework() 收集作业
+            2. 记录每个学生的 homework_submission 消息（如果有提交）
+        """
+        for student in self.student_agents:
+            submission = student.submit_homework()
+            if submission is not None:
+                message = Message(
+                    sender=student.name,
+                    message_type=MessageType.HOMEWORK_SUBMISSION,
+                    content=submission,
+                    receiver="teacher",
+                    timestamp=datetime.now(),
+                )
+                self.memory_manager.session_memory.message_history.append(message)

@@ -492,6 +492,76 @@ class TestHandleAssignHomework:
         assert messages[0].timestamp is not None
 
 
+class TestHandleCollectHomework:
+    """handle_collect_homework 方法测试"""
+
+    def test_handle_collect_homework_collects_submissions_from_all_students(self):
+        """测试收集所有学生作业提交"""
+        # Arrange
+        mock_student1 = Mock()
+        mock_student1.name = "张三"
+        mock_student1.submit_homework = Mock(return_value="这是我的作业1")
+
+        mock_student2 = Mock()
+        mock_student2.name = "李四"
+        mock_student2.submit_homework = Mock(return_value="这是我的作业2")
+
+        mock_memory_manager = Mock()
+        mock_memory_manager.session_memory = Mock()
+        mock_memory_manager.session_memory.message_history = []
+
+        controller = TeacherSessionController(
+            student_agents=[mock_student1, mock_student2],
+            memory_manager=mock_memory_manager,
+            checkpoint_plan=Mock(),
+            ws_push_callback=None
+        )
+
+        # Act
+        controller.handle_collect_homework()
+
+        # Assert - 所有学生都被要求提交作业
+        mock_student1.submit_homework.assert_called_once()
+        mock_student2.submit_homework.assert_called_once()
+
+        # Assert - 作业提交被记录（homework_submission 消息）
+        messages = mock_memory_manager.session_memory.message_history
+        submission_messages = [m for m in messages if m.message_type.value == "homework_submission"]
+        assert len(submission_messages) == 2
+        assert submission_messages[0].sender in ["张三", "李四"]
+        assert submission_messages[1].sender in ["张三", "李四"]
+
+    def test_handle_collect_homework_with_student_without_submission(self):
+        """测试有学生未提交作业时的处理"""
+        # Arrange
+        mock_student = Mock()
+        mock_student.name = "张三"
+        mock_student.submit_homework = Mock(return_value=None)  # 未提交
+
+        mock_memory_manager = Mock()
+        mock_memory_manager.session_memory = Mock()
+        mock_memory_manager.session_memory.message_history = []
+
+        controller = TeacherSessionController(
+            student_agents=[mock_student],
+            memory_manager=mock_memory_manager,
+            checkpoint_plan=Mock(),
+            ws_push_callback=None
+        )
+
+        # Act
+        controller.handle_collect_homework()
+
+        # Assert - 学生被要求提交作业
+        mock_student.submit_homework.assert_called_once()
+
+        # Assert - 没有提交消息被记录（因为学生未提交）
+        messages = mock_memory_manager.session_memory.message_history
+        submission_messages = [m for m in messages if m.message_type.value == "homework_submission"]
+        assert len(submission_messages) == 0
+
+
+
 
 
 
