@@ -358,6 +358,54 @@ class TeacherAgent:
         self._record_message(content, MessageType.ASSIGN_HOMEWORK)
         return content
 
+    def _build_homework_grading_context(self, student_name: str) -> str:
+        """构建作业评分的轻量级上下文.
+
+        与 _build_system_prompt() 不同，这个方法不包含完整的对话历史，
+        避免在多学生课堂中 prompt 过长超过上下文窗口限制。
+
+        Args:
+            student_name: 学生名字
+
+        Returns:
+            轻量级的上下文字符串
+        """
+        topic = self.session_memory.topic
+
+        # 获取学生记忆（如果存在）
+        student_memory = self.memory_manager.student_memories.get(student_name)
+        if student_memory:
+            learned_count = len(student_memory.learned_concepts)
+            student_info = f"该学生已学会 {learned_count} 个知识点"
+        else:
+            student_info = "新学生，无学习记录"
+
+        # 获取教学摘要（如果存在）
+        summary = self.session_memory.teaching_summary or "暂无"
+
+        # 获取教师记忆中的参与度信息
+        participation_count = self.memory_manager.teacher_memory.student_participation.get(student_name, 0)
+
+        return f"""你是教师，正在批改学生"{topic}"相关课程的作业。
+
+## 课程信息
+- 教学主题: {topic}
+- 教学摘要: {summary}
+- 学生参与度: {participation_count} 次课堂互动
+
+## 学生信息
+- 学生姓名: {student_name}
+- {student_info}
+
+## 评分标准
+1. 优秀（90-100分）：完全理解知识点，应用能力强，代码规范
+2. 良好（75-89分）：理解较好，基本正确，有小错误
+3. 及格（60-74分）：基本理解，有一些错误和不足
+4. 不及格（<60分）：理解不足，有重大错误
+
+请客观、公正地评价学生的作业。
+"""
+
     def grade_homework(self, student_name: str, homework_content: str) -> str:
         """评价学生的作业.
 
@@ -373,7 +421,8 @@ class TeacherAgent:
         Raises:
             RuntimeError: LLM 调用失败或返回空内容时
         """
-        system_prompt = self._build_system_prompt()
+        # 使用轻量级上下文，避免包含完整对话历史导致超限
+        system_prompt = self._build_homework_grading_context(student_name)
 
         user_prompt = (
             f"请评价以下学生提交的作业。\n\n"
