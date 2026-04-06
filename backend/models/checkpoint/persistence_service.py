@@ -47,6 +47,36 @@ class CheckpointPlanPersistence:
 
         return plan_record.id
 
+    async def update_plan(self, session_id: int, plan: CheckpointPlan) -> None:
+        """更新检查点计划.
+
+        Args:
+            session_id: 教学会话 ID
+            plan: 新的检查点计划
+
+        Raises:
+            ValueError: 如果检查点计划不存在或教学已开始
+        """
+        result = await self.db_session.execute(
+            select(CheckpointPlanModel)
+            .where(CheckpointPlanModel.session_id == session_id)
+            .with_for_update()  # Lock row to prevent race conditions
+        )
+        record = result.scalar_one_or_none()
+
+        if record is None:
+            raise ValueError(f"Checkpoint plan for session {session_id} not found")
+
+        # 验证现有计划的所有检查点都是 PENDING 状态（教学未开始）
+        existing_plan_data = record.plan_data
+        for checkpoint in existing_plan_data.get("checkpoints", []):
+            if checkpoint.get("state") != CheckpointState.PENDING.value:
+                raise ValueError("只能在教学开始前编辑检查点")
+
+        new_plan_data = plan.model_dump()
+        record.update_plan_data(new_plan_data)
+        await self.db_session.commit()
+
     async def load_plan(self, session_id: int) -> CheckpointPlan | None:
         """根据 session_id 加载检查点计划.
 
