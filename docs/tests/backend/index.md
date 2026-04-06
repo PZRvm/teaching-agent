@@ -26,7 +26,8 @@ backend/tests/
 │   ├── test_schemas.py       # Pydantic schema 验证测试
 │   ├── test_settings.py      # 配置加载测试
 │   ├── test_student_*.py     # 学生相关测试 (2 个文件)
-│   └── test_teacher_agent.py # TeacherAgent 单元测试
+│   ├── test_teacher_agent.py # TeacherAgent 单元测试
+│   └── test_teacher_controller.py # TeacherSessionController 单元测试
 └── integration/              # 集成测试
     ├── test_alembic_migration.py    # Alembic 数据库迁移测试
     ├── test_checkpoint_api.py       # Checkpoint API 集成测试
@@ -34,16 +35,17 @@ backend/tests/
     ├── test_database.py             # 数据库集成测试
     ├── test_memory_persistence.py   # 记忆持久化集成测试
     ├── test_student_memory_migration.py # 学生记忆迁移测试
-    └── test_teacher_agent_real.py  # 教师 Agent 真实 LLM 测试
+    ├── test_teacher_agent_real.py  # 教师 Agent 真实 LLM 测试
+    └── test_teacher_controller_full_classroom.py # TeacherSessionController 全课堂流程集成测试
 ```
 
 ## 测试统计概览
 
 | 分类 | 文件数 | 测试类数 | 测试方法数 |
 |------|--------|---------|-----------|
-| **单元测试** | 13 | 45 | 103+ |
-| **集成测试** | 7 | 13 | 32+ |
-| **总计** | 20 | 58 | 135+ |
+| **单元测试** | 14 | 56 | 120+ |
+| **集成测试** | 8 | 16 | 35+ |
+| **总计** | 22 | 72 | 155+ |
 
 ---
 
@@ -846,6 +848,51 @@ pytest tests/units/test_checkpoint_persistence_service.py -v
 - `test_reply_to_student_empty_name_error` - 空名字错误
 - `test_end_feedback_empty_topic_error` - 空主题错误
 
+### test_teacher_controller.py - TeacherSessionController 单元测试
+
+**测试类**: 11 个测试类，17 个测试
+
+TeacherSessionController 是教师模式核心控制器，用户扮演教师角色控制教学流程。
+
+#### TestTeacherSessionControllerInit (1 个测试)
+- `test_init_creates_controller_with_required_components` - 初始化创建控制器及其必需组件
+
+#### TestHandleBroadcastLecture (1 个测试)
+- `test_handle_broadcast_lecture_records_to_memory` - 测试广播讲授内容记录到记忆系统
+
+#### TestHandleAskToAll (1 个测试)
+- `test_handle_ask_to_all_collects_responses_from_all_students` - 测试向全体提问收集所有学生回答
+
+#### TestHandleAskToStudent (2 个测试)
+- `test_handle_ask_to_student_collects_response_from_target_student` - 测试向单个学生提问收集该学生的回答
+- `test_handle_ask_to_student_with_nonexistent_student_does_not_crash` - 测试向不存在的学生提问不会崩溃
+
+#### TestHandleTeacherReply (3 个测试)
+- `test_handle_teacher_reply_records_reply_to_memory` - 测试教师回复记录到记忆系统
+- `test_handle_teacher_reply_tracks_dialogue_round_count` - 测试教师回复增加对话轮数
+- `test_handle_teacher_reply_sets_active_dialogue_state` - 测试教师回复设置活跃对话状态
+
+#### TestHandleEndDialogue (4 个测试)
+- `test_handle_end_dialogue_clears_active_dialogue_state` - 测试结束对话清除活跃对话状态
+- `test_handle_end_dialogue_triggers_observer_learning` - 测试结束对话触发旁听学习
+- `test_handle_end_dialogue_with_zero_rounds_does_not_trigger_observer_learning` - 测试零轮对话结束不触发旁听学习
+
+#### TestHandleAdvanceCheckpoint (2 个测试)
+- `test_handle_advance_checkpoint_clears_active_dialogue` - 测试推进检查点强制结束当前对话
+- `test_handle_advance_checkpoint_with_no_active_dialogue` - 测试没有活跃对话时推进检查点不触发旁听学习
+
+#### TestHandleAssignHomework (1 个测试)
+- `test_handle_assign_homework_records_to_memory` - 测试布置作业记录到记忆系统
+
+#### TestHandleCollectHomework (2 个测试)
+- `test_handle_collect_homework_collects_submissions_from_all_students` - 测试收集所有学生作业提交
+- `test_handle_collect_homework_with_student_without_submission` - 测试有学生未提交作业时的处理
+
+**运行命令**:
+```bash
+pytest tests/units/test_teacher_controller.py -v
+```
+
 ---
 
 ## 集成测试详解
@@ -964,6 +1011,26 @@ pytest tests/integration/test_checkpoint_service_real.py -v -s -m integration
 pytest tests/integration/test_teacher_agent_real.py -v -s -m integration
 ```
 
+### test_teacher_controller_full_classroom.py - TeacherSessionController 全课堂流程集成测试
+
+**测试类**: 3 个测试类，3 个集成测试
+
+TeacherSessionController 全课堂流程集成测试，使用 Mock 对象模拟学生行为。
+
+#### TestTeacherControllerFullClassroomFlow (1 个测试)
+- `test_full_classroom_teaching_flow` - 测试完整课堂教学流程：讲授 → 提问 → 对话 → 作业
+
+#### TestMultiRoundDialogueFlow (1 个测试)
+- `test_multi_round_dialogue_flow` - 测试多轮对话流程
+
+#### TestErrorPathStudentNotFound (1 个测试)
+- `test_error_path_student_not_found` - 测试错误路径：向不存在的学生提问
+
+**运行命令**:
+```bash
+pytest tests/integration/test_teacher_controller_full_classroom.py -v
+```
+
 ---
 
 ## 运行特定测试
@@ -985,6 +1052,9 @@ pytest tests/units/test_student*.py tests/integration/test_student*.py -v
 
 # 教师 Agent 测试
 pytest tests/units/test_teacher_agent.py tests/integration/test_teacher_agent_real.py -v
+
+# 教师 Controller 测试
+pytest tests/units/test_teacher_controller.py tests/integration/test_teacher_controller_full_classroom.py -v
 ```
 
 ### 按测试类型运行
