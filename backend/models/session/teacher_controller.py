@@ -141,3 +141,32 @@ class TeacherSessionController:
                 timestamp=datetime.now(),
             )
             self.memory_manager.session_memory.message_history.append(answer_message)
+
+    def handle_teacher_reply(self, reply: str, student_name: str) -> None:
+        """教师回复学生提问.
+
+        Args:
+            reply: 教师的回复内容
+            student_name: 目标学生名称
+
+        流程：
+            1. 记录 teacher_reply 消息到 SessionMemory
+            2. 设置/更新活跃对话状态
+            3. 增加对话轮数
+        """
+        # 记录教师回复
+        reply_message = Message(
+            sender="teacher",
+            message_type=MessageType.TEACHER_REPLY,
+            content=reply,
+            receiver=student_name,
+            timestamp=datetime.now(),
+        )
+        self.memory_manager.session_memory.message_history.append(reply_message)
+
+        # 更新对话状态
+        self._active_dialogue = {
+            "student_name": student_name,
+            "round_count": self._dialogue_round_count + 1,
+        }
+        self._dialogue_round_count += 1

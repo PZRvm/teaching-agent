@@ -196,4 +196,89 @@ class TestHandleAskToStudent:
         assert messages[0].receiver == "王五"
 
 
+class TestHandleTeacherReply:
+    """handle_teacher_reply 方法测试"""
+
+    def test_handle_teacher_reply_records_reply_to_memory(self):
+        """测试教师回复记录到记忆系统"""
+        # Arrange
+        mock_student = Mock()
+        mock_student.name = "张三"
+
+        mock_memory_manager = Mock()
+        mock_memory_manager.session_memory = Mock()
+        mock_memory_manager.session_memory.message_history = []
+
+        controller = TeacherSessionController(
+            student_agents=[mock_student],
+            memory_manager=mock_memory_manager,
+            checkpoint_plan=Mock(),
+            ws_push_callback=None
+        )
+        reply_content = "张三的回答很好，列表是可变的，元组是不可变的"
+
+        # Act
+        controller.handle_teacher_reply(reply_content, "张三")
+
+        # Assert - 回复消息被记录
+        messages = mock_memory_manager.session_memory.message_history
+        assert len(messages) == 1
+        assert messages[0].sender == "teacher"
+        assert messages[0].content == reply_content
+        assert messages[0].message_type.value == "teacher_reply"
+        assert messages[0].receiver == "张三"
+        assert messages[0].timestamp is not None
+
+    def test_handle_teacher_reply_tracks_dialogue_round_count(self):
+        """测试教师回复增加对话轮数"""
+        # Arrange
+        mock_student = Mock()
+        mock_student.name = "张三"
+
+        mock_memory_manager = Mock()
+        mock_memory_manager.session_memory = Mock()
+        mock_memory_manager.session_memory.message_history = []
+
+        controller = TeacherSessionController(
+            student_agents=[mock_student],
+            memory_manager=mock_memory_manager,
+            checkpoint_plan=Mock(),
+            ws_push_callback=None
+        )
+
+        # Act - 多轮对话
+        controller.handle_teacher_reply("第一轮回复", "张三")
+        controller.handle_teacher_reply("第二轮回复", "张三")
+        controller.handle_teacher_reply("第三轮回复", "张三")
+
+        # Assert - 对话轮数递增
+        assert controller._dialogue_round_count == 3
+
+    def test_handle_teacher_reply_sets_active_dialogue_state(self):
+        """测试教师回复设置活跃对话状态"""
+        # Arrange
+        mock_student = Mock()
+        mock_student.name = "张三"
+
+        mock_memory_manager = Mock()
+        mock_memory_manager.session_memory = Mock()
+        mock_memory_manager.session_memory.message_history = []
+
+        controller = TeacherSessionController(
+            student_agents=[mock_student],
+            memory_manager=mock_memory_manager,
+            checkpoint_plan=Mock(),
+            ws_push_callback=None
+        )
+
+        # Act
+        controller.handle_teacher_reply("回复内容", "张三")
+
+        # Assert - 活跃对话状态被设置
+        assert controller._active_dialogue is not None
+        assert controller._active_dialogue["student_name"] == "张三"
+        assert controller._active_dialogue["round_count"] == 1
+
+
+
 
