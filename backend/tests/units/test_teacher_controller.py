@@ -280,5 +280,111 @@ class TestHandleTeacherReply:
         assert controller._active_dialogue["round_count"] == 1
 
 
+class TestHandleEndDialogue:
+    """handle_end_dialogue 方法测试"""
+
+    def test_handle_end_dialogue_clears_active_dialogue_state(self):
+        """测试结束对话清除活跃对话状态"""
+        # Arrange
+        mock_student1 = Mock()
+        mock_student1.name = "张三"
+
+        mock_student2 = Mock()
+        mock_student2.name = "李四"
+        mock_student2.update_knowledge = Mock()  # 旁听学习
+
+        mock_memory_manager = Mock()
+        mock_memory_manager.session_memory = Mock()
+        mock_memory_manager.session_memory.message_history = []
+
+        controller = TeacherSessionController(
+            student_agents=[mock_student1, mock_student2],
+            memory_manager=mock_memory_manager,
+            checkpoint_plan=Mock(),
+            ws_push_callback=None
+        )
+
+        # 先建立对话状态
+        controller.handle_teacher_reply("第一轮回复", "张三")
+        assert controller._active_dialogue is not None
+
+        # Act
+        controller.handle_end_dialogue()
+
+        # Assert - 对话状态被清除
+        assert controller._active_dialogue is None
+        assert controller._dialogue_round_count == 0
+
+    def test_handle_end_dialogue_triggers_observer_learning(self):
+        """测试结束对话触发旁听学习"""
+        # Arrange
+        from schemas.student import StudentLevel, StudentAttitude, StudentProfile
+
+        # 创建两个学生：张三参与对话，李四旁听
+        profile1 = StudentProfile(
+            name="张三",
+            level=StudentLevel.AVERAGE,
+            attitude=StudentAttitude.ACTIVE,
+            learning_ability=8
+        )
+        mock_student1 = Mock()
+        mock_student1.name = "张三"
+        mock_student1.profile = profile1
+
+        profile2 = StudentProfile(
+            name="李四",
+            level=StudentLevel.AVERAGE,
+            attitude=StudentAttitude.NEUTRAL,
+            learning_ability=6
+        )
+        mock_student2 = Mock()
+        mock_student2.name = "李四"
+        mock_student2.profile = profile2
+        mock_student2.update_knowledge = Mock()
+
+        mock_memory_manager = Mock()
+        mock_memory_manager.session_memory = Mock()
+        mock_memory_manager.session_memory.message_history = []
+
+        controller = TeacherSessionController(
+            student_agents=[mock_student1, mock_student2],
+            memory_manager=mock_memory_manager,
+            checkpoint_plan=Mock(),
+            ws_push_callback=None
+        )
+
+        # Act - 张三和教师对话后结束
+        controller.handle_teacher_reply("回复张三", "张三")
+        controller.handle_end_dialogue()
+
+        # Assert - 李四（旁听者）被触发学习
+        mock_student2.update_knowledge.assert_called_once()
+
+    def test_handle_end_dialogue_with_zero_rounds_does_not_trigger_observer_learning(self):
+        """测试零轮对话结束不触发旁听学习"""
+        # Arrange
+        mock_student1 = Mock()
+        mock_student1.name = "张三"
+        mock_student1.update_knowledge = Mock()
+
+        mock_memory_manager = Mock()
+        mock_memory_manager.session_memory = Mock()
+        mock_memory_manager.session_memory.message_history = []
+
+        controller = TeacherSessionController(
+            student_agents=[mock_student1],
+            memory_manager=mock_memory_manager,
+            checkpoint_plan=Mock(),
+            ws_push_callback=None
+        )
+
+        # Act - 直接结束对话（没有进行任何对话轮）
+        controller.handle_end_dialogue()
+
+        # Assert - 旁听学习不被触发（因为对话轮数为0）
+        mock_student1.update_knowledge.assert_not_called()
+
+
+
 
 

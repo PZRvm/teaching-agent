@@ -170,3 +170,22 @@ class TeacherSessionController:
             "round_count": self._dialogue_round_count + 1,
         }
         self._dialogue_round_count += 1
+
+    def handle_end_dialogue(self) -> None:
+        """结束当前对话并触发旁听学习.
+
+        流程：
+            1. 清除活跃对话状态
+            2. 重置对话轮数
+            3. 如果对话轮数 > 0，触发旁听学习（未参与对话的学生）
+        """
+        # 如果有对话进行中，触发旁听学习
+        if self._dialogue_round_count > 0 and self._active_dialogue is not None:
+            participating_student = self._active_dialogue.get("student_name")
+            for student in self.student_agents:
+                if student.name != participating_student:
+                    student.update_knowledge()
+
+        # 清除对话状态
+        self._active_dialogue = None
+        self._dialogue_round_count = 0
