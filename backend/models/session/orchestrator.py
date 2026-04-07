@@ -4,6 +4,7 @@ import random
 from collections.abc import Callable
 
 from agents.student_agent import StudentAgent
+from core.connection_manager import get_connection_manager
 from models.checkpoint.schemas import Checkpoint, CheckpointState
 
 
@@ -367,9 +368,12 @@ class SessionOrchestrator:
     async def _ws_push_checkpoint_state(self, checkpoint: Checkpoint) -> None:
         """通过 WebSocket 推送检查点状态变更.
 
+        同时支持旧版回调方式和 ConnectionManager 广播方式。
+
         Args:
             checkpoint: 当前检查点
         """
+        # 旧版回调方式（保留兼容）
         if self._ws_push_callback:
             message = {
                 "type": "checkpoint_state_change",
@@ -391,3 +395,30 @@ class SessionOrchestrator:
                 await self._ws_push_callback(message)
             else:
                 self._ws_push_callback(message)
+
+        # ConnectionManager 广播方式
+        session_id = self.memory_manager.session_memory.session_id
+        cm = get_connection_manager()
+        if cm.get_connection_count(session_id) > 0:
+            broadcast_message = {
+                "type": "checkpoint_state_change",
+                "session_id": session_id,
+                "index": self.checkpoint_plan.current_index,
+                "checkpoint": {
+                    "title": checkpoint.title,
+                    "key_point": checkpoint.key_point,
+                    "state": checkpoint.state.value,
+                },
+                "progress": {
+                    "current": self.checkpoint_plan.current_index + 1,
+                    "total": len(self.checkpoint_plan.checkpoints),
+                    "completed": sum(
+                        1
+                        for cp in self.checkpoint_plan.checkpoints[
+                            : self.checkpoint_plan.current_index
+                        ]
+                        if cp.state == CheckpointState.COMPLETE
+                    ),
+                },
+            }
+            await cm.broadcast(session_id, broadcast_message)
