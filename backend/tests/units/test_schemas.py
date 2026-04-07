@@ -337,3 +337,13 @@ class TestWebSocketEventSchemas:
         )
         assert event.type == "session_state"
         assert event.phase == "teaching"
+
+
+class TestMessageModelReceiver:
+    """MessageModel receiver 字段测试."""
+
+    def test_message_model_has_receiver_column(self):
+        """MessageModel 应该有 receiver 列."""
+        from orm.message import MessageModel
+
+        assert hasattr(MessageModel, "receiver")
