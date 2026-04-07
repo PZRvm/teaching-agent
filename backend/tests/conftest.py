@@ -2,6 +2,7 @@
 
 import asyncio
 import sys
+import tempfile
 from collections.abc import AsyncGenerator, Generator
 from pathlib import Path
 
@@ -97,6 +98,80 @@ async def test_engine():
 async def db_session(test_engine) -> AsyncGenerator[AsyncSession, None]:
     """Create test database session."""
     engine, base = test_engine
+    async_session_maker = async_sessionmaker(
+        engine,
+        class_=AsyncSession,
+        expire_on_commit=False,
+    )
+
+    async with async_session_maker() as session:
+        yield session
+
+
+@pytest_asyncio.fixture(scope="function")
+async def test_engine_file():
+    """Create test database engine using file database for tests that need cross-connection data sharing.
+
+    This is required for tests using ASGITransport, which creates a separate database connection
+    for each HTTP request. File database allows data to be shared across connections.
+    """
+    from core.database import Base
+
+    # Import all ORM models so they register with Base.metadata
+    from orm.checkpoint_plan import CheckpointPlanModel  # noqa: F401
+    from orm.message import MessageModel  # noqa: F401
+    from orm.session_memory import SessionMemoryModel  # noqa: F401
+    from orm.student_memory import StudentMemoryModel  # noqa: F401
+    from orm.teacher_memory import TeacherMemoryModel  # noqa: F401
+    from orm.teaching_session import TeachingSessionModel  # noqa: F401
+
+    # Create a temporary file database
+    with tempfile.NamedTemporaryFile(suffix=".db", delete=False) as tmp:
+        tmp_path = tmp.name
+
+    # File database URL
+    test_database_url = f"sqlite+aiosqlite:///{tmp_path}"
+
+    engine = create_async_engine(
+        test_database_url,
+        connect_args={"check_same_thread": False},
+    )
+
+    # Enable FK for each new connection
+    from sqlalchemy import event
+
+    def enable_fk(dbapi_conn, connection_record):
+        dbapi_conn.execute("PRAGMA foreign_keys = ON")
+
+    event.listen(engine.sync_engine, "connect", enable_fk)
+
+    async with engine.begin() as conn:
+        await conn.run_sync(Base.metadata.create_all)
+
+    yield engine, Base, tmp_path, test_database_url
+
+    # Cleanup: drop all tables and dispose engine
+    async with engine.begin() as conn:
+        await conn.run_sync(Base.metadata.drop_all)
+
+    await engine.dispose()
+
+    # Delete the temporary file
+    import os
+    try:
+        os.unlink(tmp_path)
+    except OSError:
+        pass
+
+
+@pytest_asyncio.fixture(scope="function")
+async def db_session_file(test_engine_file) -> AsyncGenerator[AsyncSession, None]:
+    """Create test database session using file database.
+
+    Use this fixture for tests that need data to be visible across database connections,
+    such as tests using ASGITransport for HTTP requests.
+    """
+    engine, base, tmp_path, test_database_url = test_engine_file
     async_session_maker = async_sessionmaker(
         engine,
         class_=AsyncSession,

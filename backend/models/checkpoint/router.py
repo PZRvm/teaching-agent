@@ -89,6 +89,51 @@ async def get_checkpoint_plan(
     return plan
 
 
+@router.put("/{session_id}", summary="编辑检查点计划")
+async def edit_checkpoint_plan(
+    session_id: int,
+    plan_data: CheckpointPlanCreate,
+    db: Annotated[AsyncSession, Depends(get_db)],
+) -> dict[str, bool]:
+    """编辑检查点计划.
+
+    只能在所有检查点都是 PENDING 状态时编辑。
+
+    Args:
+        session_id: 教学会话 ID
+        plan_data: 新的检查点计划数据
+
+    Returns:
+        成功消息
+
+    Raises:
+        HTTPException: 计划不存在或教学已开始时返回错误
+    """
+    plan = CheckpointPlan(
+        topic=plan_data.topic,
+        teaching_mode=plan_data.teaching_mode,
+        checkpoints=plan_data.checkpoints,
+    )
+
+    service = CheckpointPlanPersistence(db)
+    try:
+        await service.update_plan(session_id=session_id, plan=plan)
+    except ValueError as e:
+        if "not found" in str(e):
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail=str(e),
+            ) from None
+        else:
+            # Teaching has already started
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail=str(e),
+            ) from None
+
+    return {"success": True}
+
+
 @router.put(
     "/{session_id}/checkpoints/{checkpoint_index}/state",
     summary="更新检查点状态",

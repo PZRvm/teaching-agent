@@ -10,7 +10,7 @@ from agents.memories import SessionMemory, StudentAgentMemory
 from core.llm_utils import safe_llm_call
 from core.settings import DEFAULT_RESPOND_PROBABILITY, STUDENT_RESPOND_PROBABILITIES, TIMEZONE
 from models.session.schemas import Message, MessageType
-from schemas.student import StudentProfile
+from schemas.student import StudentProfile, StudentAttitude
 
 logger = logging.getLogger(__name__)
 
@@ -189,3 +189,49 @@ class StudentAgent:
             "要求: 以自然的学生口吻回答，内容符合你的学习水平。"
         )
         return self._call_llm_and_record(user_prompt, MessageType.FEEDBACK_SUBMISSION)
+
+    def update_knowledge(self) -> None:
+        """旁听学习 - 从对话中学习新概念（概率性）.
+
+        旁听学习的触发条件：
+        - 学生没有参与当前对话
+        - 基于态度和学习能力决定是否学习
+
+        流程：
+        1. 根据态度和学习能力计算学习概率
+        2. 概率性决定是否学习
+        3. 如果学习，从会话记忆中提取概念并更新学生记忆
+        """
+        # 计算学习概率（态度积极 + 学习能力强 = 更高概率）
+        # 基础概率 50%，态度影响 ±20%，学习能力影响 ±30%
+        base_probability = 0.5
+        attitude_bonus = {
+            StudentAttitude.ACTIVE: 0.2,
+            StudentAttitude.NEUTRAL: 0.0,
+            StudentAttitude.PASSIVE: -0.1,
+        }.get(self.profile.attitude, 0.0)
+        learning_ability_bonus = (self.profile.learning_ability - 5) * 0.06  # -0.3 to +0.3
+
+        learn_probability = base_probability + attitude_bonus + learning_ability_bonus
+        learn_probability = max(0.0, min(1.0, learn_probability))
+
+        # 决定是否学习
+        if self.rng.random() >= learn_probability:
+            return  # 学生这次没有学到东西
+
+        # 从会话记忆中提取最近的讲授内容作为"概念"
+        # 收集所有 lecture 消息的内容作为潜在概念
+        lecture_messages = [
+            m for m in self.session_memory.message_history
+            if m.message_type == MessageType.LECTURE
+        ]
+
+        # 提取概念（简化版：将每个 lecture 消息视为一个"概念"）
+        # TODO: 未来可以使用 LLM 提取关键概念
+        new_concepts = [f"讲授: {msg.content[:50]}..." for msg in lecture_messages[-3:]]  # 最近3条
+
+        if not new_concepts:
+            return  # 没有可学的内容
+
+        # 更新学生记忆
+        self.memory.update_knowledge(new_concepts, self.rng)

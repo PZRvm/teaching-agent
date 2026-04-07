@@ -12,6 +12,7 @@ class MessageType(str, Enum):
     LECTURE = "lecture"
     CHECKPOINT_QUESTION = "checkpoint_question"
     REPLY_TO_TEACHER = "reply_to_teacher"
+    REPLY_TO_STUDENT = "reply_to_student"
     ASSIGN_HOMEWORK = "assign_homework"
     END_FEEDBACK = "end_feedback"
     HOMEWORK_FEEDBACK = "homework_feedback"
