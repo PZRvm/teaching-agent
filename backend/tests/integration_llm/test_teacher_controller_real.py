@@ -99,8 +99,8 @@ async def test_teacher_controller_with_real_llm(db_session: AsyncSession):
 
     # Act & Assert - 测试向指定学生提问
     result = controller.handle_ask_to_student(
+        f"那{profile.name}，你说说 Python 中列表和元组的区别是什么？",
         profile.name,
-        "那小明，你说说 Python 中列表和元组的区别是什么？",
     )
     assert result["student_name"] == profile.name
     assert len(result["content"]) > 0
@@ -189,7 +189,7 @@ async def test_homework_flow_with_real_llm(db_session: AsyncSession):
     assert homework_messages[0].content == "完成 Python 基础练习题"
 
     # Act - 收集作业（学生可能会提交，也可能不会）
-    controller.handle_collect_homework()
+    controller.handle_collect_homework("完成 Python 基础练习题")
 
     # 验证提交消息（如果有）
     submission_messages = [
@@ -219,17 +219,26 @@ async def test_homework_flow_with_real_llm(db_session: AsyncSession):
 
 
 @pytest.mark.asyncio
-async def test_rest_api_with_checkpoint_plan_edit(db_session: AsyncSession):
-    """测试检查点计划编辑 REST API 使用真实数据库."""
+@pytest.mark.integration
+async def test_rest_api_with_checkpoint_plan_edit(db_session_file: AsyncSession, test_engine_file):
+    """测试检查点计划编辑 REST API 使用真实数据库.
+
+    使用文件数据库而非内存数据库，因为 ASGITransport 为每个 HTTP 请求
+    创建新的数据库连接，文件数据库允许跨连接共享数据。
+    """
+    from sqlalchemy.ext.asyncio import async_sessionmaker
+    from main import app
+    from core.database import get_db
+
     # Arrange - 创建教学会话和初始检查点计划
     session = TeachingSessionModel(
         topic="Python 变量",
         teaching_mode="teacher",
         students_config={"count": 1},
     )
-    db_session.add(session)
-    await db_session.commit()
-    await db_session.refresh(session)
+    db_session_file.add(session)
+    await db_session_file.commit()
+    await db_session_file.refresh(session)
 
     original_plan = CheckpointPlan(
         topic="Python 变量",
@@ -244,33 +253,54 @@ async def test_rest_api_with_checkpoint_plan_edit(db_session: AsyncSession):
         ],
         current_index=0,
     )
-    persistence = CheckpointPlanPersistence(db_session)
+    persistence = CheckpointPlanPersistence(db_session_file)
     await persistence.save_plan(session_id=session.id, plan=original_plan)
 
-    # Act - 通过 REST API 编辑检查点计划
-    async with AsyncClient(
-        transport=ASGITransport(app=app),
-        base_url="http://test",
-    ) as client:
-        updated_data = {
-            "topic": "Python 变量（修改后）",
-            "teaching_mode": "teacher",
-            "checkpoints": [
-                {
-                    "title": "修改后的标题",
-                    "key_point": "修改后的知识点",
-                    "checkpoint_question": "修改后的问题",
-                }
-            ],
-        }
-        response = await client.put(f"/checkpoint-plans/{session.id}", json=updated_data)
+    # 获取测试数据库 URL
+    engine, base, tmp_path, test_database_url = test_engine_file
 
-    # Assert
-    assert response.status_code == 200
-    assert response.json()["success"] is True
+    # 创建新的 session maker 用于 dependency override
+    test_async_session_maker = async_sessionmaker(
+        engine,
+        class_=AsyncSession,
+        expire_on_commit=False,
+    )
 
-    # 验证修改已保存到数据库
-    modified_plan = await persistence.load_plan(session_id=session.id)
-    assert modified_plan is not None
-    assert modified_plan.topic == "Python 变量（修改后）"
-    assert modified_plan.checkpoints[0].title == "修改后的标题"
+    # Override the get_db dependency to use test database
+    async def override_get_db():
+        async with test_async_session_maker() as session:
+            yield session
+
+    app.dependency_overrides[get_db] = override_get_db
+
+    try:
+        # Act - 通过 REST API 编辑检查点计划
+        async with AsyncClient(
+            transport=ASGITransport(app=app),
+            base_url="http://test",
+        ) as client:
+            updated_data = {
+                "topic": "Python 变量（修改后）",
+                "teaching_mode": "teacher",
+                "checkpoints": [
+                    {
+                        "title": "修改后的标题",
+                        "key_point": "修改后的知识点",
+                        "checkpoint_question": "修改后的问题",
+                    }
+                ],
+            }
+            response = await client.put(f"/checkpoint-plans/{session.id}", json=updated_data)
+
+        # Assert
+        assert response.status_code == 200
+        assert response.json()["success"] is True
+
+        # 验证修改已保存到数据库
+        modified_plan = await persistence.load_plan(session_id=session.id)
+        assert modified_plan is not None
+        assert modified_plan.topic == "Python 变量（修改后）"
+        assert modified_plan.checkpoints[0].title == "修改后的标题"
+    finally:
+        # Clean up dependency override
+        app.dependency_overrides.clear()

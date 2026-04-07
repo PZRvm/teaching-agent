@@ -73,13 +73,15 @@ class TestHandleAskToAll:
     def test_handle_ask_to_all_collects_responses_from_all_students(self):
         """测试向全体提问收集所有学生回答"""
         # Arrange
+        profile1 = StudentProfile(name="张三", level=StudentLevel.AVERAGE, attitude=StudentAttitude.ACTIVE, learning_ability=7)
         mock_student1 = Mock()
-        mock_student1.name = "张三"
+        mock_student1.profile = profile1
         mock_student1.should_respond = Mock(return_value=True)
         mock_student1.ask_question = Mock(return_value="Python 是动态类型语言")
 
+        profile2 = StudentProfile(name="李四", level=StudentLevel.AVERAGE, attitude=StudentAttitude.ACTIVE, learning_ability=7)
         mock_student2 = Mock()
-        mock_student2.name = "李四"
+        mock_student2.profile = profile2
         mock_student2.should_respond = Mock(return_value=True)
         mock_student2.ask_question = Mock(return_value="变量不需要声明类型")
 
@@ -122,12 +124,14 @@ class TestHandleAskToStudent:
     def test_handle_ask_to_student_collects_response_from_target_student(self):
         """测试向单个学生提问收集该学生的回答"""
         # Arrange
+        profile1 = StudentProfile(name="张三", level=StudentLevel.AVERAGE, attitude=StudentAttitude.ACTIVE, learning_ability=7)
         mock_student1 = Mock()
-        mock_student1.name = "张三"
+        mock_student1.profile = profile1
         mock_student1.ask_question = Mock(return_value="Python 是动态类型语言")
 
+        profile2 = StudentProfile(name="李四", level=StudentLevel.AVERAGE, attitude=StudentAttitude.ACTIVE, learning_ability=7)
         mock_student2 = Mock()
-        mock_student2.name = "李四"
+        mock_student2.profile = profile2
 
         mock_memory_manager = Mock()
         mock_memory_manager.session_memory = Mock()
@@ -164,8 +168,9 @@ class TestHandleAskToStudent:
     def test_handle_ask_to_student_with_nonexistent_student_does_not_crash(self):
         """测试向不存在的学生提问不会崩溃"""
         # Arrange
+        profile = StudentProfile(name="张三", level=StudentLevel.AVERAGE, attitude=StudentAttitude.ACTIVE, learning_ability=7)
         mock_student = Mock()
-        mock_student.name = "张三"
+        mock_student.profile = profile
 
         mock_memory_manager = Mock()
         mock_memory_manager.session_memory = Mock()
@@ -196,8 +201,9 @@ class TestHandleTeacherReply:
     def test_handle_teacher_reply_records_reply_to_memory(self):
         """测试教师回复记录到记忆系统"""
         # Arrange
+        profile = StudentProfile(name="张三", level=StudentLevel.AVERAGE, attitude=StudentAttitude.ACTIVE, learning_ability=7)
         mock_student = Mock()
-        mock_student.name = "张三"
+        mock_student.profile = profile
 
         mock_memory_manager = Mock()
         mock_memory_manager.session_memory = Mock()
@@ -226,8 +232,9 @@ class TestHandleTeacherReply:
     def test_handle_teacher_reply_tracks_dialogue_round_count(self):
         """测试教师回复增加对话轮数"""
         # Arrange
+        profile = StudentProfile(name="张三", level=StudentLevel.AVERAGE, attitude=StudentAttitude.ACTIVE, learning_ability=7)
         mock_student = Mock()
-        mock_student.name = "张三"
+        mock_student.profile = profile
 
         mock_memory_manager = Mock()
         mock_memory_manager.session_memory = Mock()
@@ -251,8 +258,9 @@ class TestHandleTeacherReply:
     def test_handle_teacher_reply_sets_active_dialogue_state(self):
         """测试教师回复设置活跃对话状态"""
         # Arrange
+        profile = StudentProfile(name="张三", level=StudentLevel.AVERAGE, attitude=StudentAttitude.ACTIVE, learning_ability=7)
         mock_student = Mock()
-        mock_student.name = "张三"
+        mock_student.profile = profile
 
         mock_memory_manager = Mock()
         mock_memory_manager.session_memory = Mock()
@@ -280,11 +288,13 @@ class TestHandleEndDialogue:
     def test_handle_end_dialogue_clears_active_dialogue_state(self):
         """测试结束对话清除活跃对话状态"""
         # Arrange
+        profile1 = StudentProfile(name="张三", level=StudentLevel.AVERAGE, attitude=StudentAttitude.ACTIVE, learning_ability=7)
         mock_student1 = Mock()
-        mock_student1.name = "张三"
+        mock_student1.profile = profile1
 
+        profile2 = StudentProfile(name="李四", level=StudentLevel.AVERAGE, attitude=StudentAttitude.ACTIVE, learning_ability=7)
         mock_student2 = Mock()
-        mock_student2.name = "李四"
+        mock_student2.profile = profile2
         mock_student2.update_knowledge = Mock()  # 旁听学习
 
         mock_memory_manager = Mock()
@@ -356,8 +366,9 @@ class TestHandleEndDialogue:
     def test_handle_end_dialogue_with_zero_rounds_does_not_trigger_observer_learning(self):
         """测试零轮对话结束不触发旁听学习"""
         # Arrange
+        profile = StudentProfile(name="张三", level=StudentLevel.AVERAGE, attitude=StudentAttitude.ACTIVE, learning_ability=7)
         mock_student1 = Mock()
-        mock_student1.name = "张三"
+        mock_student1.profile = profile
         mock_student1.update_knowledge = Mock()
 
         mock_memory_manager = Mock()
@@ -384,12 +395,14 @@ class TestHandleAdvanceCheckpoint:
     def test_handle_advance_checkpoint_clears_active_dialogue(self):
         """测试推进检查点强制结束当前对话"""
         # Arrange
+        profile1 = StudentProfile(name="张三", level=StudentLevel.AVERAGE, attitude=StudentAttitude.ACTIVE, learning_ability=7)
         mock_student1 = Mock()
-        mock_student1.name = "张三"
+        mock_student1.profile = profile1
         mock_student1.update_knowledge = Mock()
 
+        profile2 = StudentProfile(name="李四", level=StudentLevel.AVERAGE, attitude=StudentAttitude.ACTIVE, learning_ability=7)
         mock_student2 = Mock()
-        mock_student2.name = "李四"
+        mock_student2.profile = profile2
         mock_student2.update_knowledge = Mock()
 
         mock_checkpoint_plan = Mock()
@@ -427,8 +440,9 @@ class TestHandleAdvanceCheckpoint:
     def test_handle_advance_checkpoint_with_no_active_dialogue(self):
         """测试没有活跃对话时推进检查点不触发旁听学习"""
         # Arrange
+        profile = StudentProfile(name="张三", level=StudentLevel.AVERAGE, attitude=StudentAttitude.ACTIVE, learning_ability=7)
         mock_student = Mock()
-        mock_student.name = "张三"
+        mock_student.profile = profile
         mock_student.update_knowledge = Mock()
 
         mock_checkpoint_plan = Mock()
@@ -491,12 +505,14 @@ class TestHandleCollectHomework:
     def test_handle_collect_homework_collects_submissions_from_all_students(self):
         """测试收集所有学生作业提交"""
         # Arrange
+        profile1 = StudentProfile(name="张三", level=StudentLevel.AVERAGE, attitude=StudentAttitude.ACTIVE, learning_ability=7)
         mock_student1 = Mock()
-        mock_student1.name = "张三"
+        mock_student1.profile = profile1
         mock_student1.submit_homework = Mock(return_value="这是我的作业1")
 
+        profile2 = StudentProfile(name="李四", level=StudentLevel.AVERAGE, attitude=StudentAttitude.ACTIVE, learning_ability=7)
         mock_student2 = Mock()
-        mock_student2.name = "李四"
+        mock_student2.profile = profile2
         mock_student2.submit_homework = Mock(return_value="这是我的作业2")
 
         mock_memory_manager = Mock()
@@ -511,11 +527,11 @@ class TestHandleCollectHomework:
         )
 
         # Act
-        controller.handle_collect_homework()
+        controller.handle_collect_homework("完成 Python 基础练习题")
 
         # Assert - 所有学生都被要求提交作业
-        mock_student1.submit_homework.assert_called_once()
-        mock_student2.submit_homework.assert_called_once()
+        mock_student1.submit_homework.assert_called_once_with("完成 Python 基础练习题")
+        mock_student2.submit_homework.assert_called_once_with("完成 Python 基础练习题")
 
         # Assert - 作业提交被记录（homework_submission 消息）
         messages = mock_memory_manager.session_memory.message_history
@@ -527,8 +543,9 @@ class TestHandleCollectHomework:
     def test_handle_collect_homework_with_student_without_submission(self):
         """测试有学生未提交作业时的处理"""
         # Arrange
+        profile = StudentProfile(name="张三", level=StudentLevel.AVERAGE, attitude=StudentAttitude.ACTIVE, learning_ability=7)
         mock_student = Mock()
-        mock_student.name = "张三"
+        mock_student.profile = profile
         mock_student.submit_homework = Mock(return_value=None)  # 未提交
 
         mock_memory_manager = Mock()
@@ -543,10 +560,10 @@ class TestHandleCollectHomework:
         )
 
         # Act
-        controller.handle_collect_homework()
+        controller.handle_collect_homework("完成 Python 基础练习题")
 
         # Assert - 学生被要求提交作业
-        mock_student.submit_homework.assert_called_once()
+        mock_student.submit_homework.assert_called_once_with("完成 Python 基础练习题")
 
         # Assert - 没有提交消息被记录（因为学生未提交）
         messages = mock_memory_manager.session_memory.message_history
@@ -560,12 +577,14 @@ class TestHandleEndTeaching:
     def test_handle_end_teaching_collects_feedback_from_all_students(self):
         """测试收集所有学生反馈"""
         # Arrange
+        profile1 = StudentProfile(name="张三", level=StudentLevel.AVERAGE, attitude=StudentAttitude.ACTIVE, learning_ability=7)
         mock_student1 = Mock()
-        mock_student1.name = "张三"
+        mock_student1.profile = profile1
         mock_student1.give_feedback = Mock(return_value="这节课讲得很好，我学到了很多")
 
+        profile2 = StudentProfile(name="李四", level=StudentLevel.AVERAGE, attitude=StudentAttitude.ACTIVE, learning_ability=7)
         mock_student2 = Mock()
-        mock_student2.name = "李四"
+        mock_student2.profile = profile2
         mock_student2.give_feedback = Mock(return_value="内容有点难，希望能多讲几遍")
 
         mock_memory_manager = Mock()
@@ -602,8 +621,9 @@ class TestHandleEndTeaching:
     def test_handle_end_teaching_with_student_without_feedback(self):
         """测试有学生未提供反馈时的处理"""
         # Arrange
+        profile = StudentProfile(name="张三", level=StudentLevel.AVERAGE, attitude=StudentAttitude.ACTIVE, learning_ability=7)
         mock_student = Mock()
-        mock_student.name = "张三"
+        mock_student.profile = profile
         mock_student.give_feedback = Mock(return_value=None)  # 未提供反馈
 
         mock_memory_manager = Mock()

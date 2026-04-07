@@ -18,12 +18,12 @@ class TestTeacherControllerFullClassroomFlow:
         """测试完整课堂教学流程：讲授 → 提问 → 对话 → 作业"""
         # Arrange - 创建两个 Mock 学生（模拟真实学生行为）
         mock_student1 = Mock()
-        mock_student1.name = "张三"
+        mock_student1.profile.name = "张三"
         mock_student1.ask_question = Mock(return_value="Python 是动态类型语言，变量不需要声明类型")
         mock_student1.update_knowledge = Mock()
 
         mock_student2 = Mock()
-        mock_student2.name = "李四"
+        mock_student2.profile.name = "李四"
         mock_student2.ask_question = Mock(return_value="变量不需要声明类型，可以直接赋值")
         mock_student2.update_knowledge = Mock()
 

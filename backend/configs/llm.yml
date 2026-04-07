@@ -7,6 +7,9 @@ llm:
   base_url: https://api.siliconflow.cn/v1
 
   # 模型名称
+  # 7B 模型：适合快速开发测试，上下文窗口 32K
+  # 72B 模型：更强的理解能力，上下文窗口 128K，适合长对话场景
+  # 切换到 72B：将 model 改为 Qwen/Qwen2.5-72B-Instruct 即可
   model: Qwen/Qwen2.5-7B-Instruct
 
   # 其他参数
@@ -16,11 +19,23 @@ llm:
 # 可用的模型选项
 models:
   free:
+    # Qwen2.5-7B-Instruct: 32K 上下文窗口，快速响应
+    # 建议场景：开发测试、短对话、快速迭代
     - Qwen/Qwen2.5-7B-Instruct
+
+    # Qwen2.5-72B-Instruct: 128K 上下文窗口，深度理解
+    # 建议场景：长对话教学、复杂问题分析、生产环境
+    # 注意：切换到 72B 后，系统会自动调整上下文限制和消息保留数量
     - Qwen/Qwen2.5-72B-Instruct
+
   paid:
     - deepseek-ai/DeepSeek-V3
     - THUDM/glm-4-9b-chat
+
+# 模型上下文配置（自动应用，无需手动修改）
+# 7B 模型：最大 8000 tokens 输入，保留最近 10 条非系统消息
+# 72B 模型：最大 50000 tokens 输入，保留最近 50 条非系统消息
+# 配置位置：backend/core/llm_client.py -> MODEL_CONTEXT_LIMITS
 
 # 教学模式对应的温度配置
 teaching_temperatures:

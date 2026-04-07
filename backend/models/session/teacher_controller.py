@@ -92,7 +92,7 @@ class TeacherSessionController:
         for student in self.student_agents:
             answer = student.ask_question(question)
             answer_message = Message(
-                sender=student.name,
+                sender=student.profile.name,
                 message_type=MessageType.ANSWER_TO_CHECKPOINT,
                 content=answer,
                 receiver="teacher",
@@ -100,12 +100,15 @@ class TeacherSessionController:
             )
             self.memory_manager.session_memory.message_history.append(answer_message)
 
-    def handle_ask_to_student(self, question: str, student_name: str) -> None:
+    def handle_ask_to_student(self, question: str, student_name: str) -> dict[str, str] | None:
         """向单个学生提问并收集回答.
 
         Args:
             question: 教师提出的问题
             student_name: 目标学生名称
+
+        Returns:
+            {"student_name": str, "content": str} 如果找到学生，否则 None
 
         流程：
             1. 记录 checkpoint_question 消息到 SessionMemory（发送给特定学生）
@@ -125,7 +128,7 @@ class TeacherSessionController:
         # 找到目标学生并收集回答
         target_student = None
         for student in self.student_agents:
-            if student.name == student_name:
+            if student.profile.name == student_name:
                 target_student = student
                 break
 
@@ -139,6 +142,8 @@ class TeacherSessionController:
                 timestamp=datetime.now(),
             )
             self.memory_manager.session_memory.message_history.append(answer_message)
+            return {"student_name": student_name, "content": answer}
+        return None
 
     def handle_teacher_reply(self, reply: str, student_name: str) -> None:
         """教师回复学生提问.
@@ -181,7 +186,7 @@ class TeacherSessionController:
         if self._dialogue_round_count > 0 and self._active_dialogue is not None:
             participating_student = self._active_dialogue.get("student_name")
             for student in self.student_agents:
-                if student.name != participating_student:
+                if student.profile.name != participating_student:
                     student.update_knowledge()
 
         # 清除对话状态
@@ -217,18 +222,21 @@ class TeacherSessionController:
         )
         self.memory_manager.session_memory.message_history.append(message)
 
-    def handle_collect_homework(self) -> None:
+    def handle_collect_homework(self, homework_prompt: str) -> None:
         """收集所有学生作业提交.
+
+        Args:
+            homework_prompt: 作业题目/要求
 
         流程：
             1. 遍历所有学生，调用 submit_homework() 收集作业
             2. 记录每个学生的 homework_submission 消息（如果有提交）
         """
         for student in self.student_agents:
-            submission = student.submit_homework()
+            submission = student.submit_homework(homework_prompt)
             if submission is not None:
                 message = Message(
-                    sender=student.name,
+                    sender=student.profile.name,
                     message_type=MessageType.HOMEWORK_SUBMISSION,
                     content=submission,
                     receiver="teacher",
@@ -253,7 +261,7 @@ class TeacherSessionController:
             if feedback is not None:
                 feedbacks.append(feedback)
                 message = Message(
-                    sender=student.name,
+                    sender=student.profile.name,
                     message_type=MessageType.END_FEEDBACK,
                     content=feedback,
                     receiver="teacher",

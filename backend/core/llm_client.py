@@ -6,7 +6,28 @@ import os
 from pathlib import Path
 
 import yaml
+from langchain_core.messages import SystemMessage
 from langchain_openai import ChatOpenAI
+
+# 模型上下文窗口限制和消息数量配置
+#
+# Qwen2.5 模型上下文窗口：
+# - Qwen2.5-7B-Instruct: 32,768 tokens
+# - Qwen2.5-72B-Instruct: 131,072 tokens
+#
+# 根据实际测试经验（中文对话）：
+# - 7B 模型：50 条消息 → 33000+ tokens (超出限制)
+# - 7B 模型：10 条消息 → 约 5000-8000 tokens (安全范围)
+# - 72B 模型：由于上下文窗口更大（128K），可保留更多消息
+#
+# 配置说明：
+# - context_limit: 最大输入 token 数（保守估计，留空间给响应）
+# - max_messages: 最大保留的非系统消息数量
+MODEL_CONTEXT_LIMITS = {
+    "qwen2.5-72b-instruct": {"context_limit": 50000, "max_messages": 50},
+    "qwen2.5-7b-instruct": {"context_limit": 8000, "max_messages": 10},
+    "default": {"context_limit": 5000, "max_messages": 10},
+}
 
 
 class LLMClient:
@@ -71,6 +92,66 @@ class LLMClient:
             max_tokens=llm_config["llm"]["max_tokens"],
         )
 
+    def _get_model_config(self) -> dict:
+        """获取当前模型的配置.
+
+        Returns:
+            包含 context_limit 和 max_messages 的配置字典
+        """
+        model_name = self.model.lower()
+        for key, config in MODEL_CONTEXT_LIMITS.items():
+            if key in model_name:
+                return config
+        return MODEL_CONTEXT_LIMITS["default"]
+
+    def _get_context_limit(self) -> int:
+        """获取当前模型的上下文窗口限制.
+
+        Returns:
+            最大输入 token 数
+        """
+        return self._get_model_config()["context_limit"]
+
+    def _get_max_messages(self) -> int:
+        """获取当前模型允许的最大非系统消息数量.
+
+        Returns:
+            最大非系统消息数量
+        """
+        return self._get_model_config()["max_messages"]
+
+    def _truncate_messages_to_fit(self, messages: list) -> list:
+        """截断消息列表以适应上下文窗口.
+
+        使用消息数量限制而非字符估算，更加可靠。
+        优先保留系统消息和最近的对话。
+        根据当前模型动态调整消息数量限制。
+
+        Args:
+            messages: langchain 消息列表
+
+        Returns:
+            截断后的消息列表
+        """
+
+        # 根据当前模型获取最大非系统消息数量
+        max_non_system_messages = self._get_max_messages()
+
+        # 分离系统消息和非系统消息
+        system_messages = [m for m in messages if isinstance(m, SystemMessage)]
+        non_system_messages = [m for m in messages if not isinstance(m, SystemMessage)]
+
+        # 保留最近的 N 条非系统消息
+        if len(non_system_messages) > max_non_system_messages:
+            truncated_non_system = non_system_messages[-max_non_system_messages:]
+        else:
+            truncated_non_system = non_system_messages
+
+        # 合并系统消息和截断后的非系统消息
+        result = system_messages + truncated_non_system
+
+        return result
+
     def invoke(
         self,
         prompt: str | list,
@@ -79,15 +160,39 @@ class LLMClient:
         """调用 LLM 生成响应.
 
         Args:
-            prompt: 提示文本或消息列表
+            prompt: 提示文本或消息列表（支持 dict 格式 [{"role": "system/user/assistant", "content": "..."}]）
             temperature: 可选温度覆盖
 
         Returns:
             LLM 响应文本
         """
-        from langchain_core.messages import HumanMessage
+        from langchain_core.messages import AIMessage, HumanMessage
 
-        messages = [HumanMessage(content=prompt)] if isinstance(prompt, str) else prompt
+        # 转换为 langchain 消息格式
+        if isinstance(prompt, str):
+            messages = [HumanMessage(content=prompt)]
+        elif isinstance(prompt, list) and prompt:
+            # 检查是否为 dict 格式消息 [{"role": "system", "content": "..."}]
+            if isinstance(prompt[0], dict):
+                # 转换 dict 格式为 langchain 消息
+                role_to_message = {
+                    "system": SystemMessage,
+                    "user": HumanMessage,
+                    "assistant": AIMessage,
+                }
+                messages = []
+                for msg_dict in prompt:
+                    role = msg_dict.get("role", "user")
+                    content = msg_dict.get("content", "")
+                    msg_class = role_to_message.get(role, HumanMessage)
+                    messages.append(msg_class(content=content))
+            else:
+                messages = prompt  # 假设已经是 langchain 消息格式
+        else:
+            messages = [HumanMessage(content="")]
+
+        # 截断消息以适应上下文窗口
+        messages = self._truncate_messages_to_fit(messages)
 
         invoke_kwargs: dict = {"input": messages}
         if temperature is not None:
@@ -104,15 +209,37 @@ class LLMClient:
         """流式调用 LLM，逐 token 生成响应.
 
         Args:
-            prompt: 提示文本或消息列表
+            prompt: 提示文本或消息列表（支持 dict 格式 [{"role": "system/user/assistant", "content": "..."}]）
             temperature: 可选温度覆盖
 
         Yields:
             每个文本 chunk
         """
-        from langchain_core.messages import HumanMessage
+        from langchain_core.messages import AIMessage, HumanMessage
 
-        messages = [HumanMessage(content=prompt)] if isinstance(prompt, str) else prompt
+        # 转换为 langchain 消息格式
+        if isinstance(prompt, str):
+            messages = [HumanMessage(content=prompt)]
+        elif isinstance(prompt, list) and prompt:
+            if isinstance(prompt[0], dict):
+                role_to_message = {
+                    "system": SystemMessage,
+                    "user": HumanMessage,
+                    "assistant": AIMessage,
+                }
+                messages = []
+                for msg_dict in prompt:
+                    role = msg_dict.get("role", "user")
+                    content = msg_dict.get("content", "")
+                    msg_class = role_to_message.get(role, HumanMessage)
+                    messages.append(msg_class(content=content))
+            else:
+                messages = prompt
+        else:
+            messages = [HumanMessage(content="")]
+
+        # 截断消息以适应上下文窗口
+        messages = self._truncate_messages_to_fit(messages)
 
         invoke_kwargs: dict = {"input": messages}
         if temperature is not None:
@@ -129,15 +256,37 @@ class LLMClient:
         """异步调用 LLM 生成响应.
 
         Args:
-            prompt: 提示文本或消息列表
+            prompt: 提示文本或消息列表（支持 dict 格式 [{"role": "system/user/assistant", "content": "..."}]）
             temperature: 可选温度覆盖
 
         Returns:
             LLM 响应文本
         """
-        from langchain_core.messages import HumanMessage
+        from langchain_core.messages import AIMessage, HumanMessage
 
-        messages = [HumanMessage(content=prompt)] if isinstance(prompt, str) else prompt
+        # 转换为 langchain 消息格式
+        if isinstance(prompt, str):
+            messages = [HumanMessage(content=prompt)]
+        elif isinstance(prompt, list) and prompt:
+            if isinstance(prompt[0], dict):
+                role_to_message = {
+                    "system": SystemMessage,
+                    "user": HumanMessage,
+                    "assistant": AIMessage,
+                }
+                messages = []
+                for msg_dict in prompt:
+                    role = msg_dict.get("role", "user")
+                    content = msg_dict.get("content", "")
+                    msg_class = role_to_message.get(role, HumanMessage)
+                    messages.append(msg_class(content=content))
+            else:
+                messages = prompt
+        else:
+            messages = [HumanMessage(content="")]
+
+        # 截断消息以适应上下文窗口
+        messages = self._truncate_messages_to_fit(messages)
 
         invoke_kwargs: dict = {"input": messages}
         if temperature is not None:

@@ -1,12 +1,10 @@
 """LLM Client 单元测试."""
 
-import sys
 from unittest.mock import MagicMock, patch
 
-# Mock langchain dependencies before importing core.llm_client
+# Mock langchain_openai before importing core.llm_client
+import sys
 sys.modules.setdefault("langchain_openai", MagicMock())
-sys.modules.setdefault("langchain_core", MagicMock())
-sys.modules.setdefault("langchain_core.messages", MagicMock())
 
 from core.llm_client import LLMClient  # noqa: E402
 
@@ -104,3 +102,25 @@ class TestLLMClient:
         mock_llm_instance.invoke.assert_called_once()
         call_kwargs = mock_llm_instance.invoke.call_args
         assert call_kwargs[1].get("temperature") == 0.1
+
+    def test_get_model_config_7b(self):
+        """测试 7B 模型的配置."""
+        client = LLMClient(
+            base_url="https://api.test.com/v1",
+            api_key="test-key",
+            model="Qwen/Qwen2.5-7B-Instruct",
+        )
+
+        assert client._get_context_limit() == 8000
+        assert client._get_max_messages() == 10
+
+    def test_get_model_config_72b(self):
+        """测试 72B 模型的配置."""
+        client = LLMClient(
+            base_url="https://api.test.com/v1",
+            api_key="test-key",
+            model="Qwen/Qwen2.5-72B-Instruct",
+        )
+
+        assert client._get_context_limit() == 50000
+        assert client._get_max_messages() == 50
