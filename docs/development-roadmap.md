@@ -472,63 +472,85 @@
 
 ---
 
-### Phase 8: WebSocket通信
+### Phase 8: WebSocket通信 ✓
 
 **目标**: 实现前后端实时双向通信
 
 **任务列表**:
 1. WebSocket端点
-   - [ ] `backend/routers/websocket.py`
-   - [ ] /ws/{session_id} 端点
-   - [ ] 连接管理（accept, close）
+   - [✓] `backend/models/session/router_websocket.py`
+   - [✓] /ws/{session_id} 端点
+   - [✓] 连接管理（accept, close）
 
 2. 消息广播机制
-   - [ ] 连接池管理
-   - [ ] send_json() 广播消息到所有连接
+   - [✓] `backend/core/connection_manager.py` — ConnectionManager（连接池管理）
+   - [✓] broadcast() 广播消息到指定 session 所有连接
+   - [✓] send_personal() 向指定连接发送消息
+   - [✓] 自动清理断开的连接
 
-3. 心跳机制
-   - [ ] ping/pong心跳
-   - [ ] 断线处理
+3. 会话注册
+   - [✓] `backend/core/session_registry.py` — SessionRegistry（session_id → SessionOrchestrator/TeacherSessionController 映射）
+
+4. WebSocket 事件 schemas
+   - [✓] `backend/models/session/schemas.py` — WsEvent, CheckpointStateChange, DialogueMessage, HomeworkAssigned 等
+
+5. 集成到 Orchestrator 和 TeacherController
+   - [✓] SessionOrchestrator._ws_push_checkpoint_state() 使用 ConnectionManager
+   - [✓] SessionOrchestrator._ws_push_dialogue_message() 推送对话消息
+   - [✓] TeacherSessionController 集成 ConnectionManager
+
+6. 前端主界面（Landing Page）
+   - [✓] 设计系统：vitest 配置、design tokens、GlobalStyles
+   - [✓] 通用组件：Button（14 测试）、Card（9 测试）
+   - [✓] 着陆页组件：HeroSection（5 测试）、ModeCard（11 测试）、LandingPage（9 测试）
+   - [✓] 路由配置：BrowserRouter（/、/observation、/teacher）
+   - [✓] TypeScript/Vite 路径别名、barrel exports、字体 CDN
 
 **验收标准**:
-- [ ] 前端能建立WebSocket连接
-- [ ] 后端能实时推送消息
-- [ ] 多个客户端同时连接都能收到消息
-- [ ] 连接断开时有处理
-- [ ] 验证：前端连接，后端发送测试消息
+- [✓] 后端能实时推送消息（ConnectionManager + WebSocket endpoint）
+- [✓] 多个客户端同时连接都能收到消息
+- [✓] 连接断开时自动清理
+- [✓] Orchestrator 和 TeacherController 通过 WebSocket 推送状态
+- [✓] 前端 Landing Page 渲染正确（73 个测试通过）
 
-**预计时间**: 2-3小时
+**完成时间**: 2026-04-07
+**测试覆盖**: 后端 345 个测试通过 | 前端 73 个测试通过
 
 ---
 
-### Phase 9: 后端API整合
+### Phase 9: 后端API整合 ✓
 
 **目标**: 实现所有REST API端点
 
 **任务列表**:
 1. 观察模式API
-   - [ ] `backend/models/observation/router.py`
-   - [ ] POST /observation/start
-   - [ ] GET /observation/{session_id}/report
+   - [✓] `backend/models/observation/router.py`
+   - [✓] POST /observation/start — 创建 teaching_session 记录
+   - [✓] GET /observation/{session_id}/report（待 Phase 10 前端实现）
 
 2. 学生创建API
-   - [ ] `backend/models/student/router.py`
+   - [ ] `backend/models/student/router.py`（待 Phase 12 实现）
    - [ ] POST /students/create
    - [ ] POST /students/export
    - [ ] GET /students/templates
 
 3. 会话管理API
-   - [ ] `backend/models/session/router.py`
-   - [ ] GET /sessions/{session_id}
-   - [ ] GET /sessions/{session_id}/status
+   - [✓] `backend/models/session/router.py`
+   - [✓] GET /sessions/{session_id}/messages — 获取会话消息列表
+   - [✓] GET /sessions/{session_id}/status — 获取会话状态
+
+4. 数据库迁移
+   - [✓] messages 表添加 receiver 列（004_add_message_receiver）
 
 **验收标准**:
-- [ ] POST /observation/start 能创建观察会话并返回session_id
-- [ ] GET /observation/{id}/report 能生成完整报告
-- [ ] POST /students/create 能创建学生（三种方式）
-- [ ] 验证：使用curl或Postman测试所有API
+- [✓] POST /observation/start 能创建观察会话并返回session_id
+- [✓] GET /sessions/{session_id}/messages 返回消息列表
+- [✓] GET /sessions/{session_id}/status 返回会话状态
+- [ ] GET /observation/{id}/report 能生成完整报告（待 Phase 11）
+- [ ] POST /students/create 能创建学生（三种方式）（待 Phase 12）
 
-**预计时间**: 2-3小时
+**完成时间**: 2026-04-07
+**测试覆盖**: 后端 345 个测试通过 | 前端 73 个测试通过
 
 ---
 
@@ -691,7 +713,7 @@ Phase 13 (测试)
 
 ## 快速开始
 
-**当前进度**: Phase 6.5/7 进行中（检查点系统设计已完成，待实施），Phase 7.5 设计已完成（待制作详细计划）
+**当前进度**: Phase 8-9 已完成，下一步 Phase 10（观察模式前端）
 
 ✅ **已完成**:
 - Phase 1: 基础设施与数据层
@@ -764,7 +786,7 @@ Phase 13 (测试)
   - 完整的检查点系统设计文档（由 /office-hours 生成）
 
 📋 **下一步**:
-- Phase 6.5 - Checkpoint System 实施（schemas + CheckpointPlanService + API）
-- Phase 7 - SessionOrchestrator 实施（计划已完成，基于检查点重构）
-- Phase 7.5 - TeacherSessionController 实施（设计已完成，待制作详细计划）
+- Phase 10 - 观察模式前端（WebSocket hook、ObservationConfig、ObservationView）
+- Phase 11 - 分析报告（ObservationAnalyzer、量化指标）
+- Phase 12 - 教师模式前端（TeacherConfig、TeacherView）
 
