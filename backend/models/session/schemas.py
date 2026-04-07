@@ -55,3 +55,65 @@ class MessageResponse(BaseModel):
     content: str
     receiver: str
     timestamp: datetime
+
+
+# WebSocket 事件 schemas
+
+
+class WsEventBase(BaseModel):
+    """WebSocket 事件基类."""
+
+    type: str
+    session_id: int
+
+
+class WsConnectedEvent(WsEventBase):
+    """WebSocket 连接确认事件."""
+
+    type: str = "connected"
+    mode: str = Field(description="会话模式 (observation/teacher)")
+
+
+class WsMessageEvent(WsEventBase):
+    """WebSocket 消息事件（教师讲授/学生回答等）."""
+
+    type: str = "message"
+    sender: str
+    message_type: str
+    content: str
+    receiver: str = "all"
+
+
+class WsCheckpointStateEvent(WsEventBase):
+    """WebSocket 检查点状态变更事件."""
+
+    type: str = "checkpoint_state_change"
+    index: int
+    checkpoint: dict
+    progress: dict
+
+
+class WsStudentAnswerEvent(WsEventBase):
+    """WebSocket 学生回答事件（教师模式实时推送）."""
+
+    type: str = "student_answer"
+    student_name: str
+    content: str
+    message_type: str
+
+
+class WsSessionStateEvent(WsEventBase):
+    """WebSocket 会话状态事件."""
+
+    type: str = "session_state"
+    teaching_mode: str
+    phase: str
+    checkpoint_index: int = 0
+    total_checkpoints: int = 0
+
+
+class WsSessionEndEvent(WsEventBase):
+    """WebSocket 会话结束事件."""
+
+    type: str = "session_end"
+    reason: str
