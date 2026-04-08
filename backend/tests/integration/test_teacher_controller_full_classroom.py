@@ -1,13 +1,13 @@
 """TeacherSessionController 全课堂流程集成测试."""
 
-import pytest
-from datetime import datetime
 from unittest.mock import Mock
 
-from models.session.teacher_controller import TeacherSessionController
-from models.session.schemas import Message, MessageType
-from models.checkpoint.schemas import Checkpoint, CheckpointPlan, CheckpointState
+import pytest
+
 from agents.memories import SessionMemory
+from models.checkpoint.schemas import Checkpoint, CheckpointPlan, CheckpointState
+from models.session.schemas import MessageType
+from models.session.teacher_controller import TeacherSessionController
 
 
 @pytest.mark.asyncio
@@ -62,7 +62,10 @@ class TestTeacherControllerFullClassroomFlow:
         # Act 1: 教师讲授
         controller.handle_broadcast_lecture("今天我们学习 Python 变量的基本概念")
         assert len(mock_memory_manager.session_memory.message_history) == 1
-        assert mock_memory_manager.session_memory.message_history[0].message_type == MessageType.LECTURE
+        assert (
+            mock_memory_manager.session_memory.message_history[0].message_type
+            == MessageType.LECTURE
+        )
 
         # Act 2: 教师向全体提问
         controller.handle_ask_to_all("Python 中有哪些基本数据类型？")
@@ -72,13 +75,21 @@ class TestTeacherControllerFullClassroomFlow:
 
         # Act 3: 教师向单个学生提问
         controller.handle_ask_to_student("请张三回答：如何定义一个列表？", "张三")
-        answer_msgs = [m for m in mock_memory_manager.session_memory.message_history if m.message_type == MessageType.ANSWER_TO_CHECKPOINT]
+        answer_msgs = [
+            m
+            for m in mock_memory_manager.session_memory.message_history
+            if m.message_type == MessageType.ANSWER_TO_CHECKPOINT
+        ]
         assert len(answer_msgs) >= 1
         assert any(m.sender == "张三" for m in answer_msgs)
 
         # Act 4: 教师回复学生
         controller.handle_teacher_reply("张三的回答很正确！列表用方括号定义。", "张三")
-        reply_msgs = [m for m in mock_memory_manager.session_memory.message_history if m.message_type == MessageType.TEACHER_REPLY]
+        reply_msgs = [
+            m
+            for m in mock_memory_manager.session_memory.message_history
+            if m.message_type == MessageType.TEACHER_REPLY
+        ]
         assert len(reply_msgs) == 1
         assert reply_msgs[0].receiver == "张三"
 
@@ -97,7 +108,11 @@ class TestTeacherControllerFullClassroomFlow:
 
         # Act 7: 布置作业
         controller.handle_assign_homework("完成列表和元组的练习题")
-        hw_msg = [m for m in mock_memory_manager.session_memory.message_history if m.message_type == MessageType.ASSIGN_HOMEWORK]
+        hw_msg = [
+            m
+            for m in mock_memory_manager.session_memory.message_history
+            if m.message_type == MessageType.ASSIGN_HOMEWORK
+        ]
         assert len(hw_msg) == 1
 
         # Final Assert - 检查消息历史完整性
@@ -159,7 +174,11 @@ class TestTeacherControllerFullClassroomFlow:
         assert controller._active_dialogue is None
 
         # Assert - 消息历史包含3轮对话
-        reply_msgs = [m for m in mock_memory_manager.session_memory.message_history if m.message_type == MessageType.TEACHER_REPLY]
+        reply_msgs = [
+            m
+            for m in mock_memory_manager.session_memory.message_history
+            if m.message_type == MessageType.TEACHER_REPLY
+        ]
         assert len(reply_msgs) == 3
 
     async def test_error_path_student_not_found(self, db_session):

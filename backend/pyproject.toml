@@ -56,6 +56,8 @@ skip-magic-trailing-comma = false
 line-ending = "auto"
 
 [tool.pytest.ini_options]
+asyncio_mode = "auto"
+asyncio_default_fixture_loop_scope = "function"
 markers = [
     "integration: 真实 LLM API 集成测试（需要网络和 API key）",
 ]

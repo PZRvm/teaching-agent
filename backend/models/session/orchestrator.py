@@ -4,6 +4,7 @@ import random
 from collections.abc import Callable
 
 from agents.student_agent import StudentAgent
+from core.connection_manager import get_connection_manager
 from models.checkpoint.schemas import Checkpoint, CheckpointState
 
 
@@ -61,7 +62,7 @@ class SessionOrchestrator:
         mode_cn = mode_names.get(mode, mode)
 
         print(f"\n{'#' * 70}")
-        print(f"# 自动教学会话开始")
+        print("# 自动教学会话开始")
         print(f"{'#' * 70}")
         print(f"  主题: {topic}")
         print(f"  模式: {mode_cn}")
@@ -132,7 +133,7 @@ class SessionOrchestrator:
         lecture_content = self.teacher_agent.deliver_lecture()
 
         # 实时输出讲授内容
-        print(f"\n👨‍🏫 教师讲授:")
+        print("\n👨‍🏫 教师讲授:")
         print("-" * 70)
         print(f"  {lecture_content}")
         print("-" * 70)
@@ -165,7 +166,7 @@ class SessionOrchestrator:
         question_content = self.teacher_agent.ask_checkpoint_question()
 
         # 实时输出提问内容
-        print(f"\n❓ 教师提问:")
+        print("\n❓ 教师提问:")
         print("-" * 70)
         print(f"  {question_content}")
         print("-" * 70)
@@ -263,7 +264,7 @@ class SessionOrchestrator:
         homework_content = self.teacher_agent.assign_homework()
 
         # 实时输出作业内容
-        print(f"\n👨‍🏫 教师布置作业:")
+        print("\n👨‍🏫 教师布置作业:")
         print("-" * 70)
         print(f"  {homework_content}")
         print("-" * 70)
@@ -367,9 +368,12 @@ class SessionOrchestrator:
     async def _ws_push_checkpoint_state(self, checkpoint: Checkpoint) -> None:
         """通过 WebSocket 推送检查点状态变更.
 
+        同时支持旧版回调方式和 ConnectionManager 广播方式。
+
         Args:
             checkpoint: 当前检查点
         """
+        # 旧版回调方式（保留兼容）
         if self._ws_push_callback:
             message = {
                 "type": "checkpoint_state_change",
@@ -391,3 +395,31 @@ class SessionOrchestrator:
                 await self._ws_push_callback(message)
             else:
                 self._ws_push_callback(message)
+
+        # ConnectionManager 广播方式（仅在未设置回调时使用，避免重复推送）
+        else:
+            session_id = self.memory_manager.session_memory.session_id
+            cm = get_connection_manager()
+            if cm.get_connection_count(session_id) > 0:
+                broadcast_message = {
+                    "type": "checkpoint_state_change",
+                    "session_id": session_id,
+                    "index": self.checkpoint_plan.current_index,
+                    "checkpoint": {
+                        "title": checkpoint.title,
+                        "key_point": checkpoint.key_point,
+                        "state": checkpoint.state.value,
+                    },
+                    "progress": {
+                        "current": self.checkpoint_plan.current_index + 1,
+                        "total": len(self.checkpoint_plan.checkpoints),
+                        "completed": sum(
+                            1
+                            for cp in self.checkpoint_plan.checkpoints[
+                                : self.checkpoint_plan.current_index
+                            ]
+                            if cp.state == CheckpointState.COMPLETE
+                        ),
+                    },
+                }
+                await cm.broadcast(session_id, broadcast_message)

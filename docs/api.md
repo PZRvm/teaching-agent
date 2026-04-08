@@ -205,6 +205,264 @@ DELETE /checkpoint-plans/{session_id}
 
 ---
 
+## WebSocket 通信
+
+### WebSocket 端点
+
+实时双向通信端点，支持观察模式和教师模式。
+
+```http
+WS /ws/sessions/{session_id}
+```
+
+**路径参数:**
+- `session_id` (integer) - 教学会话 ID
+
+**连接建立后收到:**
+```json
+{
+  "type": "connected",
+  "session_id": 1
+}
+```
+
+**心跳机制:**
+
+客户端发送：
+```json
+{"type": "ping"}
+```
+
+服务端返回：
+```json
+{"type": "pong"}
+```
+
+**服务端推送事件:**
+
+| 事件类型 | type 字段 | 说明 |
+|---------|-----------|------|
+| 消息事件 | `message` | 教师讲授、学生回答等 |
+| 检查点状态变更 | `checkpoint_state_change` | 检查点状态切换 |
+| 学生回答 | `student_answer` | 教师模式下学生回答实时推送 |
+| 会话状态 | `session_state` | 会话整体状态变更 |
+| 会话结束 | `session_end` | 教学会话结束 |
+
+**消息事件示例:**
+```json
+{
+  "type": "message",
+  "session_id": 1,
+  "sender": "teacher",
+  "message_type": "lecture",
+  "content": "今天我们学习Python变量",
+  "receiver": "all"
+}
+```
+
+**检查点状态变更示例:**
+```json
+{
+  "type": "checkpoint_state_change",
+  "session_id": 1,
+  "index": 2,
+  "checkpoint": {
+    "title": "数据类型",
+    "key_point": "理解基本数据类型",
+    "state": "teaching"
+  },
+  "progress": {
+    "current": 3,
+    "total": 5,
+    "completed": 2
+  }
+}
+```
+
+**学生回答事件示例（教师模式）:**
+```json
+{
+  "type": "student_answer",
+  "session_id": 1,
+  "student_name": "张三",
+  "content": "一次函数是 y=kx+b",
+  "message_type": "answer_to_checkpoint"
+}
+```
+
+**客户端 → 服务端命令（教师模式）:**
+
+| 命令类型 | type 字段 | 必填字段 | 说明 |
+|---------|-----------|---------|------|
+| 广播讲授 | `broadcast_lecture` | `content` | 教师广播讲授内容 |
+| 全体提问 | `ask_to_all` | `question` | 向全体学生提问，LLM 生成回答 |
+| 指定提问 | `ask_to_student` | `question`, `student_name` | 向指定学生提问 |
+| 教师回复 | `teacher_reply` | `reply`, `student_name` | 教师回复学生 |
+| 推进检查点 | `advance_checkpoint` | — | 手动推进到下一个检查点 |
+| 结束对话 | `end_dialogue` | — | 结束当前对话，触发旁听学习 |
+| 布置作业 | `assign_homework` | `content` | 教师布置作业 |
+| 收集作业 | `collect_homework` | `homework_prompt` | 收集学生作业 |
+| 结束教学 | `end_teaching` | — | 结束教学，收集反馈 |
+
+**命令响应格式:**
+```json
+{
+  "type": "command_result",
+  "command": "broadcast_lecture",
+  "success": true,
+  "session_id": 1,
+  "data": {}
+}
+```
+
+**错误响应格式:**
+```json
+{
+  "type": "error",
+  "message": "Session 1 not found",
+  "session_id": 1
+}
+```
+
+**观察模式启动流程:**
+
+1. `POST /observation/start` → 创建 DB 记录 → 初始化 LLM/Agents → 生成检查点计划 → 创建 SessionOrchestrator → 注册到 SessionRegistry → 后台运行 `run_autonomous_session()`
+2. 前端通过 `/ws/sessions/{session_id}` 连接 → 实时接收教学消息和检查点状态
+3. 会话结束后 orchestrator 自动从 SessionRegistry 注销
+
+---
+
+## 会话管理 API
+
+### 获取会话消息列表
+
+获取指定会话的所有消息，按时间排序。
+
+```http
+GET /sessions/{session_id}/messages
+```
+
+**路径参数:**
+- `session_id` (integer) - 教学会话 ID
+
+**响应示例:**
+```json
+[
+  {
+    "id": 1,
+    "session_id": 1,
+    "sender": "teacher",
+    "message_type": "lecture",
+    "content": "今天我们学习Python变量",
+    "receiver": "all",
+    "timestamp": "2026-04-07T20:00:00"
+  }
+]
+```
+
+**空列表响应（不存在消息）:**
+```json
+[]
+```
+状态码: 200
+
+---
+
+### 获取会话状态
+
+获取指定会话的状态信息。
+
+```http
+GET /sessions/{session_id}/status
+```
+
+**路径参数:**
+- `session_id` (integer) - 教学会话 ID
+
+**响应示例:**
+```json
+{
+  "session_id": 1,
+  "topic": "Python 变量与数据类型",
+  "created_at": "2026-04-07T20:00:00"
+}
+```
+
+**错误响应:**
+```json
+{
+  "detail": "会话不存在"
+}
+```
+状态码: 404
+
+---
+
+## 观察模式 API
+
+### 启动观察模式会话
+
+启动观察模式自动教学会话，创建 teaching_session 记录并返回 session_id。
+
+```http
+POST /observation/start
+```
+
+**请求体:**
+```json
+{
+  "topic": "Python 变量与数据类型",
+  "teaching_mode": "heuristic",
+  "checkpoint_count": 3,
+  "students": [
+    {
+      "name": "张三",
+      "level": "excellent",
+      "attitude": "active",
+      "learning_ability": 8
+    }
+  ]
+}
+```
+
+**字段说明:**
+- `topic` (string, required) - 教学主题，最少 1 字符
+- `teaching_mode` (string, required) - 教学模式：`didactic`、`heuristic`、`discussion`
+- `checkpoint_count` (integer, optional) - 检查点数量，1-10，默认 5
+- `students` (array, required, min 1) - 学生列表，不能为空
+
+**响应示例:**
+```json
+{
+  "session_id": 1,
+  "status": "running"
+}
+```
+
+**错误响应:**
+
+缺少必需字段：
+```json
+{
+  "detail": [
+    {"loc": ["body", "topic"], "msg": "field required", "type": "value_error.missing"}
+  ]
+}
+```
+状态码: 422
+
+空学生列表：
+```json
+{
+  "detail": [
+    {"loc": ["body", "students"], "msg": "List should have at least 1 item", "type": "value_error.list.min_length"}
+  ]
+}
+```
+状态码: 422
+
+---
+
 ## 数据模型
 
 ### CheckpointState 枚举
@@ -255,8 +513,6 @@ DELETE /checkpoint-plans/{session_id}
 
 ## 待实现模块
 
-- **学生模块** - 学生创建、管理、导入导出
-- **会话模块** - 教学会话管理
-- **观察模式 API** - 自动教学流程
-- **教师模式 API** - 用户手动控制教学
-- **WebSocket 通信** - 实时消息推送
+- **学生模块** - 学生创建、管理、导入导出（Phase 10 前端集成时实现）
+- **教师模式 API** - 用户手动控制教学（Phase 12 前端 UI 配合实现）
+- **观察模式报告** - `GET /observation/{session_id}/report`（Phase 11 分析报告）

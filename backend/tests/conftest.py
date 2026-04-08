@@ -1,6 +1,5 @@
 """Pytest configuration and fixtures."""
 
-import asyncio
 import sys
 import tempfile
 from collections.abc import AsyncGenerator, Generator
@@ -37,14 +36,6 @@ def pytest_configure(config: pytest.Config) -> None:
 
 # Test database URL (in-memory SQLite)
 TEST_DATABASE_URL = "sqlite+aiosqlite:///:memory:"
-
-
-@pytest.fixture(scope="session")
-def event_loop() -> Generator[asyncio.AbstractEventLoop, None, None]:
-    """Create event loop for async tests."""
-    loop = asyncio.get_event_loop_policy().new_event_loop()
-    yield loop
-    loop.close()
 
 
 @pytest_asyncio.fixture(scope="function")

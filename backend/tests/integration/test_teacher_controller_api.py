@@ -5,9 +5,8 @@ import pytest_asyncio
 from httpx import ASGITransport, AsyncClient
 
 from main import app
-from models.checkpoint.schemas import Checkpoint, CheckpointPlan, CheckpointState
 from models.checkpoint.persistence_service import CheckpointPlanPersistence
-from orm.checkpoint_plan import CheckpointPlanModel
+from models.checkpoint.schemas import Checkpoint, CheckpointPlan, CheckpointState
 from orm.teaching_session import TeachingSessionModel
 
 
@@ -128,7 +127,9 @@ class TestTeacherControllerAPI:
         assert modified_plan.topic == "Python 变量与数据类型（修改后）"
         assert modified_plan.checkpoints[0].title == "修改后的标题"
 
-    async def test_edit_checkpoint_plan_fails_when_teaching_started(self, db_session, override_get_db):
+    async def test_edit_checkpoint_plan_fails_when_teaching_started(
+        self, db_session, override_get_db
+    ):
         """测试编辑检查点计划在教学开始后失败"""
         # Arrange - 创建已开始教学的检查点计划
         session = TeachingSessionModel(
@@ -167,7 +168,9 @@ class TestTeacherControllerAPI:
                 json={
                     "topic": "修改",
                     "teaching_mode": "heuristic",
-                    "checkpoints": [{"title": "C1", "key_point": "K1", "checkpoint_question": "Q1"}],
+                    "checkpoints": [
+                        {"title": "C1", "key_point": "K1", "checkpoint_question": "Q1"}
+                    ],
                 },
             )
 
@@ -187,7 +190,9 @@ class TestTeacherControllerAPI:
                 json={
                     "topic": "修改",
                     "teaching_mode": "heuristic",
-                    "checkpoints": [{"title": "C1", "key_point": "K1", "checkpoint_question": "Q1"}],
+                    "checkpoints": [
+                        {"title": "C1", "key_point": "K1", "checkpoint_question": "Q1"}
+                    ],
                 },
             )
 

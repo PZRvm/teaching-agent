@@ -55,3 +55,146 @@ class MessageResponse(BaseModel):
     content: str
     receiver: str
     timestamp: datetime
+
+
+# WebSocket 事件 schemas
+
+
+class WsEventBase(BaseModel):
+    """WebSocket 事件基类."""
+
+    type: str
+    session_id: int
+
+
+class WsConnectedEvent(WsEventBase):
+    """WebSocket 连接确认事件."""
+
+    type: str = "connected"
+    mode: str = Field(description="会话模式 (observation/teacher)")
+
+
+class WsMessageEvent(WsEventBase):
+    """WebSocket 消息事件（教师讲授/学生回答等）."""
+
+    type: str = "message"
+    sender: str
+    message_type: str
+    content: str
+    receiver: str = "all"
+
+
+class WsCheckpointStateEvent(WsEventBase):
+    """WebSocket 检查点状态变更事件."""
+
+    type: str = "checkpoint_state_change"
+    index: int
+    checkpoint: dict
+    progress: dict
+
+
+class WsStudentAnswerEvent(WsEventBase):
+    """WebSocket 学生回答事件（教师模式实时推送）."""
+
+    type: str = "student_answer"
+    student_name: str
+    content: str
+    message_type: str
+
+
+class WsSessionStateEvent(WsEventBase):
+    """WebSocket 会话状态事件."""
+
+    type: str = "session_state"
+    teaching_mode: str
+    phase: str
+    checkpoint_index: int = 0
+    total_checkpoints: int = 0
+
+
+class WsSessionEndEvent(WsEventBase):
+    """WebSocket 会话结束事件."""
+
+    type: str = "session_end"
+    reason: str
+
+
+# WebSocket 命令 schemas（教师模式）
+
+
+class WsBroadcastLectureCommand(BaseModel):
+    """WebSocket 命令: 广播讲授."""
+
+    type: str = "broadcast_lecture"
+    content: str = Field(min_length=1, description="讲授内容")
+
+
+class WsAskToAllCommand(BaseModel):
+    """WebSocket 命令: 向全体提问."""
+
+    type: str = "ask_to_all"
+    question: str = Field(min_length=1, description="问题内容")
+
+
+class WsAskToStudentCommand(BaseModel):
+    """WebSocket 命令: 向指定学生提问."""
+
+    type: str = "ask_to_student"
+    question: str = Field(min_length=1, description="问题内容")
+    student_name: str = Field(min_length=1, description="目标学生名称")
+
+
+class WsTeacherReplyCommand(BaseModel):
+    """WebSocket 命令: 教师回复学生."""
+
+    type: str = "teacher_reply"
+    reply: str = Field(min_length=1, description="回复内容")
+    student_name: str = Field(min_length=1, description="目标学生名称")
+
+
+class WsAdvanceCheckpointCommand(BaseModel):
+    """WebSocket 命令: 推进到下一个检查点."""
+
+    type: str = "advance_checkpoint"
+
+
+class WsEndDialogueCommand(BaseModel):
+    """WebSocket 命令: 结束当前对话."""
+
+    type: str = "end_dialogue"
+
+
+class WsAssignHomeworkCommand(BaseModel):
+    """WebSocket 命令: 布置作业."""
+
+    type: str = "assign_homework"
+    content: str = Field(min_length=1, description="作业内容")
+
+
+class WsCollectHomeworkCommand(BaseModel):
+    """WebSocket 命令: 收集作业."""
+
+    type: str = "collect_homework"
+    homework_prompt: str = Field(min_length=1, description="作业要求")
+
+
+class WsEndTeachingCommand(BaseModel):
+    """WebSocket 命令: 结束教学."""
+
+    type: str = "end_teaching"
+
+
+class WsTeacherCommand(BaseModel):
+    """教师模式 WebSocket 命令（联合类型）.
+
+    type 字段用于路由到对应的 handler。
+    """
+
+    type: str = Field(
+        description="命令类型",
+        pattern=(
+            "^(broadcast_lecture|ask_to_all|ask_to_student|teacher_reply"
+            "|advance_checkpoint|end_dialogue|assign_homework"
+            "|collect_homework|end_teaching)$"
+        ),
+    )

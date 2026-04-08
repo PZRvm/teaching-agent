@@ -260,3 +260,90 @@ class TestMessage:
             timestamp=datetime.now(),
         )
         assert msg.receiver == "all"
+
+
+class TestWebSocketEventSchemas:
+    """WebSocket 事件 schema 测试."""
+
+    def test_ws_connected_event(self):
+        """WsConnectedEvent 正确序列化."""
+        from models.session.schemas import WsConnectedEvent
+
+        event = WsConnectedEvent(session_id=1, mode="observation")
+        assert event.type == "connected"
+        assert event.session_id == 1
+        assert event.mode == "observation"
+
+    def test_ws_message_event(self):
+        """WsMessageEvent 包含消息详情."""
+        from models.session.schemas import WsMessageEvent
+
+        event = WsMessageEvent(
+            session_id=1,
+            sender="teacher",
+            message_type="lecture",
+            content="今天我们学习Python变量",
+            receiver="all",
+        )
+        assert event.type == "message"
+        assert event.sender == "teacher"
+        assert event.message_type == "lecture"
+
+    def test_ws_checkpoint_state_event(self):
+        """WsCheckpointStateEvent 包含检查点和进度信息."""
+        from models.session.schemas import WsCheckpointStateEvent
+
+        event = WsCheckpointStateEvent(
+            session_id=1,
+            index=0,
+            checkpoint={"title": "变量", "state": "teaching", "key_point": "变量的定义"},
+            progress={"current": 1, "total": 5, "completed": 0},
+        )
+        assert event.type == "checkpoint_state_change"
+        assert event.index == 0
+        assert event.progress["total"] == 5
+
+    def test_ws_session_end_event(self):
+        """WsSessionEndEvent 包含结束原因."""
+        from models.session.schemas import WsSessionEndEvent
+
+        event = WsSessionEndEvent(session_id=1, reason="all_checkpoints_complete")
+        assert event.type == "session_end"
+        assert event.reason == "all_checkpoints_complete"
+
+    def test_ws_student_answer_event(self):
+        """WsStudentAnswerEvent 包含学生回答."""
+        from models.session.schemas import WsStudentAnswerEvent
+
+        event = WsStudentAnswerEvent(
+            session_id=1,
+            student_name="张三",
+            content="一次函数是 y=kx+b",
+            message_type="answer_to_checkpoint",
+        )
+        assert event.type == "student_answer"
+        assert event.student_name == "张三"
+
+    def test_ws_session_state_event(self):
+        """WsSessionStateEvent 包含会话状态."""
+        from models.session.schemas import WsSessionStateEvent
+
+        event = WsSessionStateEvent(
+            session_id=1,
+            teaching_mode="heuristic",
+            phase="teaching",
+            checkpoint_index=0,
+            total_checkpoints=5,
+        )
+        assert event.type == "session_state"
+        assert event.phase == "teaching"
+
+
+class TestMessageModelReceiver:
+    """MessageModel receiver 字段测试."""
+
+    def test_message_model_has_receiver_column(self):
+        """MessageModel 应该有 receiver 列."""
+        from orm.message import MessageModel
+
+        assert hasattr(MessageModel, "receiver")
