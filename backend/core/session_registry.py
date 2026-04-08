@@ -1,11 +1,11 @@
 from __future__ import annotations
 
+from typing import TYPE_CHECKING
+
 """会话注册表 — 映射 session_id 到运行中的 orchestrator/controller.
 
 用于 WebSocket 端点根据 session_id 查找业务逻辑实例。
 """
-
-from typing import TYPE_CHECKING
 
 if TYPE_CHECKING:
     from models.session.orchestrator import SessionOrchestrator

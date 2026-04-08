@@ -9,14 +9,11 @@ from pydantic import ValidationError
 from core.connection_manager import get_connection_manager
 from core.session_registry import SessionRegistry
 from models.session.schemas import (
-    WsAdvanceCheckpointCommand,
     WsAskToAllCommand,
     WsAskToStudentCommand,
     WsAssignHomeworkCommand,
     WsBroadcastLectureCommand,
     WsCollectHomeworkCommand,
-    WsEndDialogueCommand,
-    WsEndTeachingCommand,
     WsTeacherReplyCommand,
 )
 

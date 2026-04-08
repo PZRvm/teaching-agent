@@ -8,10 +8,10 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from agents.memories.memory_manager import MemoryManager
 from agents.student_agent import StudentAgent
-from models.checkpoint.persistence_service import CheckpointPlanPersistence
-from models.checkpoint.service import CheckpointPlanService
 from core.database import get_db
 from core.llm_client import LLMClient
+from models.checkpoint.persistence_service import CheckpointPlanPersistence
+from models.checkpoint.service import CheckpointPlanService
 from models.observation.schemas import (
     ObservationConfig,
     ObservationStartResponse,
