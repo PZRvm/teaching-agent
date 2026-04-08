@@ -117,3 +117,84 @@ class WsSessionEndEvent(WsEventBase):
 
     type: str = "session_end"
     reason: str
+
+
+# WebSocket 命令 schemas（教师模式）
+
+
+class WsBroadcastLectureCommand(BaseModel):
+    """WebSocket 命令: 广播讲授."""
+
+    type: str = "broadcast_lecture"
+    content: str = Field(min_length=1, description="讲授内容")
+
+
+class WsAskToAllCommand(BaseModel):
+    """WebSocket 命令: 向全体提问."""
+
+    type: str = "ask_to_all"
+    question: str = Field(min_length=1, description="问题内容")
+
+
+class WsAskToStudentCommand(BaseModel):
+    """WebSocket 命令: 向指定学生提问."""
+
+    type: str = "ask_to_student"
+    question: str = Field(min_length=1, description="问题内容")
+    student_name: str = Field(min_length=1, description="目标学生名称")
+
+
+class WsTeacherReplyCommand(BaseModel):
+    """WebSocket 命令: 教师回复学生."""
+
+    type: str = "teacher_reply"
+    reply: str = Field(min_length=1, description="回复内容")
+    student_name: str = Field(min_length=1, description="目标学生名称")
+
+
+class WsAdvanceCheckpointCommand(BaseModel):
+    """WebSocket 命令: 推进到下一个检查点."""
+
+    type: str = "advance_checkpoint"
+
+
+class WsEndDialogueCommand(BaseModel):
+    """WebSocket 命令: 结束当前对话."""
+
+    type: str = "end_dialogue"
+
+
+class WsAssignHomeworkCommand(BaseModel):
+    """WebSocket 命令: 布置作业."""
+
+    type: str = "assign_homework"
+    content: str = Field(min_length=1, description="作业内容")
+
+
+class WsCollectHomeworkCommand(BaseModel):
+    """WebSocket 命令: 收集作业."""
+
+    type: str = "collect_homework"
+    homework_prompt: str = Field(min_length=1, description="作业要求")
+
+
+class WsEndTeachingCommand(BaseModel):
+    """WebSocket 命令: 结束教学."""
+
+    type: str = "end_teaching"
+
+
+class WsTeacherCommand(BaseModel):
+    """教师模式 WebSocket 命令（联合类型）.
+
+    type 字段用于路由到对应的 handler。
+    """
+
+    type: str = Field(
+        description="命令类型",
+        pattern=(
+            "^(broadcast_lecture|ask_to_all|ask_to_student|teacher_reply"
+            "|advance_checkpoint|end_dialogue|assign_homework"
+            "|collect_homework|end_teaching)$"
+        ),
+    )
