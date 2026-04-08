@@ -89,4 +89,18 @@ describe('LandingPage', () => {
     await user.click(screen.getByLabelText('教学历史'))
     expect(mockNavigate).toHaveBeenCalledWith('/history')
   })
+
+  it('uses rough design elements like tape, decorations, and footer tags', () => {
+    render(
+      <MemoryRouter>
+        <LandingPage />
+      </MemoryRouter>,
+    )
+
+    expect(document.querySelectorAll('.tape').length).toBeGreaterThanOrEqual(1)
+    expect(document.querySelectorAll('.card-decoration').length).toBeGreaterThanOrEqual(1)
+    expect(document.querySelectorAll('.footer-tag').length).toBeGreaterThanOrEqual(1)
+    expect(document.querySelector('.brand-name')?.textContent).toBe('SimuSketch')
+    expect(document.querySelector('.bg-decoration-left')).toBeInTheDocument()
+  })
 })
