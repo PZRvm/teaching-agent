@@ -118,32 +118,6 @@ export default function LandingPage() {
         </section>
       </main>
 
-      {/* 背景装饰 SVG */}
-      <div className="bg-decoration bg-decoration-left" aria-hidden="true">
-        <svg height="200" viewBox="0 0 100 100" width="200">
-          <path
-            d="M10,50 Q30,10 50,50 T90,50"
-            fill="none"
-            stroke="#2E5CFF"
-            strokeDasharray="4 2"
-            strokeWidth="2"
-          />
-        </svg>
-      </div>
-      <div className="bg-decoration bg-decoration-right" aria-hidden="true">
-        <svg height="200" viewBox="0 0 100 100" width="200">
-          <circle
-            cx="50"
-            cy="50"
-            fill="none"
-            r="40"
-            stroke="#E63946"
-            strokeDasharray="8 4"
-            strokeWidth="2"
-          />
-        </svg>
-      </div>
-
       {/* Footer */}
       <footer className="footer">
         <div className="footer-divider" aria-hidden="true">
@@ -449,25 +423,6 @@ const Wrapper = styled.div`
       color: #27e0a9;
       font-variation-settings: 'FILL' 1;
     }
-  }
-
-  /* ===== 背景装饰 ===== */
-  .bg-decoration {
-    position: absolute;
-    opacity: 0.2;
-    pointer-events: none;
-    z-index: -10;
-    isolation: isolate;
-  }
-
-  .bg-decoration-left {
-    top: 25%;
-    left: -48px;
-  }
-
-  .bg-decoration-right {
-    bottom: 25%;
-    right: -48px;
   }
 
   /* ===== Footer ===== */

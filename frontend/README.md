@@ -72,6 +72,7 @@ export default function MyComponent() {
 
 // 只有一个 Wrapper 样式组件
 // 内部使用 class 选择器，支持多层嵌套
+// 新增区域/元素尽量通过 Wrapper 内部的 className + 多层嵌套完成样式，不再创建额外 styled 组件
 const Wrapper = styled.div`
   padding: 20px;
 

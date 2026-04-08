@@ -202,7 +202,31 @@ npm run test
 
 # Run tests in watch mode
 npm run test -- --watch
+
+# Run only component tests
+npm run test -- --run tests/components/
+
+# Run only view tests
+npm run test -- --run tests/views/
 ```
+
+**Frontend test organization**:
+```
+frontend/tests/
+├── components/           # 组件测试（对应 src/components/）
+│   ├── RoughButton.test.tsx
+│   ├── RoughCard.test.tsx
+│   └── ...
+└── views/                # 页面测试（对应 src/views/）
+    └── LandingPage.test.tsx
+```
+
+**Rules:**
+- 组件测试放在 `tests/components/`，页面测试放在 `tests/views/`
+- 测试文件不与源文件 co-locate，统一放在 `tests/` 目录下
+- 导入源文件使用相对路径：`../../src/components/RoughButton`、`../../src/views/LandingPage`
+- `tsconfig.app.json` 的 `include` 必须包含 `"tests"` 以支持 JSX 转换
+- `vitest.config.ts` 的 `include` 包含 `tests/**/*.test.{ts,tsx}`
 
 **Backend tests (pytest)**:
 ```bash
@@ -408,7 +432,7 @@ const Wrapper = styled.div`
 **Rules:**
 - Use only ONE `Wrapper` styled component per file
 - Internal elements use regular HTML with `className` (kebab-case)
-- Define nested class styles inside `Wrapper`
+- Define nested class styles inside `Wrapper` and prefer expressing layout hierarchy via nested classes instead of creating additional styled components
 - Support multi-level nesting with `&`
 
 **Naming:**
@@ -553,9 +577,13 @@ Before committing code changes, verify:
 
 ## Development Planning Workflow
 
-The project uses **TDD (Test-Driven Development)** as the mandatory development methodology for all features. All implementation plans follow the TDD cycle and are stored in `docs/superpowers/plans/`:
+本项目在创建实现计划时，统一使用 `superpowers:writing-plans` 技能，并遵循以下约定：
 
-**Plan Format**: `YYYY-MM-DD-<feature-name>.md`
+- 所有使用 `superpowers:writing-plans` 编写的计划必须：
+  - 使用 **TDD（Test-Driven Development，测试驱动开发）** 流程来执行（先写失败测试，再实现代码，再重跑测试）。
+  - **全部使用中文撰写**（包括 Goal、Architecture、任务描述、步骤说明），代码块除外。
+- 计划文件统一存放在 `docs/superpowers/plans/` 目录，命名格式为：`YYYY-MM-DD-<feature-name>.md`。
+- 实际实现时，优先使用 `superpowers:test-driven-development` 技能按计划逐条执行任务。
 
 **Example Plans**:
 - `2026-04-05-session-orchestrator.md` - Phase 7: SessionOrchestrator implementation
