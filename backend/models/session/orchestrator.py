@@ -396,29 +396,30 @@ class SessionOrchestrator:
             else:
                 self._ws_push_callback(message)
 
-        # ConnectionManager 广播方式
-        session_id = self.memory_manager.session_memory.session_id
-        cm = get_connection_manager()
-        if cm.get_connection_count(session_id) > 0:
-            broadcast_message = {
-                "type": "checkpoint_state_change",
-                "session_id": session_id,
-                "index": self.checkpoint_plan.current_index,
-                "checkpoint": {
-                    "title": checkpoint.title,
-                    "key_point": checkpoint.key_point,
-                    "state": checkpoint.state.value,
-                },
-                "progress": {
-                    "current": self.checkpoint_plan.current_index + 1,
-                    "total": len(self.checkpoint_plan.checkpoints),
-                    "completed": sum(
-                        1
-                        for cp in self.checkpoint_plan.checkpoints[
-                            : self.checkpoint_plan.current_index
-                        ]
-                        if cp.state == CheckpointState.COMPLETE
-                    ),
-                },
-            }
-            await cm.broadcast(session_id, broadcast_message)
+        # ConnectionManager 广播方式（仅在未设置回调时使用，避免重复推送）
+        else:
+            session_id = self.memory_manager.session_memory.session_id
+            cm = get_connection_manager()
+            if cm.get_connection_count(session_id) > 0:
+                broadcast_message = {
+                    "type": "checkpoint_state_change",
+                    "session_id": session_id,
+                    "index": self.checkpoint_plan.current_index,
+                    "checkpoint": {
+                        "title": checkpoint.title,
+                        "key_point": checkpoint.key_point,
+                        "state": checkpoint.state.value,
+                    },
+                    "progress": {
+                        "current": self.checkpoint_plan.current_index + 1,
+                        "total": len(self.checkpoint_plan.checkpoints),
+                        "completed": sum(
+                            1
+                            for cp in self.checkpoint_plan.checkpoints[
+                                : self.checkpoint_plan.current_index
+                            ]
+                            if cp.state == CheckpointState.COMPLETE
+                        ),
+                    },
+                }
+                await cm.broadcast(session_id, broadcast_message)

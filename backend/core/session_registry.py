@@ -1,6 +1,11 @@
 from __future__ import annotations
 
-"""会话注册表 — 映射 session_id 到运行中的 orchestrator/controller."""
+"""会话注册表 — 映射 session_id 到运行中的 orchestrator/controller.
+
+TODO: Phase 10 — 在 observation/router.py 和 WebSocket 端点中集成，
+将 orchestrator/controller 实例注册到全局 SessionRegistry，
+使 WebSocket 端点可以根据 session_id 查找对应的业务逻辑实例。
+"""
 
 
 class SessionRegistry:

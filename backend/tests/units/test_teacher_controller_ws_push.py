@@ -91,3 +91,34 @@ class TestTeacherControllerWsPush:
             assert message["type"] == "message"
             assert message["sender"] == "teacher"
             assert message["message_type"] == "lecture"
+
+    def test_ws_broadcast_skipped_without_event_loop(self):
+        """没有运行中的事件循环时，WebSocket 推送被安全跳过."""
+        import asyncio
+
+        from models.session.teacher_controller import TeacherSessionController
+
+        mock_memory_manager = MagicMock()
+        mock_memory_manager.session_memory.session_id = 1
+
+        plan = _make_plan()
+        controller = TeacherSessionController(
+            student_agents=[],
+            memory_manager=mock_memory_manager,
+            checkpoint_plan=plan,
+        )
+
+        # 确认当前没有运行中的事件循环（同步测试中不存在）
+        with pytest.raises(RuntimeError):
+            asyncio.get_running_loop()
+
+        # 调用不应抛出异常
+        with patch("models.session.teacher_controller.get_connection_manager") as mock_get_cm:
+            mock_manager = MagicMock()
+            mock_manager.get_connection_count.return_value = 1
+            mock_get_cm.return_value = mock_manager
+
+            controller.handle_broadcast_lecture("测试内容")
+
+            # broadcast 不应被调用（因为没有事件循环来调度任务）
+            mock_manager.broadcast.assert_not_called()

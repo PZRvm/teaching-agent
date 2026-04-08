@@ -1,14 +1,18 @@
 """TeacherSessionController - 教师模式核心控制器."""
 
 import asyncio
+import logging
 from collections.abc import Callable
 from datetime import datetime
+from typing import Any
 
 from agents.memories.memory_manager import MemoryManager
 from agents.student_agent import StudentAgent
 from core.connection_manager import get_connection_manager
 from models.checkpoint.schemas import CheckpointPlan
 from models.session.schemas import Message, MessageType
+
+logger = logging.getLogger(__name__)
 
 
 class TeacherSessionController:
@@ -49,6 +53,24 @@ class TeacherSessionController:
         self._active_dialogue: dict | None = None  # 当前活跃对话 {student_name: round_count}
         self._dialogue_round_count: int = 0  # 当前对话轮数
 
+    def _ws_broadcast(self, message: dict[str, Any]) -> None:
+        """通过 ConnectionManager 异步广播消息（从同步上下文调用）.
+
+        Args:
+            message: 要广播的消息字典
+        """
+        session_id = self.memory_manager.session_memory.session_id
+        cm = get_connection_manager()
+        if cm.get_connection_count(session_id=session_id) > 0:
+            try:
+                loop = asyncio.get_running_loop()
+                loop.create_task(cm.broadcast(session_id=session_id, message=message))
+            except RuntimeError:
+                logger.warning(
+                    "WebSocket push skipped: no running event loop (session_id=%d)",
+                    session_id,
+                )
+
     def handle_broadcast_lecture(self, content: str) -> None:
         """处理用户广播讲授内容.
 
@@ -69,27 +91,14 @@ class TeacherSessionController:
 
         self.memory_manager.session_memory.message_history.append(message)
 
-        # WebSocket 推送
-        session_id = self.memory_manager.session_memory.session_id
-        cm = get_connection_manager()
-        if cm.get_connection_count(session_id=session_id) > 0:
-            try:
-                loop = asyncio.get_running_loop()
-                loop.create_task(
-                    cm.broadcast(
-                        session_id=session_id,
-                        message={
-                            "type": "message",
-                            "session_id": session_id,
-                            "sender": "teacher",
-                            "message_type": "lecture",
-                            "content": content,
-                            "receiver": "all",
-                        },
-                    )
-                )
-            except RuntimeError:
-                pass  # 没有运行中的事件循环
+        self._ws_broadcast({
+            "type": "message",
+            "session_id": self.memory_manager.session_memory.session_id,
+            "sender": "teacher",
+            "message_type": "lecture",
+            "content": content,
+            "receiver": "all",
+        })
 
     def handle_ask_to_all(self, question: str) -> None:
         """向全体学生提问并收集回答.
@@ -124,26 +133,13 @@ class TeacherSessionController:
             )
             self.memory_manager.session_memory.message_history.append(answer_message)
 
-            # WebSocket 推送
-            session_id = self.memory_manager.session_memory.session_id
-            cm = get_connection_manager()
-            if cm.get_connection_count(session_id=session_id) > 0:
-                try:
-                    loop = asyncio.get_running_loop()
-                    loop.create_task(
-                        cm.broadcast(
-                            session_id=session_id,
-                            message={
-                                "type": "student_answer",
-                                "session_id": session_id,
-                                "student_name": student.profile.name,
-                                "content": answer,
-                                "message_type": "answer_to_checkpoint",
-                            },
-                        )
-                    )
-                except RuntimeError:
-                    pass  # 没有运行中的事件循环
+            self._ws_broadcast({
+                "type": "student_answer",
+                "session_id": self.memory_manager.session_memory.session_id,
+                "student_name": student.profile.name,
+                "content": answer,
+                "message_type": "answer_to_checkpoint",
+            })
 
     def handle_ask_to_student(self, question: str, student_name: str) -> dict[str, str] | None:
         """向单个学生提问并收集回答.
@@ -188,26 +184,13 @@ class TeacherSessionController:
             )
             self.memory_manager.session_memory.message_history.append(answer_message)
 
-            # WebSocket 推送
-            session_id = self.memory_manager.session_memory.session_id
-            cm = get_connection_manager()
-            if cm.get_connection_count(session_id=session_id) > 0:
-                try:
-                    loop = asyncio.get_running_loop()
-                    loop.create_task(
-                        cm.broadcast(
-                            session_id=session_id,
-                            message={
-                                "type": "student_answer",
-                                "session_id": session_id,
-                                "student_name": student_name,
-                                "content": answer,
-                                "message_type": "answer_to_checkpoint",
-                            },
-                        )
-                    )
-                except RuntimeError:
-                    pass  # 没有运行中的事件循环
+            self._ws_broadcast({
+                "type": "student_answer",
+                "session_id": self.memory_manager.session_memory.session_id,
+                "student_name": student_name,
+                "content": answer,
+                "message_type": "answer_to_checkpoint",
+            })
 
             return {"student_name": student_name, "content": answer}
         return None

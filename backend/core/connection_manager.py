@@ -3,12 +3,9 @@
 from __future__ import annotations
 
 import logging
-from typing import TYPE_CHECKING, Any
+from typing import Any
 
 from fastapi import WebSocket
-
-if TYPE_CHECKING:
-    pass  # 仅用于类型检查的前向引用
 
 logger = logging.getLogger(__name__)
 
@@ -80,8 +77,10 @@ class ConnectionManager:
         if session_id not in self.active_connections:
             return
 
+        # 快照连接列表，避免迭代期间修改集合
+        connections = list(self.active_connections.get(session_id, set()))
         dead_connections = []
-        for websocket in self.active_connections[session_id]:
+        for websocket in connections:
             try:
                 await websocket.send_json(message)
             except Exception:
