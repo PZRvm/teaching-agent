@@ -62,7 +62,7 @@ class SessionOrchestrator:
         mode_cn = mode_names.get(mode, mode)
 
         print(f"\n{'#' * 70}")
-        print(f"# 自动教学会话开始")
+        print("# 自动教学会话开始")
         print(f"{'#' * 70}")
         print(f"  主题: {topic}")
         print(f"  模式: {mode_cn}")
@@ -133,7 +133,7 @@ class SessionOrchestrator:
         lecture_content = self.teacher_agent.deliver_lecture()
 
         # 实时输出讲授内容
-        print(f"\n👨‍🏫 教师讲授:")
+        print("\n👨‍🏫 教师讲授:")
         print("-" * 70)
         print(f"  {lecture_content}")
         print("-" * 70)
@@ -166,7 +166,7 @@ class SessionOrchestrator:
         question_content = self.teacher_agent.ask_checkpoint_question()
 
         # 实时输出提问内容
-        print(f"\n❓ 教师提问:")
+        print("\n❓ 教师提问:")
         print("-" * 70)
         print(f"  {question_content}")
         print("-" * 70)
@@ -264,7 +264,7 @@ class SessionOrchestrator:
         homework_content = self.teacher_agent.assign_homework()
 
         # 实时输出作业内容
-        print(f"\n👨‍🏫 教师布置作业:")
+        print("\n👨‍🏫 教师布置作业:")
         print("-" * 70)
         print(f"  {homework_content}")
         print("-" * 70)

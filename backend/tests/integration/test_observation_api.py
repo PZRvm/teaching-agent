@@ -43,7 +43,9 @@ def test_start_observation_missing_topic():
 
     payload = {
         "teaching_mode": "heuristic",
-        "students": [{"name": "Student1", "level": "average", "attitude": "neutral", "learning_ability": 5}],
+        "students": [
+            {"name": "Student1", "level": "average", "attitude": "neutral", "learning_ability": 5}
+        ],
     }
     response = client.post("/observation/start", json=payload)
     assert response.status_code == 422
