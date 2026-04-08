@@ -4,7 +4,6 @@ type RoughCardProps = {
   variant?: 'blue' | 'green' | 'pink' | 'yellow' | 'white'
   rotation?: number
   tape?: 'top-left' | 'top-right' | 'none'
-  hover?: boolean
   className?: string
   children: React.ReactNode
 }

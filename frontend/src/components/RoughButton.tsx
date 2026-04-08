@@ -13,8 +13,8 @@ export default function RoughButton({
 }: RoughButtonProps) {
   return (
     <Wrapper
-      type="button"
       {...rest}
+      type="button"
       className={[`rough-button rough-button-${variant}`, className]
         .filter(Boolean)
         .join(' ')}
@@ -34,6 +34,11 @@ const Wrapper = styled.button`
   cursor: pointer;
   transition: transform 0.1s ease, box-shadow 0.1s ease;
   font-family: 'Plus Jakarta Sans', system-ui, sans-serif;
+
+  &:focus-visible {
+    outline: 2px dashed #1a1a1a;
+    outline-offset: 2px;
+  }
 
   &.rough-button-primary {
     background: #2e5cff;

@@ -71,8 +71,8 @@ export default function LandingPage() {
           <article className="mode-card observation" aria-label="观察模式">
             <div className="tape tape-left" aria-hidden="true" />
             <div className="card-content">
-              <span className="card-icon" aria-hidden="true">
-                👁️
+              <span className="card-icon material-symbols-outlined" aria-hidden="true">
+                visibility
               </span>
               <h2 className="card-title">观察模式</h2>
               <p className="card-description">
@@ -97,8 +97,8 @@ export default function LandingPage() {
               <span className="material-symbols-outlined star-icon">grade</span>
             </div>
             <div className="card-content">
-              <span className="card-icon" aria-hidden="true">
-                👨‍🏫
+              <span className="card-icon material-symbols-outlined" aria-hidden="true">
+                school
               </span>
               <h2 className="card-title">教师模式</h2>
               <p className="card-description">
@@ -241,6 +241,11 @@ const Wrapper = styled.div`
     justify-content: center;
     padding: 4px;
     transition: transform 0.2s ease;
+
+    &:focus-visible {
+      outline: 2px dashed #1a1a1a;
+      outline-offset: 2px;
+    }
 
     &:hover {
       transform: scale(1.1);
@@ -394,22 +399,21 @@ const Wrapper = styled.div`
   .card-icon {
     font-size: 48px;
     display: block;
-    margin-bottom: 16px;
   }
 
   .card-title {
     font-family: 'Plus Jakarta Sans', system-ui, sans-serif;
     font-size: 32px;
     font-weight: 800;
+    margin: 8px 0;
     color: #171717;
-    margin-bottom: 16px;
   }
 
   .card-description {
     font-size: 18px;
     color: #404040;
     line-height: 1.625;
-    margin-bottom: 32px;
+    margin: 8px 0 16px;
   }
 
   .card-button {
@@ -453,6 +457,7 @@ const Wrapper = styled.div`
     opacity: 0.2;
     pointer-events: none;
     z-index: -10;
+    isolation: isolate;
   }
 
   .bg-decoration-left {
