@@ -1,7 +1,10 @@
 import styled from 'styled-components'
+import { useNavigate } from 'react-router-dom'
 import RoughButton from '../components/RoughButton'
 
 export default function LandingPage() {
+  const navigate = useNavigate()
+
   return (
     <Wrapper>
       {/* 导航栏 */}
@@ -12,7 +15,7 @@ export default function LandingPage() {
           <span className="brand-subtitle">教学智能体</span>
         </div>
         <div className="top-nav-right">
-          <button className="nav-icon" aria-label="教学历史">
+          <button className="nav-icon" aria-label="教学历史" onClick={() => navigate('/history')}>
             <span className="material-symbols-outlined">history</span>
           </button>
           <button className="nav-icon" aria-label="设置">
@@ -75,7 +78,7 @@ export default function LandingPage() {
               <p className="card-description">
                 进入旁观席位，观察多个AI智能体在模拟课堂中的实时互动、逻辑推演与反馈循环。深入剖析Agent间的协同机制与知识传递路径。
               </p>
-              <RoughButton variant="primary" className="card-button">
+              <RoughButton variant="primary" className="card-button" onClick={() => navigate('/observation/config')}>
                 开始观察 →
               </RoughButton>
             </div>
@@ -101,7 +104,7 @@ export default function LandingPage() {
               <p className="card-description">
                 扮演引导者角色，直接参与教学模拟。设定教学目标，干预Agent学习进程，并在高保真模拟环境中验证您的教学策略与课程设计。
               </p>
-              <RoughButton variant="teacher" className="card-button">
+              <RoughButton variant="teacher" className="card-button" onClick={() => navigate('/teacher/config')}>
                 开始教学 →
               </RoughButton>
             </div>

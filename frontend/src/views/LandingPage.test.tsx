@@ -1,9 +1,25 @@
-import { describe, expect, it } from 'vitest'
+import { describe, expect, it, beforeEach, vi } from 'vitest'
 import { render, screen } from '@testing-library/react'
+import userEvent from '@testing-library/user-event'
 import { MemoryRouter } from 'react-router-dom'
 import LandingPage from './LandingPage'
 
+const mockNavigate = vi.fn()
+
+vi.mock('react-router-dom', async () => {
+  const actual = await vi.importActual<typeof import('react-router-dom')>(
+    'react-router-dom',
+  )
+  return {
+    ...actual,
+    useNavigate: () => mockNavigate,
+  }
+})
+
 describe('LandingPage', () => {
+  beforeEach(() => {
+    mockNavigate.mockClear()
+  })
   it('renders title, subtitle and both mode cards', () => {
     render(
       <MemoryRouter>
@@ -39,5 +55,38 @@ describe('LandingPage', () => {
         return element?.tagName === 'P' && /技术栈/.test(element.textContent ?? '')
       }),
     ).toBeInTheDocument()
+  })
+
+  it('navigates to observation config when clicking 开始观察', async () => {
+    const user = userEvent.setup()
+    render(
+      <MemoryRouter>
+        <LandingPage />
+      </MemoryRouter>,
+    )
+    await user.click(screen.getByRole('button', { name: '开始观察 →' }))
+    expect(mockNavigate).toHaveBeenCalledWith('/observation/config')
+  })
+
+  it('navigates to teacher config when clicking 开始教学', async () => {
+    const user = userEvent.setup()
+    render(
+      <MemoryRouter>
+        <LandingPage />
+      </MemoryRouter>,
+    )
+    await user.click(screen.getByRole('button', { name: '开始教学 →' }))
+    expect(mockNavigate).toHaveBeenCalledWith('/teacher/config')
+  })
+
+  it('navigates to history page when clicking history icon', async () => {
+    const user = userEvent.setup()
+    render(
+      <MemoryRouter>
+        <LandingPage />
+      </MemoryRouter>,
+    )
+    await user.click(screen.getByLabelText('教学历史'))
+    expect(mockNavigate).toHaveBeenCalledWith('/history')
   })
 })
