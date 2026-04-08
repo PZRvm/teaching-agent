@@ -292,6 +292,13 @@ async def websocket_session(websocket: WebSocket, session_id: int):
             elif msg_type in _TEACHER_COMMAND_HANDLERS:
                 # 路由到命令处理器
                 await _handle_command(websocket, session_id, data)
+            elif msg_type:
+                # 未知命令类型
+                await websocket.send_json({
+                    "type": "error",
+                    "message": f"Unknown command: {msg_type}",
+                    "session_id": session_id,
+                })
 
     except WebSocketDisconnect:
         logger.info("WebSocket 客户端断开 (session_id=%d)", session_id)
