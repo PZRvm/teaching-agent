@@ -290,6 +290,46 @@ WS /ws/sessions/{session_id}
 }
 ```
 
+**客户端 → 服务端命令（教师模式）:**
+
+| 命令类型 | type 字段 | 必填字段 | 说明 |
+|---------|-----------|---------|------|
+| 广播讲授 | `broadcast_lecture` | `content` | 教师广播讲授内容 |
+| 全体提问 | `ask_to_all` | `question` | 向全体学生提问，LLM 生成回答 |
+| 指定提问 | `ask_to_student` | `question`, `student_name` | 向指定学生提问 |
+| 教师回复 | `teacher_reply` | `reply`, `student_name` | 教师回复学生 |
+| 推进检查点 | `advance_checkpoint` | — | 手动推进到下一个检查点 |
+| 结束对话 | `end_dialogue` | — | 结束当前对话，触发旁听学习 |
+| 布置作业 | `assign_homework` | `content` | 教师布置作业 |
+| 收集作业 | `collect_homework` | `homework_prompt` | 收集学生作业 |
+| 结束教学 | `end_teaching` | — | 结束教学，收集反馈 |
+
+**命令响应格式:**
+```json
+{
+  "type": "command_result",
+  "command": "broadcast_lecture",
+  "success": true,
+  "session_id": 1,
+  "data": {}
+}
+```
+
+**错误响应格式:**
+```json
+{
+  "type": "error",
+  "message": "Session 1 not found",
+  "session_id": 1
+}
+```
+
+**观察模式启动流程:**
+
+1. `POST /observation/start` → 创建 DB 记录 → 初始化 LLM/Agents → 生成检查点计划 → 创建 SessionOrchestrator → 注册到 SessionRegistry → 后台运行 `run_autonomous_session()`
+2. 前端通过 `/ws/sessions/{session_id}` 连接 → 实时接收教学消息和检查点状态
+3. 会话结束后 orchestrator 自动从 SessionRegistry 注销
+
 ---
 
 ## 会话管理 API

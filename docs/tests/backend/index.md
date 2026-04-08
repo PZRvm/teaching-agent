@@ -27,6 +27,7 @@ backend/tests/
 │   ├── test_orchestrator_ws_push.py # SessionOrchestrator WebSocket 推送测试
 │   ├── test_schemas.py       # Pydantic schema 验证测试
 │   ├── test_session_registry.py     # SessionRegistry 会话注册表测试
+│   ├── test_ws_command_router.py    # WebSocket 命令 schema 和路由测试
 │   ├── test_settings.py      # 配置加载测试
 │   ├── test_student_*.py     # 学生相关测试 (2 个文件)
 │   ├── test_teacher_agent.py # TeacherAgent 单元测试
@@ -943,7 +944,7 @@ pytest tests/units/test_connection_manager.py -v
 
 ### test_session_registry.py - SessionRegistry 会话注册表测试
 
-**测试类**: `TestSessionRegistry` (4 个测试)
+**测试类**: `TestSessionRegistry` (4 个测试), `TestSessionRegistryTypes` (6 个测试)
 
 SessionRegistry 映射 session_id 到运行中的 SessionOrchestrator 或 TeacherSessionController 实例。
 
@@ -953,10 +954,60 @@ SessionRegistry 映射 session_id 到运行中的 SessionOrchestrator 或 Teache
 | `test_register_and_get_controller` | 注册并获取教师模式 controller |
 | `test_get_nonexistent_session` | 获取不存在的 session 返回 None |
 | `test_unregister` | 注销 session |
+| `test_get_orchestrator_none_for_teacher_session` | 教师模式 get_orchestrator 返回 None |
+| `test_get_controller_none_for_observation_session` | 观察模式 get_controller 返回 None |
+| `test_get_session_info_observation` | 观察模式 get_session_info 返回 mode='observation' |
+| `test_get_session_info_teacher` | 教师模式 get_session_info 返回 mode='teacher' |
+| `test_get_session_info_not_found` | 不存在的 session get_session_info 返回 None |
+| `test_unregister_clears_session_modes` | 注销后 get_session_info 返回 None |
 
 **运行命令**:
 ```bash
 pytest tests/units/test_session_registry.py -v
+```
+
+### test_ws_command_router.py - WebSocket 命令 schema 和路由测试
+
+**测试类**: `TestWsCommandSchemas` (13 个测试), `TestWsCommandRouter` (10 个测试)
+
+测试 WebSocket 命令的 Pydantic schema 验证和命令路由到 controller 的逻辑。
+
+**TestWsCommandSchemas** — 命令 schema 验证:
+
+| 测试名称 | 验证内容 |
+|---------|---------|
+| `test_broadcast_lecture_command_valid` | 合法的 broadcast_lecture 命令 |
+| `test_broadcast_lecture_command_missing_content` | 缺少 content 字段报错 |
+| `test_ask_to_all_command_valid` | 合法的 ask_to_all 命令 |
+| `test_ask_to_all_command_missing_question` | 缺少 question 字段报错 |
+| `test_ask_to_student_command_valid` | 合法的 ask_to_student 命令 |
+| `test_ask_to_student_command_missing_fields` | 缺少 student_name 字段报错 |
+| `test_teacher_reply_command_valid` | 合法的 teacher_reply 命令 |
+| `test_advance_checkpoint_command_valid` | 合法的 advance_checkpoint 命令 |
+| `test_end_dialogue_command_valid` | 合法的 end_dialogue 命令 |
+| `test_assign_homework_command_valid` | 合法的 assign_homework 命令 |
+| `test_collect_homework_command_valid` | 合法的 collect_homework 命令 |
+| `test_end_teaching_command_valid` | 合法的 end_teaching 命令 |
+| `test_unknown_command_type_rejected` | 未知命令类型报错 |
+
+**TestWsCommandRouter** — 命令路由测试:
+
+| 测试名称 | 验证内容 |
+|---------|---------|
+| `test_broadcast_lecture_routes_to_controller` | broadcast_lecture 路由到 controller |
+| `test_ask_to_all_routes_to_controller` | ask_to_all 路由到 controller |
+| `test_unknown_command_returns_error` | 未知命令返回 error |
+| `test_no_session_returns_error` | session 不存在返回 error |
+| `test_advance_checkpoint_routes_to_controller` | advance_checkpoint 路由到 controller |
+| `test_command_result_pushed_via_websocket` | 命令结果通过 WebSocket 推送 |
+| `test_end_dialogue_routes_to_controller` | end_dialogue 路由到 controller |
+| `test_assign_homework_routes_to_controller` | assign_homework 路由到 controller |
+| `test_collect_homework_routes_to_controller` | collect_homework 路由到 controller |
+| `test_end_teaching_routes_to_controller` | end_teaching 路由到 controller |
+
+**运行命令**:
+```bash
+pytest tests/units/test_ws_command_router.py -v
 ```
 
 ### test_orchestrator_ws_push.py - SessionOrchestrator WebSocket 推送测试
@@ -1135,16 +1186,19 @@ pytest tests/integration/test_teacher_controller_full_classroom.py -v
 
 ### test_websocket.py - WebSocket 端点集成测试
 
-**测试类**: `TestWebSocketConnection` (4 个测试)
+**测试类**: `TestWebSocketConnection` (3 个测试), `TestWebSocketCommandIntegration` (4 个测试)
 
-测试 WebSocket 端点 `/ws/sessions/{session_id}` 的连接建立、心跳、断连处理。
+测试 WebSocket 端点 `/ws/sessions/{session_id}` 的连接建立、心跳、命令路由。
 
 | 测试名称 | 验证内容 |
 |---------|---------|
 | `test_websocket_connect_and_receive_connected_event` | 连接后收到 connected 事件 |
 | `test_websocket_ping_pong` | ping/pong 心跳机制 |
 | `test_websocket_disconnect_handling` | 客户端断开时服务端不崩溃 |
-| `test_websocket_unknown_message_type_ignored` | 未知消息类型被忽略，不断开连接 |
+| `test_broadcast_lecture_command_via_websocket` | broadcast_lecture 命令路由到 controller |
+| `test_unknown_command_returns_error_via_websocket` | 未知命令返回 error |
+| `test_command_to_nonexistent_session_returns_error` | 未注册 session 返回 error |
+| `test_observation_mode_rejects_commands` | 观察模式拒绝教师命令 |
 
 **运行命令**:
 ```bash
@@ -1169,7 +1223,7 @@ pytest tests/integration/test_session_api.py -v
 
 ### test_observation_api.py - 观察模式 API 集成测试
 
-**测试**: 3 个函数测试
+**测试**: 3 个函数测试, 1 个异步测试类 `TestObservationApiRegistration`
 
 测试观察模式启动 API 端点 `POST /observation/start`。
 
@@ -1178,6 +1232,7 @@ pytest tests/integration/test_session_api.py -v
 | `test_start_observation_creates_session` | 启动观察模式创建 teaching_session 记录 |
 | `test_start_observation_missing_topic` | 缺少 topic 参数返回 422 |
 | `test_start_observation_empty_students` | 空学生列表返回 422 |
+| `test_start_observation_registers_orchestrator` | 完整初始化流程并注册到 SessionRegistry |
 
 **运行命令**:
 ```bash
