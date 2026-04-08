@@ -60,15 +60,6 @@ const Wrapper = styled.button`
     font-size: 24px;
   }
 
-  &.rough-button-icon:hover {
-    box-shadow: none;
-    transform: scale(1.1);
-  }
-
-  &.rough-button-icon:active {
-    transform: scale(1);
-  }
-
   &:hover {
     box-shadow: 6px 6px 0px 0px #1a1a1a;
     transform: translate(-2px, -2px);
@@ -77,5 +68,14 @@ const Wrapper = styled.button`
   &:active {
     transform: scale(0.96);
     box-shadow: 2px 2px 0px 0px #1a1a1a;
+  }
+
+  &.rough-button-icon:hover {
+    box-shadow: none;
+    transform: scale(1.1);
+  }
+
+  &.rough-button-icon:active {
+    transform: scale(1);
   }
 `

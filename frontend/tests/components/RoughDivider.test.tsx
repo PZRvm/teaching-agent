@@ -1,6 +1,6 @@
 import { render } from '@testing-library/react'
 import { describe, it, expect } from 'vitest'
-import RoughDivider from './RoughDivider'
+import RoughDivider from '../../src/components/RoughDivider'
 
 describe('RoughDivider', () => {
   it('renders a div element', () => {

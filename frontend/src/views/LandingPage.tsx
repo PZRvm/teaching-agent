@@ -18,10 +18,10 @@ export default function LandingPage() {
           <button className="nav-icon" aria-label="教学历史" onClick={() => navigate('/history')}>
             <span className="material-symbols-outlined">history</span>
           </button>
-          <button className="nav-icon" aria-label="设置">
+          <button className="nav-icon" aria-label="设置" disabled>
             <span className="material-symbols-outlined">settings</span>
           </button>
-          <div className="nav-avatar sketch-shadow" />
+          <div className="nav-avatar sketch-shadow" role="img" aria-label="用户头像" />
         </div>
       </nav>
 
@@ -169,7 +169,7 @@ export default function LandingPage() {
 }
 
 const Wrapper = styled.div`
-  min-height: 100vh;
+  min-height: 100dvh;
   width: 100%;
   background: #f9f9f9;
   color: #1a1c1c;
@@ -203,7 +203,7 @@ const Wrapper = styled.div`
 
   .brand-name {
     font-family: 'Plus Jakarta Sans', system-ui, sans-serif;
-    font-weight: 900;
+    font-weight: 800;
     font-size: 24px;
     color: #1a1c1c;
     text-decoration: underline wavy #2e5cff;
@@ -267,7 +267,6 @@ const Wrapper = styled.div`
     max-width: 1152px;
     margin: 0 auto;
     padding: 64px 24px;
-    min-height: calc(100vh - 80px);
     display: flex;
     flex-direction: column;
     align-items: center;
@@ -284,14 +283,14 @@ const Wrapper = styled.div`
     display: inline-block;
     font-family: 'Plus Jakarta Sans', system-ui, sans-serif;
     font-size: 48px;
-    font-weight: 900;
+    font-weight: 800;
     margin-bottom: 16px;
     color: #1a1c1c;
   }
 
   .hero-underline {
     position: absolute;
-    bottom: -8px;
+    bottom: -16px;
     left: 0;
     width: 100%;
     height: 16px;
@@ -335,7 +334,7 @@ const Wrapper = styled.div`
     border: 3px solid #1a1a1a;
     box-shadow: 4px 4px 0px 0px #1a1a1a;
     padding: 40px;
-    transition: all 0.3s ease;
+    transition: transform 0.3s ease, box-shadow 0.3s ease;
 
     &:hover {
       box-shadow: 8px 8px 0px 0px #1a1a1a;
@@ -401,7 +400,7 @@ const Wrapper = styled.div`
   .card-title {
     font-family: 'Plus Jakarta Sans', system-ui, sans-serif;
     font-size: 32px;
-    font-weight: 900;
+    font-weight: 800;
     color: #171717;
     margin-bottom: 16px;
   }
@@ -450,7 +449,7 @@ const Wrapper = styled.div`
 
   /* ===== 背景装饰 ===== */
   .bg-decoration {
-    position: fixed;
+    position: absolute;
     opacity: 0.2;
     pointer-events: none;
     z-index: -10;

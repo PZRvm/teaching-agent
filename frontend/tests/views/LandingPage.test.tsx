@@ -2,7 +2,7 @@ import { describe, expect, it, beforeEach, vi } from 'vitest'
 import { render, screen } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { MemoryRouter } from 'react-router-dom'
-import LandingPage from './LandingPage'
+import LandingPage from '../../src/views/LandingPage'
 
 const mockNavigate = vi.fn()
 
