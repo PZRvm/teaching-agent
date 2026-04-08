@@ -1,0 +1,375 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Rough Design Examples</title>
+    <link href="./fonts/fonts.css" rel="stylesheet">
+    <style>
+        /* CSS Variables for consistency */
+        :root {
+            --primary: #0041e0;
+            --secondary: #b7102a;
+            --tertiary: #006247;
+            --neutral-900: #1A1A1A;
+            --neutral-600: #525252;
+            --neutral-300: #d4d4d4;
+
+            --sticky-yellow: #FFF9C4;
+            --sticky-blue: #E3F2FD;
+            --sticky-green: #E8F5E9;
+            --sticky-pink: #FCE4EC;
+
+            --paper-white: #fafafa;
+        }
+
+        /* Reset */
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Be Vietnam Pro', sans-serif;
+            background: var(--paper-white);
+            color: var(--neutral-900);
+            line-height: 1.6;
+            padding: 40px 20px;
+        }
+
+        h1, h2, h3 {
+            font-family: 'Plus Jakarta Sans', sans-serif;
+        }
+
+        /* ========================================
+           ROUGH CARD COMPONENT
+           ======================================== */
+        .rough-card {
+            position: relative;
+            background: var(--sticky-blue);
+            border: 3px solid var(--neutral-900);
+            padding: 40px;
+            box-shadow: 4px 4px 0px 0px var(--neutral-900);
+            transform: rotate(-0.5deg);
+            transition: all 0.3s ease;
+            max-width: 400px;
+            margin: 20px auto;
+        }
+
+        .rough-card:hover {
+            box-shadow: 8px 8px 0px 0px var(--neutral-900);
+            transform: rotate(-0.5deg) translate(-4px, -4px);
+        }
+
+        /* Tape effect */
+        .tape {
+            position: absolute;
+            top: -16px;
+            left: -8px;
+            width: 64px;
+            height: 32px;
+            background: rgba(227, 242, 253, 0.6);
+            backdrop-filter: blur(1px);
+            transform: rotate(-15deg);
+            border-left: 1px solid rgba(0,0,0,0.1);
+            border-right: 1px solid rgba(0,0,0,0.1);
+        }
+
+        /* Card emoji */
+        .card-emoji {
+            font-size: 48px;
+            display: block;
+            margin-bottom: 16px;
+        }
+
+        /* Card title */
+        .card-title {
+            font-size: 32px;
+            font-weight: 800;
+            margin-bottom: 16px;
+            color: var(--neutral-900);
+        }
+
+        /* Card description */
+        .card-description {
+            font-size: 18px;
+            color: var(--neutral-600);
+            margin-bottom: 24px;
+            line-height: 1.6;
+        }
+
+        /* ========================================
+           ROUGH BUTTON COMPONENT
+           ======================================== */
+        .rough-button {
+            background: var(--primary);
+            color: white;
+            padding: 12px 32px;
+            border: 2px solid var(--neutral-900);
+            border-radius: 8px;
+            font-weight: 700;
+            font-size: 18px;
+            font-family: 'Plus Jakarta Sans', sans-serif;
+            box-shadow: 4px 4px 0px 0px var(--neutral-900);
+            cursor: pointer;
+            transition: transform 0.1s ease, box-shadow 0.3s ease;
+            display: inline-block;
+        }
+
+        .rough-button:hover {
+            box-shadow: 6px 6px 0px 0px var(--neutral-900);
+            transform: translate(-2px, -2px);
+        }
+
+        .rough-button:active {
+            transform: scale(0.95);
+            box-shadow: 2px 2px 0px 0px var(--neutral-900);
+        }
+
+        /* ========================================
+           ROUGH INPUT COMPONENT
+           ======================================== */
+        .rough-input {
+            background: white;
+            border: 3px solid var(--neutral-900);
+            padding: 12px 16px;
+            font-size: 16px;
+            font-family: 'Be Vietnam Pro', sans-serif;
+            box-shadow: 2px 2px 0px 0px var(--neutral-900);
+            outline: none;
+            transition: box-shadow 0.2s ease;
+            width: 100%;
+            max-width: 300px;
+            margin-bottom: 16px;
+        }
+
+        .rough-input:focus {
+            box-shadow: 4px 4px 0px 0px var(--primary);
+        }
+
+        .rough-input::placeholder {
+            color: var(--neutral-300);
+        }
+
+        /* ========================================
+           ROUGH FORM COMPONENT
+           ======================================== */
+        .rough-form {
+            background: var(--sticky-yellow);
+            border: 3px solid var(--neutral-900);
+            padding: 40px;
+            box-shadow: 4px 4px 0px 0px var(--neutral-900);
+            transform: rotate(0.5deg);
+            max-width: 400px;
+            margin: 40px auto;
+        }
+
+        .form-title {
+            font-size: 28px;
+            font-weight: 800;
+            margin-bottom: 24px;
+            text-align: center;
+        }
+
+        .form-group {
+            margin-bottom: 20px;
+        }
+
+        .form-label {
+            display: block;
+            font-weight: 600;
+            margin-bottom: 8px;
+        }
+
+        /* ========================================
+           DECORATIONS
+           ======================================== */
+        .rough-decoration {
+            position: absolute;
+            bottom: 16px;
+            right: 16px;
+            font-size: 48px;
+            opacity: 0.1;
+            transition: opacity 0.3s ease;
+            pointer-events: none;
+        }
+
+        .rough-card:hover .rough-decoration {
+            opacity: 0.2;
+        }
+
+        /* Container */
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+
+        .section {
+            margin-bottom: 60px;
+        }
+
+        .section-title {
+            font-size: 36px;
+            font-weight: 800;
+            text-align: center;
+            margin-bottom: 40px;
+            position: relative;
+            display: inline-block;
+            left: 50%;
+            transform: translateX(-50%);
+        }
+
+        /* Hand-drawn underline */
+        .hand-drawn-underline {
+            position: relative;
+        }
+
+        .hand-drawn-underline::after {
+            content: '';
+            position: absolute;
+            bottom: -8px;
+            left: 0;
+            width: 100%;
+            height: 8px;
+            background: url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 20"><path d="M0 10 Q 25 0, 50 10 T 100 10" fill="none" stroke="%230041e0" stroke-linecap="round" stroke-width="4"/></svg>') no-repeat;
+            background-size: 100% 100%;
+        }
+
+        /* Grid for multiple cards */
+        .card-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 40px;
+            margin-top: 40px;
+        }
+
+        /* Different colored cards */
+        .rough-card.green {
+            background: var(--sticky-green);
+            transform: rotate(0.5deg);
+        }
+
+        .rough-card.pink {
+            background: var(--sticky-pink);
+            transform: rotate(-0.3deg);
+        }
+
+        /* Wobbly border effect */
+        .wobbly {
+            clip-path: polygon(0% 2%, 100% 0%, 98% 100%, 2% 98%);
+        }
+
+        /* Badge/tag */
+        .rough-badge {
+            display: inline-block;
+            padding: 4px 12px;
+            background: var(--sticky-pink);
+            border: 2px solid var(--neutral-900);
+            font-size: 12px;
+            font-weight: 700;
+            transform: rotate(2deg);
+            box-shadow: 2px 2px 0px 0px var(--neutral-900);
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1 class="section-title hand-drawn-underline">Rough Design Examples</h1>
+
+        <!-- Section 1: Cards -->
+        <section class="section">
+            <h2 class="section-title">Hand-Drawn Cards</h2>
+            <div class="card-grid">
+                <!-- Card 1: Blue -->
+                <div class="rough-card">
+                    <div class="tape"></div>
+                    <span class="card-emoji">👁️</span>
+                    <h3 class="card-title">观察模式</h3>
+                    <p class="card-description">
+                        进入旁观席位，观察多个AI智能体在模拟课堂中的实时互动。
+                    </p>
+                    <button class="rough-button">开始观察 →</button>
+                    <span class="rough-decoration">✨</span>
+                </div>
+
+                <!-- Card 2: Green -->
+                <div class="rough-card green">
+                    <div class="tape"></div>
+                    <span class="card-emoji">👨‍🏫</span>
+                    <h3 class="card-title">教师模式</h3>
+                    <p class="card-description">
+                        扮演引导者角色，直接参与教学模拟。
+                    </p>
+                    <button class="rough-button" style="background: var(--tertiary);">开始教学 →</button>
+                    <span class="rough-decoration">📚</span>
+                </div>
+
+                <!-- Card 3: Pink -->
+                <div class="rough-card pink">
+                    <div class="tape"></div>
+                    <span class="card-emoji">🎨</span>
+                    <h3 class="card-title">设计模式</h3>
+                    <p class="card-description">
+                        创造性地设计独特的界面风格。
+                    </p>
+                    <button class="rough-button" style="background: var(--secondary);">开始创作 →</button>
+                    <span class="rough-decoration">🎯</span>
+                </div>
+            </div>
+        </section>
+
+        <!-- Section 2: Form -->
+        <section class="section">
+            <h2 class="section-title">Hand-Drawn Form</h2>
+            <form class="rough-form">
+                <h3 class="form-title">登录</h3>
+                <div class="form-group">
+                    <label class="form-label">邮箱</label>
+                    <input type="email" class="rough-input" placeholder="your@email.com">
+                </div>
+                <div class="form-group">
+                    <label class="form-label">密码</label>
+                    <input type="password" class="rough-input" placeholder="••••••••">
+                </div>
+                <button type="submit" class="rough-button" style="width: 100%;">提交</button>
+            </form>
+        </section>
+
+        <!-- Section 3: Buttons -->
+        <section class="section">
+            <h2 class="section-title">Hand-Drawn Buttons</h2>
+            <div style="display: flex; gap: 16px; justify-content: center; flex-wrap: wrap;">
+                <button class="rough-button">主要按钮</button>
+                <button class="rough-button" style="background: var(--secondary);">次要按钮</button>
+                <button class="rough-button" style="background: var(--tertiary);">成功按钮</button>
+                <button class="rough-button" style="background: var(--neutral-600);">禁用按钮</button>
+            </div>
+        </section>
+
+        <!-- Section 4: Badges -->
+        <section class="section">
+            <h2 class="section-title">Hand-Drawn Badges</h2>
+            <div style="display: flex; gap: 16px; justify-content: center; flex-wrap: wrap;">
+                <span class="rough-badge">BETA v0.8.2</span>
+                <span class="rough-badge" style="background: var(--sticky-yellow); transform: rotate(-1deg);">AI SIMULATION</span>
+                <span class="rough-badge" style="background: var(--sticky-blue); transform: rotate(1deg);">NEW</span>
+                <span class="rough-badge" style="background: var(--sticky-green); transform: rotate(-2deg);">FEATURED</span>
+            </div>
+        </section>
+
+        <!-- Section 5: Wobbly Border -->
+        <section class="section">
+            <h2 class="section-title">Wobbly Border Effect</h2>
+            <div class="rough-card wobbly" style="max-width: 500px;">
+                <span class="card-emoji">📝</span>
+                <h3 class="card-title">不规则边框</h3>
+                <p class="card-description">
+                    使用 clip-path 创造手绘的不规则边框效果，
+                    让组件看起来更像手工绘制的。
+                </p>
+            </div>
+        </section>
+    </div>
+</body>
+</html>

@@ -226,11 +226,17 @@ pytest tests/ -k "student_memory" -v
 # Show print statements
 pytest tests/ -v -s
 
-# Run only unit tests
+# Run only unit tests (no LLM, no network)
 pytest tests/units/ -v
 
-# Run only integration tests
+# Run only integration tests (no LLM, may touch database/websocket)
 pytest tests/integration/ -v
+
+# Run unit tests that depend on mock LLM
+pytest tests/unit_llm/ -v
+
+# Run integration tests that call real LLM
+pytest tests/integration_llm/ -v -s
 
 # Run tests with coverage
 pytest tests/ --cov=agents --cov=models --cov-report=html
@@ -239,13 +245,17 @@ pytest tests/ --cov=agents --cov=models --cov-report=html
 **Test Organization**:
 ```
 backend/tests/
-├── units/              # Unit tests (fast, no external dependencies)
+├── units/              # 纯单元测试（无需 LLM、无需网络）
 │   ├── test_memory_manager.py
 │   ├── test_checkpoint_*.py
 │   └── test_teacher_controller.py
-├── integration/        # Integration tests (real LLM, database)
+├── integration/        # 纯后端集成测试（数据库、WebSocket 等，但不直接调用真实 LLM）
 │   ├── test_session_orchestrator_full.py
 │   └── test_teacher_controller_real.py
+├── unit_llm/           # 带 LLM 的单元测试（使用 mock LLM，完全离线、可快速运行）
+│   └── test_xxx_llm_*.py
+├── integration_llm/    # 带真实 LLM 的集成测试（需要网络和 API Key，运行代价高）
+│   └── test_xxx_llm_*.py
 └── conftest.py         # Shared fixtures (test_engine, db_session, load .env)
 ```
 
@@ -615,10 +625,10 @@ ruff format models/feature/
 2. **Mock External Dependencies**: Unit tests use Mock for LLM, database, etc.
    - Integration tests use real dependencies for end-to-end validation
 
-3. **Commit Messages**: Follow conventional commit format
+3. **Commit Messages**: Follow conventional commit format，并且**提交描述部分必须使用中文**
    - Format: `<type>(<scope>): <description>`
    - Types: `feat`, `fix`, `refactor`, `test`, `chore`
-   - Example: `feat(teacher-controller): add handle_broadcast_lecture method`
+   - Example: `feat(teacher-controller): 新增 handle_broadcast_lecture 方法`
 
 4. **Error Path Testing**: Every method must test both happy path and error paths
    - Don't just test that it works—test that it fails correctly too

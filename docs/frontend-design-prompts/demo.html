@@ -1,0 +1,212 @@
+<!DOCTYPE html>
+
+<html lang="zh-CN"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>SimuSketch - 教学智能体</title>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;600;700;800&amp;family=Be+Vietnam+Pro:wght@400;500;600&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<script id="tailwind-config">
+      tailwind.config = {
+        darkMode: "class",
+        theme: {
+          extend: {
+            "colors": {
+                    "outline": "#747688",
+                    "on-secondary-container": "#fffbff",
+                    "primary": "#0041e0",
+                    "inverse-on-surface": "#f0f1f1",
+                    "surface-container-highest": "#e2e2e2",
+                    "on-tertiary-container": "#beffe1",
+                    "primary-fixed": "#dde1ff",
+                    "outline-variant": "#c4c5d9",
+                    "secondary-container": "#db313f",
+                    "surface-bright": "#f9f9f9",
+                    "error-container": "#ffdad6",
+                    "surface-container": "#eeeeee",
+                    "primary-container": "#2e5cff",
+                    "on-primary-container": "#f0f0ff",
+                    "on-primary-fixed": "#001355",
+                    "surface": "#f9f9f9",
+                    "secondary-fixed": "#ffdad8",
+                    "surface-dim": "#dadada",
+                    "surface-variant": "#e2e2e2",
+                    "error": "#ba1a1a",
+                    "tertiary": "#006247",
+                    "on-background": "#1a1c1c",
+                    "tertiary-fixed": "#54fdc4",
+                    "inverse-primary": "#b8c3ff",
+                    "surface-container-lowest": "#ffffff",
+                    "on-primary-fixed-variant": "#0035bd",
+                    "on-tertiary-fixed-variant": "#00513b",
+                    "surface-container-low": "#f3f3f3",
+                    "tertiary-fixed-dim": "#27e0a9",
+                    "on-secondary": "#ffffff",
+                    "on-surface": "#1a1c1c",
+                    "primary-fixed-dim": "#b8c3ff",
+                    "on-secondary-fixed-variant": "#92001c",
+                    "secondary": "#b7102a",
+                    "tertiary-container": "#007d5c",
+                    "on-error-container": "#93000a",
+                    "on-surface-variant": "#434656",
+                    "inverse-surface": "#2f3131",
+                    "surface-container-high": "#e8e8e8",
+                    "background": "#f9f9f9",
+                    "surface-tint": "#104aef",
+                    "on-tertiary": "#ffffff",
+                    "on-error": "#ffffff",
+                    "on-primary": "#ffffff",
+                    "on-secondary-fixed": "#410007",
+                    "secondary-fixed-dim": "#ffb3b1",
+                    "on-tertiary-fixed": "#002116",
+                    "sticky-yellow": "#FFF9C4",
+                    "sticky-blue": "#E3F2FD",
+                    "sticky-green": "#E8F5E9",
+                    "sticky-pink": "#FCE4EC"
+            },
+            "borderRadius": {
+                    "DEFAULT": "0.125rem",
+                    "lg": "0.25rem",
+                    "xl": "0.5rem",
+                    "full": "0.75rem"
+            },
+            "fontFamily": {
+                    "headline": ["Plus Jakarta Sans"],
+                    "body": ["Be Vietnam Pro"],
+                    "label": ["Be Vietnam Pro"]
+            }
+          },
+        },
+      }
+    </script>
+<style>
+        .marker-line {
+            stroke-dasharray: 1000;
+            stroke-dashoffset: 0;
+        }
+        .wobbly-border {
+            clip-path: polygon(0% 2%, 100% 0%, 98% 100%, 2% 98%);
+        }
+        .sketch-shadow {
+            box-shadow: 4px 4px 0px 0px #1A1A1A;
+        }
+        .sketch-shadow-hover:hover {
+            box-shadow: 8px 8px 0px 0px #1A1A1A;
+        }
+        .tape-effect {
+            background: rgba(227, 242, 253, 0.6);
+            backdrop-filter: blur(1px);
+        }
+    </style>
+</head>
+<body class="bg-surface font-body text-on-surface selection:bg-primary-fixed selection:text-on-primary-fixed">
+<!-- TopNavBar -->
+<nav class="flex justify-between items-center px-6 py-4 w-full sticky top-0 z-50 bg-slate-50 dark:bg-neutral-900 border-b-2 border-neutral-900 dark:border-neutral-100 shadow-[4px_4px_0px_0px_rgba(26,26,26,1)]">
+<div class="flex items-center gap-4">
+<span class="text-2xl font-black text-neutral-900 dark:text-white underline decoration-blue-500 decoration-wavy font-headline" style="">SimuSketch</span>
+<div class="h-6 w-[2px] bg-neutral-900 rotate-12 mx-2"></div>
+<span class="font-headline font-bold text-lg tracking-tight text-neutral-900" style="">教学智能体</span>
+</div>
+<div class="flex items-center gap-4">
+<button class="material-symbols-outlined text-on-surface hover:scale-110 transition-transform" style="">history</button>
+<button class="material-symbols-outlined text-on-surface hover:scale-110 transition-transform" style="">settings</button>
+<div class="w-10 h-10 rounded-full border-2 border-neutral-900 overflow-hidden sketch-shadow">
+<img alt="Teacher Avatar" class="" data-alt="Stylized illustrated avatar of a friendly teacher with glasses and a professional smile, hand-drawn vector style" src="https://lh3.googleusercontent.com/aida-public/AB6AXuAqfgv7X9noka3Jv9l36IUYfQHkEUnn6GHO3GcFYPcj39CJq42uRkvZwuB8U-mF8ZPxYkywv1rZ1XhxeLtFGuTcBP94wOjAwTbiCT6KInhnVMgBCniWF0XDNhqIY1tw7Hf1gJMMRh65nwSY0k3QlyaTfPRageYCKTNHO7Rf8votkFFkaNm9GY5ERVrSl9rpadaqZUNVzX6_LqFRpVb6Kmpvw_DwoedKmPmeymB105Y-zYSOFD3U7WrYtad5z9I28PAIckSgFd9oU6Y" style=""/>
+</div>
+</div>
+</nav>
+<main class="max-w-6xl mx-auto px-6 py-16 min-h-[calc(100vh-80px)] flex flex-col items-center">
+<!-- Hero Section -->
+<header class="text-center mb-20 relative">
+<h1 class="text-[48px] font-black font-headline mb-4 relative inline-block" style="">
+                教学智能体
+                <!-- Hand-drawn decoration -->
+<svg class="absolute -bottom-2 left-0 w-full h-4 text-primary" preserveaspectratio="none" viewbox="0 0 100 20">
+<path d="M0 10 Q 25 0, 50 10 T 100 10" fill="transparent" stroke="currentColor" stroke-linecap="round" stroke-width="4"></path>
+</svg>
+</h1>
+<p class="text-[24px] font-headline text-neutral-600 mt-6 flex flex-col items-center" style="">
+                多Agent教学模拟系统
+                <svg class="w-48 h-2 text-secondary mt-2" preserveaspectratio="none" viewbox="0 0 100 10">
+<path d="M0 5 L 100 5" fill="transparent" stroke="currentColor" stroke-dasharray="5 5" stroke-width="2"></path>
+</svg>
+</p>
+</header>
+<!-- Card Grid -->
+<div class="grid grid-cols-1 md:grid-cols-2 gap-12 w-full max-w-5xl">
+<!-- Left Card: Observation Mode -->
+<div class="group relative bg-sticky-blue border-[3px] border-primary p-10 sketch-shadow sketch-shadow-hover transition-all duration-300 hover:-translate-y-1 hover:-translate-x-1 rotate-[-0.5deg]">
+<!-- Tape Accent -->
+<div class="absolute -top-4 -left-2 w-16 h-8 tape-effect rotate-[-15deg] border-x border-neutral-300/30"></div>
+<div class="mb-6">
+<span class="text-[48px] block mb-4" style="">👁️</span>
+<h2 class="text-[32px] font-black font-headline text-neutral-900 mb-4" style="">观察模式</h2>
+</div>
+<p class="text-lg text-neutral-700 leading-relaxed mb-8 font-body" style="">
+                    进入旁观席位，观察多个AI智能体在模拟课堂中的实时互动、逻辑推演与反馈循环。深入剖析Agent间的协同机制与知识传递路径。
+                </p>
+<button class="bg-primary hover:bg-primary-container text-white px-8 py-3 rounded-lg border-2 border-neutral-900 font-headline font-bold text-lg flex items-center gap-2 transition-all active:scale-95 sketch-shadow" style="">
+                    开始观察 →
+                </button>
+<!-- Scribble Decoration -->
+<div class="absolute bottom-4 right-4 opacity-10 group-hover:opacity-20 transition-opacity">
+<span class="material-symbols-outlined text-6xl" style="">query_stats</span>
+</div>
+</div>
+<!-- Right Card: Teacher Mode -->
+<div class="group relative bg-sticky-green border-[3px] border-tertiary-container p-10 sketch-shadow sketch-shadow-hover transition-all duration-300 hover:-translate-y-1 hover:-translate-x-1 rotate-[1deg]">
+<!-- Tape Accent -->
+<div class="absolute -top-4 -right-2 w-16 h-8 tape-effect rotate-[15deg] border-x border-neutral-300/30"></div>
+<!-- Hand-drawn Star Decoration -->
+<div class="absolute top-4 right-4 text-tertiary-fixed-dim rotate-12">
+<span class="material-symbols-outlined text-3xl" style='font-variation-settings: "FILL" 1;'>grade</span>
+</div>
+<div class="mb-6">
+<span class="text-[48px] block mb-4" style="">👨‍🏫</span>
+<h2 class="text-[32px] font-black font-headline text-neutral-900 mb-4" style="">教师模式</h2>
+</div>
+<p class="text-lg text-neutral-700 leading-relaxed mb-8 font-body" style="">
+                    扮演引导者角色，直接参与教学模拟。设定教学目标，干预Agent学习进程，并在高保真模拟环境中验证您的教学策略与课程设计。
+                </p>
+<button class="bg-tertiary-container hover:bg-tertiary text-white px-8 py-3 rounded-lg border-2 border-neutral-900 font-headline font-bold text-lg flex items-center gap-2 transition-all active:scale-95 sketch-shadow" style="">
+                    开始教学 →
+                </button>
+<!-- Scribble Decoration -->
+<div class="absolute bottom-4 right-4 opacity-10 group-hover:opacity-20 transition-opacity">
+<span class="material-symbols-outlined text-6xl" style="">school</span>
+</div>
+</div>
+</div>
+<!-- Background Decorations -->
+<div class="fixed top-1/4 -left-12 -z-10 opacity-20 pointer-events-none">
+<svg height="200" viewbox="0 0 100 100" width="200">
+<path d="M10,50 Q30,10 50,50 T90,50" fill="none" stroke="#2E5CFF" stroke-dasharray="4 2" stroke-width="2"></path>
+</svg>
+</div>
+<div class="fixed bottom-1/4 -right-12 -z-10 opacity-20 pointer-events-none">
+<svg height="200" viewbox="0 0 100 100" width="200">
+<circle cx="50" cy="50" fill="none" r="40" stroke="#E63946" stroke-dasharray="8 4" stroke-width="2"></circle>
+</svg>
+</div>
+</main>
+<!-- Footer -->
+<footer class="w-full py-12 px-6 flex flex-col items-center gap-6">
+<!-- Hand-drawn divider -->
+<div class="w-full max-w-4xl h-[2px] bg-neutral-300 relative">
+<div class="absolute top-0 left-0 w-full h-full bg-neutral-300 transform scale-y-50 skew-x-12"></div>
+</div>
+<p class="text-sm font-medium text-outline font-body tracking-wide" style="">
+            技术栈：<span class="text-neutral-900" style="">FastAPI</span> + <span class="text-neutral-900" style="">React</span> + <span class="text-neutral-900" style="">Qwen</span> + <span class="text-neutral-900" style="">SQLite</span>
+</p>
+<div class="flex gap-4">
+<div class="px-3 py-1 bg-sticky-pink border border-neutral-900 rotate-2 text-xs font-bold sketch-shadow" style="">
+                BETA v0.8.2
+            </div>
+<div class="px-3 py-1 bg-sticky-yellow border border-neutral-900 -rotate-1 text-xs font-bold sketch-shadow" style="">
+                AI SIMULATION
+            </div>
+</div>
+</footer>
+</body></html>

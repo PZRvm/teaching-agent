@@ -1,0 +1,316 @@
+/**
+ * Rough Design Utilities
+ *
+ * Reusable CSS classes for hand-drawn, sketch-style interfaces.
+ * Copy these classes into your project or use as reference.
+ */
+
+/* ========================================
+   SHADOWS
+   ======================================== */
+
+.sketch-shadow {
+  box-shadow: 4px 4px 0px 0px #1A1A1A;
+}
+
+.sketch-shadow-hover:hover {
+  box-shadow: 8px 8px 0px 0px #1A1A1A;
+}
+
+.sketch-shadow-lg {
+  box-shadow: 6px 6px 0px 0px #1A1A1A;
+}
+
+.sketch-shadow-sm {
+  box-shadow: 2px 2px 0px 0px #1A1A1A;
+}
+
+/* ========================================
+   BORDERS
+   ======================================== */
+
+.rough-border {
+  border: 3px solid #1A1A1A;
+}
+
+.rough-border-thick {
+  border: 4px solid #1A1A1A;
+}
+
+.rough-border-thin {
+  border: 2px solid #1A1A1A;
+}
+
+/* Wobbly border - creates hand-drawn irregular shape */
+.wobbly-border {
+  clip-path: polygon(0% 2%, 100% 0%, 98% 100%, 2% 98%);
+}
+
+/* More extreme wobble */
+.wobbly-border-extreme {
+  clip-path: polygon(
+    0% 3%, 15% 0%, 30% 2%, 50% 0%,
+    70% 1%, 85% 0%, 100% 3%, 98% 97%,
+    85% 100%, 70% 98%, 50% 100%, 30% 99%,
+    15% 100%, 2% 98%, 0% 95%
+  );
+}
+
+/* ========================================
+   IMPERFECTION (Rotation/Skew)
+   ======================================== */
+
+.rotate-imperfect-1 {
+  transform: rotate(-0.5deg);
+}
+
+.rotate-imperfect-2 {
+  transform: rotate(0.5deg);
+}
+
+.rotate-imperfect-3 {
+  transform: rotate(-1deg);
+}
+
+.rotate-imperfect-4 {
+  transform: rotate(1deg);
+}
+
+.skew-imperfect {
+  transform: skew(-2deg);
+}
+
+/* ========================================
+   TAPE EFFECT
+   ======================================== */
+
+.tape-effect {
+  background: rgba(227, 242, 253, 0.6);
+  backdrop-filter: blur(1px);
+  position: relative;
+}
+
+.tape-effect::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: linear-gradient(
+    90deg,
+    transparent 0%,
+    rgba(255,255,255,0.3) 50%,
+    transparent 100%
+  );
+  pointer-events: none;
+}
+
+/* Tape strip - for corner decorations */
+.tape-strip {
+  width: 64px;
+  height: 32px;
+  background: rgba(227, 242, 253, 0.6);
+  backdrop-filter: blur(1px);
+  border-left: 1px solid rgba(0,0,0,0.1);
+  border-right: 1px solid rgba(0,0,0,0.1);
+}
+
+.tape-top-left {
+  position: absolute;
+  top: -16px;
+  left: -8px;
+  transform: rotate(-15deg);
+}
+
+.tape-top-right {
+  position: absolute;
+  top: -16px;
+  right: -8px;
+  transform: rotate(15deg);
+}
+
+/* ========================================
+   COLORS - Sticky Notes
+   ======================================== */
+
+.bg-sticky-yellow {
+  background-color: #FFF9C4;
+}
+
+.bg-sticky-blue {
+  background-color: #E3F2FD;
+}
+
+.bg-sticky-green {
+  background-color: #E8F5E9;
+}
+
+.bg-sticky-pink {
+  background-color: #FCE4EC;
+}
+
+.bg-paper-white {
+  background-color: #fafafa;
+}
+
+.bg-paper-warm {
+  background-color: #f5f5dc;
+}
+
+/* ========================================
+   TRANSITIONS & HOVERS
+   ======================================== */
+
+.rough-hover {
+  transition: all 0.3s ease;
+}
+
+.rough-hover:hover {
+  box-shadow: 8px 8px 0px 0px #1A1A1A;
+  transform: translate(-4px, -4px);
+}
+
+.rough-active:active {
+  transform: scale(0.95);
+}
+
+/* ========================================
+   DECORATIONS
+   ======================================== */
+
+/* Fade in decorative elements on hover */
+.rough-decoration {
+  opacity: 0.1;
+  transition: opacity 0.3s ease;
+}
+
+.rough-decoration-hover:hover .rough-decoration {
+  opacity: 0.2;
+}
+
+/* ========================================
+   TYPOGRAPHY
+   ======================================== */
+
+.font-rough-headline {
+  font-family: 'Plus Jakarta Sans', 'Space Grotesk', sans-serif;
+}
+
+.font-rough-body {
+  font-family: 'Be Vietnam Pro', 'DM Sans', sans-serif;
+}
+
+/* Hand-drawn underline effect */
+.rough-underline {
+  position: relative;
+  display: inline-block;
+}
+
+.rough-underline::after {
+  content: '';
+  position: absolute;
+  bottom: -4px;
+  left: 0;
+  width: 100%;
+  height: 4px;
+  background: url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 20"><path d="M0 10 Q 25 0, 50 10 T 100 10" fill="none" stroke="%230041e0" stroke-linecap="round" stroke-width="4"/></svg>') no-repeat;
+  background-size: 100% 100%;
+}
+
+/* ========================================
+   COMPLETE COMPONENT CLASSES
+   ======================================== */
+
+/* Hand-drawn card */
+.rough-card {
+  position: relative;
+  background: #E3F2FD;
+  border: 3px solid #1A1A1A;
+  padding: 40px;
+  box-shadow: 4px 4px 0px 0px #1A1A1A;
+  transform: rotate(-0.5deg);
+  transition: all 0.3s ease;
+}
+
+.rough-card:hover {
+  box-shadow: 8px 8px 0px 0px #1A1A1A;
+  transform: rotate(-0.5deg) translate(-4px, -4px);
+}
+
+/* Hand-drawn button */
+.rough-button {
+  background: #0041e0;
+  color: white;
+  padding: 12px 32px;
+  border: 2px solid #1A1A1A;
+  border-radius: 8px;
+  font-weight: bold;
+  font-size: 18px;
+  box-shadow: 4px 4px 0px 0px #1A1A1A;
+  cursor: pointer;
+  transition: transform 0.1s ease;
+}
+
+.rough-button:active {
+  transform: scale(0.95);
+}
+
+/* Hand-drawn input */
+.rough-input {
+  background: white;
+  border: 3px solid #1A1A1A;
+  padding: 12px 16px;
+  font-size: 16px;
+  box-shadow: 2px 2px 0px 0px #1A1A1A;
+  outline: none;
+  transition: box-shadow 0.2s ease;
+}
+
+.rough-input:focus {
+  box-shadow: 4px 4px 0px 0px #0041e0;
+}
+
+/* ========================================
+   ANIMATIONS
+   ======================================== */
+
+@keyframes sketch-wiggle {
+  0%, 100% { transform: rotate(-0.5deg); }
+  50% { transform: rotate(0.5deg); }
+}
+
+.animate-sketch-wiggle {
+  animation: sketch-wiggle 3s ease-in-out infinite;
+}
+
+@keyframes marker-draw {
+  from {
+    stroke-dashoffset: 1000;
+  }
+  to {
+    stroke-dashoffset: 0;
+  }
+}
+
+.animate-marker-draw path {
+  stroke-dasharray: 1000;
+  animation: marker-draw 2s ease-out forwards;
+}
+
+/* ========================================
+   UTILITY COMBINATIONS
+   ======================================== */
+
+/* Quick combo classes */
+.rough-box {
+  @extend .rough-card;
+}
+
+.rough-btn {
+  @extend .rough-button;
+}
+
+.rough-field {
+  @extend .rough-input;
+}
