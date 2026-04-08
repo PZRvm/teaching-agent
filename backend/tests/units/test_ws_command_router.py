@@ -1,4 +1,6 @@
-"""WebSocket 命令 schema 测试."""
+"""WebSocket 命令 schema 测试和命令路由测试."""
+
+from unittest.mock import AsyncMock, MagicMock, patch
 
 from pydantic import ValidationError
 
@@ -103,3 +105,208 @@ class TestWsCommandSchemas:
 
         with pytest.raises(ValidationError):
             WsTeacherCommand(type="unknown_command")
+
+
+class TestWsCommandRouter:
+    """WebSocket 端点命令路由测试."""
+
+    @pytest.mark.asyncio
+    async def test_broadcast_lecture_routes_to_controller(self):
+        """broadcast_lecture 命令路由到 TeacherSessionController.handle_broadcast_lecture."""
+        mock_controller = MagicMock()
+        mock_controller.handle_broadcast_lecture = MagicMock()
+
+        with patch("models.session.router_websocket.get_session_registry") as mock_sr:
+            mock_registry = MagicMock()
+            mock_registry.get_session_info.return_value = {"mode": "teacher"}
+            mock_registry.get_controller.return_value = mock_controller
+            mock_sr.return_value = mock_registry
+
+            from models.session.router_websocket import _handle_command
+
+            await _handle_command(
+                AsyncMock(), 1, {"type": "broadcast_lecture", "content": "测试讲授"}
+            )
+
+            mock_controller.handle_broadcast_lecture.assert_called_once_with("测试讲授")
+
+    @pytest.mark.asyncio
+    async def test_ask_to_all_routes_to_controller(self):
+        """ask_to_all 命令路由到 TeacherSessionController.handle_ask_to_all."""
+        mock_controller = MagicMock()
+        mock_controller.handle_ask_to_all = MagicMock()
+
+        with patch("models.session.router_websocket.get_session_registry") as mock_sr:
+            mock_registry = MagicMock()
+            mock_registry.get_session_info.return_value = {"mode": "teacher"}
+            mock_registry.get_controller.return_value = mock_controller
+            mock_sr.return_value = mock_registry
+
+            from models.session.router_websocket import _handle_command
+
+            await _handle_command(
+                AsyncMock(), 1, {"type": "ask_to_all", "question": "什么是变量？"}
+            )
+
+            mock_controller.handle_ask_to_all.assert_called_once_with("什么是变量？")
+
+    @pytest.mark.asyncio
+    async def test_unknown_command_returns_error(self):
+        """未知命令类型返回 error 响应."""
+        mock_ws = AsyncMock()
+        mock_ws.send_json = AsyncMock()
+
+        with patch("models.session.router_websocket.get_session_registry") as mock_sr:
+            mock_registry = MagicMock()
+            mock_registry.get_session_info.return_value = {"mode": "teacher"}
+            mock_registry.get_controller.return_value = MagicMock()
+            mock_sr.return_value = mock_registry
+
+            from models.session.router_websocket import _handle_command
+
+            await _handle_command(mock_ws, 1, {"type": "nonexistent"})
+
+            mock_ws.send_json.assert_called_once()
+            call_args = mock_ws.send_json.call_args[0][0]
+            assert call_args["type"] == "error"
+            assert "unknown command" in call_args["message"].lower()
+
+    @pytest.mark.asyncio
+    async def test_no_session_returns_error(self):
+        """session 不存在时返回 error 响应."""
+        mock_ws = AsyncMock()
+        mock_ws.send_json = AsyncMock()
+
+        with patch("models.session.router_websocket.get_session_registry") as mock_sr:
+            mock_registry = MagicMock()
+            mock_registry.get_session_info.return_value = None
+            mock_sr.return_value = mock_registry
+
+            from models.session.router_websocket import _handle_command
+
+            await _handle_command(mock_ws, 1, {"type": "broadcast_lecture", "content": "测试"})
+
+            mock_ws.send_json.assert_called_once()
+            call_args = mock_ws.send_json.call_args[0][0]
+            assert call_args["type"] == "error"
+            assert "not found" in call_args["message"].lower()
+
+    @pytest.mark.asyncio
+    async def test_advance_checkpoint_routes_to_controller(self):
+        """advance_checkpoint 命令路由到 TeacherSessionController.handle_advance_checkpoint."""
+        mock_controller = MagicMock()
+        mock_controller.handle_advance_checkpoint = MagicMock()
+
+        with patch("models.session.router_websocket.get_session_registry") as mock_sr:
+            mock_registry = MagicMock()
+            mock_registry.get_session_info.return_value = {"mode": "teacher"}
+            mock_registry.get_controller.return_value = mock_controller
+            mock_sr.return_value = mock_registry
+
+            from models.session.router_websocket import _handle_command
+
+            await _handle_command(AsyncMock(), 1, {"type": "advance_checkpoint"})
+
+            mock_controller.handle_advance_checkpoint.assert_called_once()
+
+    @pytest.mark.asyncio
+    async def test_command_result_pushed_via_websocket(self):
+        """命令执行结果通过 WebSocket 推送回客户端."""
+        mock_controller = MagicMock()
+        mock_controller.handle_broadcast_lecture = MagicMock()
+
+        mock_ws = AsyncMock()
+        mock_ws.send_json = AsyncMock()
+
+        with patch("models.session.router_websocket.get_session_registry") as mock_sr:
+            mock_registry = MagicMock()
+            mock_registry.get_session_info.return_value = {"mode": "teacher"}
+            mock_registry.get_controller.return_value = mock_controller
+            mock_sr.return_value = mock_registry
+
+            from models.session.router_websocket import _handle_command
+
+            await _handle_command(mock_ws, 1, {"type": "broadcast_lecture", "content": "测试"})
+
+            # 验证发送了成功响应
+            mock_ws.send_json.assert_called()
+            call_args = mock_ws.send_json.call_args[0][0]
+            assert call_args["type"] == "command_result"
+            assert call_args["command"] == "broadcast_lecture"
+            assert call_args["success"] is True
+
+    @pytest.mark.asyncio
+    async def test_end_dialogue_routes_to_controller(self):
+        """end_dialogue 命令路由到 TeacherSessionController.handle_end_dialogue."""
+        mock_controller = MagicMock()
+        mock_controller.handle_end_dialogue = MagicMock()
+
+        with patch("models.session.router_websocket.get_session_registry") as mock_sr:
+            mock_registry = MagicMock()
+            mock_registry.get_session_info.return_value = {"mode": "teacher"}
+            mock_registry.get_controller.return_value = mock_controller
+            mock_sr.return_value = mock_registry
+
+            from models.session.router_websocket import _handle_command
+
+            await _handle_command(AsyncMock(), 1, {"type": "end_dialogue"})
+
+            mock_controller.handle_end_dialogue.assert_called_once()
+
+    @pytest.mark.asyncio
+    async def test_assign_homework_routes_to_controller(self):
+        """assign_homework 命令路由到 TeacherSessionController.handle_assign_homework."""
+        mock_controller = MagicMock()
+        mock_controller.handle_assign_homework = MagicMock()
+
+        with patch("models.session.router_websocket.get_session_registry") as mock_sr:
+            mock_registry = MagicMock()
+            mock_registry.get_session_info.return_value = {"mode": "teacher"}
+            mock_registry.get_controller.return_value = mock_controller
+            mock_sr.return_value = mock_registry
+
+            from models.session.router_websocket import _handle_command
+
+            await _handle_command(
+                AsyncMock(), 1, {"type": "assign_homework", "content": "完成作业"}
+            )
+
+            mock_controller.handle_assign_homework.assert_called_once_with("完成作业")
+
+    @pytest.mark.asyncio
+    async def test_collect_homework_routes_to_controller(self):
+        """collect_homework 命令路由到 TeacherSessionController.handle_collect_homework."""
+        mock_controller = MagicMock()
+        mock_controller.handle_collect_homework = MagicMock()
+
+        with patch("models.session.router_websocket.get_session_registry") as mock_sr:
+            mock_registry = MagicMock()
+            mock_registry.get_session_info.return_value = {"mode": "teacher"}
+            mock_registry.get_controller.return_value = mock_controller
+            mock_sr.return_value = mock_registry
+
+            from models.session.router_websocket import _handle_command
+
+            await _handle_command(
+                AsyncMock(), 1, {"type": "collect_homework", "homework_prompt": "练习1"}
+            )
+
+            mock_controller.handle_collect_homework.assert_called_once_with("练习1")
+
+    @pytest.mark.asyncio
+    async def test_end_teaching_routes_to_controller(self):
+        """end_teaching 命令路由到 TeacherSessionController.handle_end_teaching."""
+        mock_controller = MagicMock()
+        mock_controller.handle_end_teaching = MagicMock(return_value={"feedbacks": []})
+
+        with patch("models.session.router_websocket.get_session_registry") as mock_sr:
+            mock_registry = MagicMock()
+            mock_registry.get_session_info.return_value = {"mode": "teacher"}
+            mock_registry.get_controller.return_value = mock_controller
+            mock_sr.return_value = mock_registry
+
+            from models.session.router_websocket import _handle_command
+
+            await _handle_command(AsyncMock(), 1, {"type": "end_teaching"})
+
+            mock_controller.handle_end_teaching.assert_called_once()
