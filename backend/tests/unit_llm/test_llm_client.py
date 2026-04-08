@@ -1,9 +1,9 @@
 """LLM Client 单元测试."""
 
-from unittest.mock import MagicMock, patch
-
 # Mock langchain_openai before importing core.llm_client
 import sys
+from unittest.mock import MagicMock, patch
+
 sys.modules.setdefault("langchain_openai", MagicMock())
 
 from core.llm_client import LLMClient  # noqa: E402

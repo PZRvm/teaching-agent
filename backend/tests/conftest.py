@@ -2,7 +2,7 @@
 
 import sys
 import tempfile
-from collections.abc import AsyncGenerator, Generator
+from collections.abc import AsyncGenerator
 from pathlib import Path
 
 import pytest
@@ -148,11 +148,10 @@ async def test_engine_file():
     await engine.dispose()
 
     # Delete the temporary file
+    import contextlib
     import os
-    try:
+    with contextlib.suppress(OSError):
         os.unlink(tmp_path)
-    except OSError:
-        pass
 
 
 @pytest_asyncio.fixture(scope="function")

@@ -17,11 +17,11 @@ from agents.memories.memory_manager import (
 )
 from core.database import Base
 from core.settings import TIMEZONE
+from models.session.schemas import Message, MessageType
 from orm.message import MessageModel
 from orm.session_memory import SessionMemoryModel
 from orm.student_memory import StudentMemoryModel
 from orm.teacher_memory import TeacherMemoryModel
-from models.session.schemas import Message, MessageType
 
 T = TypeVar("T", bound=Base)
 

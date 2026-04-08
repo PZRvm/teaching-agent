@@ -13,7 +13,6 @@ def reset_globals():
     """每个测试前重置全局状态."""
     from core.connection_manager import ConnectionManager, set_connection_manager
     from core.session_registry import SessionRegistry
-
     from models.session.router_websocket import set_session_registry
 
     set_connection_manager(ConnectionManager())

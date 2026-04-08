@@ -2,18 +2,18 @@
 
 import pytest
 from httpx import ASGITransport, AsyncClient
+from sqlalchemy.ext.asyncio import AsyncSession
 
-from main import app
-from models.checkpoint.schemas import Checkpoint, CheckpointPlan, CheckpointState
-from models.session.teacher_controller import TeacherSessionController
-from models.checkpoint.persistence_service import CheckpointPlanPersistence
 from agents.memories.memory_manager import MemoryManager
 from agents.memories.session_memory import SessionMemory
 from agents.memories.teacher_memory import TeacherAgentMemory
 from agents.student_agent import StudentAgent
-from schemas.student import StudentProfile, StudentLevel, StudentAttitude
+from main import app
+from models.checkpoint.persistence_service import CheckpointPlanPersistence
+from models.checkpoint.schemas import Checkpoint, CheckpointPlan, CheckpointState
+from models.session.teacher_controller import TeacherSessionController
 from orm.teaching_session import TeachingSessionModel
-from sqlalchemy.ext.asyncio import AsyncSession
+from schemas.student import StudentAttitude, StudentLevel, StudentProfile
 
 
 @pytest.mark.asyncio
@@ -227,7 +227,7 @@ async def test_rest_api_with_checkpoint_plan_edit(db_session_file: AsyncSession,
     创建新的数据库连接，文件数据库允许跨连接共享数据。
     """
     from sqlalchemy.ext.asyncio import async_sessionmaker
-    from main import app
+
     from core.database import get_db
 
     # Arrange - 创建教学会话和初始检查点计划

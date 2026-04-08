@@ -2,9 +2,8 @@
 
 from unittest.mock import AsyncMock, MagicMock, patch
 
-from pydantic import ValidationError
-
 import pytest
+from pydantic import ValidationError
 
 
 class TestWsCommandSchemas:
