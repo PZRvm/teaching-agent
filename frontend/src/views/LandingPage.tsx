@@ -7,6 +7,10 @@ export default function LandingPage() {
 
   return (
     <Wrapper>
+      {/* 背景装饰元素 */}
+      <div className="bg-decoration-left" aria-hidden="true" />
+      <div className="bg-decoration-right" aria-hidden="true" />
+
       {/* 导航栏 */}
       <nav className="top-nav">
         <div className="top-nav-left">
@@ -153,6 +157,35 @@ const Wrapper = styled.div`
   align-items: center;
   font-family: 'Be Vietnam Pro', system-ui, -apple-system, BlinkMacSystemFont,
     sans-serif;
+  position: relative;
+  overflow: hidden;
+
+  /* ===== 背景装饰 ===== */
+  .bg-decoration-left {
+    position: fixed;
+    top: 10%;
+    left: -5%;
+    width: 200px;
+    height: 200px;
+    background: rgba(46, 92, 255, 0.03);
+    border-radius: 50%;
+    filter: blur(40px);
+    pointer-events: none;
+    z-index: 0;
+  }
+
+  .bg-decoration-right {
+    position: fixed;
+    bottom: 10%;
+    right: -5%;
+    width: 250px;
+    height: 250px;
+    background: rgba(39, 224, 169, 0.03);
+    border-radius: 50%;
+    filter: blur(50px);
+    pointer-events: none;
+    z-index: 0;
+  }
 
   /* ===== 导航栏 ===== */
   .top-nav {
