@@ -4,30 +4,28 @@ import styled from 'styled-components'
 export default function Footer() {
   return (
     <Wrapper>
-      <footer className="footer">
-        <div className="footer-divider" aria-hidden="true">
-          <div className="footer-divider-skew" />
+      <div className="footer-divider" aria-hidden="true">
+        <div className="footer-divider-skew" />
+      </div>
+      <p className="footer-text">
+        技术栈：<span className="footer-highlight">FastAPI</span> +{' '}
+        <span className="footer-highlight">React</span> +{' '}
+        <span className="footer-highlight">Qwen</span> +{' '}
+        <span className="footer-highlight">SQLite</span>
+      </p>
+      <div className="footer-tags">
+        <div className="footer-tag footer-tag-beta">
+          BETA v0.8.2
         </div>
-        <p className="footer-text">
-          技术栈：<span className="footer-highlight">FastAPI</span> +{' '}
-          <span className="footer-highlight">React</span> +{' '}
-          <span className="footer-highlight">Qwen</span> +{' '}
-          <span className="footer-highlight">SQLite</span>
-        </p>
-        <div className="footer-tags">
-          <div className="footer-tag footer-tag-beta sketch-shadow">
-            BETA v0.8.2
-          </div>
-          <div className="footer-tag footer-tag-ai sketch-shadow">
-            AI SIMULATION
-          </div>
+        <div className="footer-tag footer-tag-ai">
+          AI SIMULATION
         </div>
-      </footer>
+      </div>
     </Wrapper>
   )
 }
 
-const Wrapper = styled.div`
+const Wrapper = styled.footer`
   width: 100%;
   padding: 48px 24px;
   display: flex;
@@ -77,6 +75,7 @@ const Wrapper = styled.div`
     font-size: 12px;
     font-weight: 700;
     border: 1px solid #1a1a1a;
+    box-shadow: 4px 4px 0px 0px #1a1a1a;
   }
 
   .footer-tag-beta {
@@ -87,9 +86,5 @@ const Wrapper = styled.div`
   .footer-tag-ai {
     background: #fff9c4;
     transform: rotate(-1deg);
-  }
-
-  .sketch-shadow {
-    box-shadow: 4px 4px 0px 0px #1a1a1a;
   }
 `
