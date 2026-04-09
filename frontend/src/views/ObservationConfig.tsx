@@ -67,6 +67,44 @@ export default function ObservationConfig() {
       <PageNav title="观察模式 - 配置" onBack={() => navigate('/')} />
 
       <main className="config-main">
+        {/* Hero Section */}
+        <header className="hero">
+          <h1 className="hero-title">
+            观察模式
+            <svg
+              className="hero-underline"
+              viewBox="0 0 100 20"
+              preserveAspectRatio="none"
+              aria-hidden="true"
+            >
+              <path
+                d="M0 10 Q 25 0, 50 10 T 100 10"
+                fill="transparent"
+                stroke="currentColor"
+                strokeLinecap="round"
+                strokeWidth="4"
+              />
+            </svg>
+          </h1>
+          <p className="hero-subtitle">
+            旁观 AI 教学与多 Agent 互动
+            <svg
+              className="hero-subtitle-line"
+              viewBox="0 0 100 10"
+              preserveAspectRatio="none"
+              aria-hidden="true"
+            >
+              <path
+                d="M0 5 L 100 5"
+                fill="transparent"
+                stroke="currentColor"
+                strokeDasharray="5 5"
+                strokeWidth="2"
+              />
+            </svg>
+          </p>
+        </header>
+
         {error && <div className="error-banner">{error}</div>}
 
         {/* 步骤 1：教学主题 */}
@@ -185,6 +223,49 @@ const Wrapper = styled.div`
     display: flex;
     flex-direction: column;
     gap: 24px;
+  }
+
+  /* ===== Hero Section ===== */
+  .hero {
+    text-align: center;
+    margin-bottom: 48px;
+  }
+
+  .hero-title {
+    position: relative;
+    display: inline-block;
+    font-family: 'Plus Jakarta Sans', system-ui, sans-serif;
+    font-size: 48px;
+    font-weight: 800;
+    margin-bottom: 16px;
+    color: #1a1c1c;
+  }
+
+  .hero-underline {
+    position: absolute;
+    bottom: -16px;
+    left: 0;
+    width: 100%;
+    height: 16px;
+    color: #2e5cff;
+  }
+
+  .hero-subtitle {
+    position: relative;
+    font-family: 'Plus Jakarta Sans', system-ui, sans-serif;
+    font-size: 24px;
+    color: #525252;
+    margin-top: 24px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+  }
+
+  .hero-subtitle-line {
+    width: 192px;
+    height: 8px;
+    color: #b7102a;
+    margin-top: 8px;
   }
 
   .step-card {
