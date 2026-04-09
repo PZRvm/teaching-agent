@@ -3,6 +3,7 @@ import { useParams, useNavigate } from 'react-router-dom'
 import styled from 'styled-components'
 import PageNav from '../components/PageNav'
 import RoughBadge from '../components/RoughBadge'
+import Footer from '../components/Footer'
 import { useWebSocket } from '../hooks/useWebSocket'
 import { useElapsedTime } from '../hooks/useElapsedTime'
 import { TEACHING_MODE_LABELS } from '../types/observation'
@@ -98,6 +99,8 @@ export default function ObservationView() {
           )}
         </main>
       </div>
+
+      <Footer />
     </Wrapper>
   )
 }

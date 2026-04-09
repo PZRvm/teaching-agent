@@ -5,6 +5,7 @@ import styled from 'styled-components'
 import PageNav from '../components/PageNav'
 import StudentChip from '../components/StudentChip'
 import RoughButton from '../components/RoughButton'
+import Footer from '../components/Footer'
 import { startObservation } from '../apis/observation'
 import type { StudentProfile, TeachingMode } from '../types/observation'
 
@@ -154,6 +155,8 @@ export default function ObservationConfig() {
           </RoughButton>
         </div>
       </main>
+
+      <Footer />
     </Wrapper>
   )
 }
