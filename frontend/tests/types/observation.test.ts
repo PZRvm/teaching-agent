@@ -37,7 +37,6 @@ describe('observation types', () => {
     const config: ObservationConfigPayload = {
       topic: 'Python变量与数据类型',
       teaching_mode: 'heuristic',
-      checkpoint_count: 5,
       students: [{ name: '张三', level: 'average', attitude: 'neutral', learning_ability: 5 }],
     }
     expect(config.topic).toBe('Python变量与数据类型')

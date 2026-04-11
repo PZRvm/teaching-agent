@@ -559,7 +559,6 @@ pytest tests/units/test_checkpoint_persistence_service.py -v
 #### TestCheckpointPlan (12 个测试)
 - `test_valid_checkpoint_plan` - 有效检查点计划
 - `test_empty_checkpoints` - 空检查点列表验证
-- `test_checkpoint_count_validation` - 检查点数量验证
 - `test_invalid_teaching_mode` - 无效教学模式
 - `test_json_serialization` - JSON 序列化
 - `test_add_checkpoint` - 添加检查点
@@ -572,7 +571,7 @@ pytest tests/units/test_checkpoint_persistence_service.py -v
 
 ### test_checkpoint_service.py - CheckpointPlanService 单元测试
 
-**测试类**: `TestCheckpointPlanService` (9 个测试)
+**测试类**: `TestCheckpointPlanService` (8 个测试)
 
 | 测试名称 | 验证内容 |
 |---------|---------|
@@ -580,11 +579,10 @@ pytest tests/units/test_checkpoint_persistence_service.py -v
 | `test_generate_plan_fallback_to_json_parsing` | 降级到 JSON 解析 |
 | `test_generate_plan_fallback_to_single_checkpoint` | 降级到单检查点兜底 |
 | `test_generate_plan_validates_teaching_mode` | 教学模式验证 |
-| `test_generate_plan_honors_checkpoint_count` | 检查点数量要求 |
-| `test_build_prompt_includes_topic` | prompt 包含主题 |
-| `test_build_prompt_includes_mode` | prompt 包含模式 |
-| `test_build_prompt_includes_count` | prompt 包含数量 |
+| `test_build_prompt_includes_topic_and_mode` | prompt 包含主题和模式 |
+| `test_load_mode_instructions` | 加载教学模式指令 |
 | `test_parse_json_handles_markdown_code_blocks` | JSON 解析处理 Markdown |
+| `test_parse_json_handles_plain_json` | JSON 解析处理纯 JSON |
 
 ### test_llm_client.py - LLMClient 单元测试
 

@@ -28,7 +28,6 @@ async def test_observation_websocket_connection_timing():
             json={
                 "topic": "Python 变量",
                 "teaching_mode": "didactic",
-                "checkpoint_count": 2,
                 "students": [
                     {
                         "name": "测试学生",
@@ -100,7 +99,6 @@ def test_observation_start_returns_immediately():
             json={
                 "topic": "测试主题",
                 "teaching_mode": "didactic",
-                "checkpoint_count": 2,
                 "students": [
                     {
                         "name": "测试",
@@ -140,7 +138,6 @@ async def test_obsession_websocket_receives_session_state():
             json={
                 "topic": "Python 基础",
                 "teaching_mode": "didactic",
-                "checkpoint_count": 2,
                 "students": [
                     {
                         "name": "学生A",

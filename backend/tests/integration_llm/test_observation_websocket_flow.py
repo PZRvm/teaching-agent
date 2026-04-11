@@ -39,7 +39,6 @@ async def test_observation_websocket_flow():
         payload = {
             "topic": "WebSocket 流程测试",
             "teaching_mode": "didactic",
-            "checkpoint_count": 1,
             "students": [
                 {
                     "name": "测试学生",
@@ -88,7 +87,6 @@ def test_observation_websocket_with_real_server():
         json={
             "topic": "WebSocket 流程测试",
             "teaching_mode": "didactic",
-            "checkpoint_count": 1,
             "students": [
                 {
                     "name": "测试学生",

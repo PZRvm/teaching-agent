@@ -20,8 +20,8 @@ def test_llm_checkpoint_plan_generated_and_persisted():
 
     async def _test():
         from core.llm_client import LLMClient
-        from models.checkpoint.persistence_service import CheckpointPlanPersistence
-        from models.checkpoint.service import CheckpointPlanService
+        from models.checkpoint.services.persistence_service import CheckpointPlanPersistence
+        from models.checkpoint.services.plan_service import CheckpointPlanService
 
         llm = LLMClient.from_config()
 
@@ -31,7 +31,6 @@ def test_llm_checkpoint_plan_generated_and_persisted():
         plan = await service.generate_plan(
             topic="Python 变量与数据类型",
             teaching_mode="didactic",
-            checkpoint_count=2,
         )
 
         print("\n[LLM 输出] 生成的检查点计划:")
@@ -90,7 +89,7 @@ def test_llm_checkpoint_plan_heuristic_mode():
 
     async def _test():
         from core.llm_client import LLMClient
-        from models.checkpoint.service import CheckpointPlanService
+        from models.checkpoint.services.plan_service import CheckpointPlanService
 
         llm = LLMClient.from_config()
 
@@ -99,7 +98,6 @@ def test_llm_checkpoint_plan_heuristic_mode():
         plan = await service.generate_plan(
             topic="Python 函数基础",
             teaching_mode="heuristic",
-            checkpoint_count=3,
         )
 
         print("\n[LLM 输出] 生成的检查点计划:")

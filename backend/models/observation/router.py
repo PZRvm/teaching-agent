@@ -52,7 +52,6 @@ async def start_observation(
         session_id=session_id,
         topic=config.topic,
         teaching_mode=config.teaching_mode,
-        checkpoint_count=config.checkpoint_count,
         students_config=[s.model_dump() for s in config.students],
     )
 

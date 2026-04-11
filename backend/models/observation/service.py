@@ -13,8 +13,8 @@ from core.connection_manager import get_connection_manager
 from core.database import async_session_maker
 from core.llm_client import LLMClient
 from core.session_registry import get_session_registry
-from models.checkpoint.persistence_service import CheckpointPlanPersistence
-from models.checkpoint.service import CheckpointPlanService
+from models.checkpoint.services.persistence_service import CheckpointPlanPersistence
+from models.checkpoint.services.plan_service import CheckpointPlanService
 from models.session.services.observation_service import SessionOrchestrator
 
 logger = logging.getLogger(__name__)
@@ -76,18 +76,17 @@ def _create_memory_manager(session_id: int, topic: str) -> MemoryManager:
 
 
 async def _generate_checkpoint_plan(
-    topic: str, teaching_mode: str, checkpoint_count: int, llm: LLMClient
+    topic: str, teaching_mode: str, llm: LLMClient
 ):
     """生成检查点计划."""
     service = CheckpointPlanService(llm)
-    return await service.generate_plan(topic, teaching_mode, checkpoint_count)
+    return await service.generate_plan(topic, teaching_mode)
 
 
 async def _run_background_task(
     session_id: int,
     topic: str,
     teaching_mode: str,
-    checkpoint_count: int,
     students_config: list[dict],
 ) -> None:
     """后台初始化并运行 orchestrator.
@@ -127,7 +126,7 @@ async def _run_background_task(
 
             # 3. 生成检查点计划（慢 LLM 调用）
             checkpoint_plan = await _generate_checkpoint_plan(
-                topic, teaching_mode, checkpoint_count, llm
+                topic, teaching_mode, llm
             )
 
             # 4. 持久化

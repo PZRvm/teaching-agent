@@ -18,6 +18,10 @@ logger = logging.getLogger(__name__)
 class StudentAgent:
     """学生 Agent - 负责回答问题和互动."""
 
+    # 学生 agent 上下文中最多保留的最近消息条数
+    # 7B 模型上下文窗口 32K，需要限制消息数量避免超限
+    MAX_CONTEXT_MESSAGES = 10
+
     # 水平对应的回答指导
     _LEVEL_INSTRUCTIONS = {
         "excellent": (
@@ -80,7 +84,9 @@ class StudentAgent:
         """
         topic = self.session_memory.topic
         student_context = self.memory.get_system_prompt_addition(topic)
-        context = self.session_memory.get_agent_context()
+        context = self.session_memory.get_agent_context(
+            max_recent_messages=self.MAX_CONTEXT_MESSAGES
+        )
 
         level_section = self._LEVEL_INSTRUCTIONS.get(
             self.profile.level.value, self._LEVEL_INSTRUCTIONS["average"]

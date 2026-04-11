@@ -5,8 +5,8 @@ import pytest_asyncio
 from httpx import ASGITransport, AsyncClient
 
 from main import app
-from models.checkpoint.persistence_service import CheckpointPlanPersistence
 from models.checkpoint.schemas import Checkpoint, CheckpointPlan, CheckpointState
+from models.checkpoint.services.persistence_service import CheckpointPlanPersistence
 from orm.teaching_session import TeachingSessionModel
 
 

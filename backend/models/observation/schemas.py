@@ -10,7 +10,6 @@ class ObservationConfig(BaseModel):
 
     topic: str = Field(min_length=1, description="教学主题")
     teaching_mode: str = Field(description="教学模式 (didactic/heuristic/discussion)")
-    checkpoint_count: int = Field(default=5, ge=1, le=10, description="检查点数量")
     students: list[StudentProfile] = Field(min_length=1, description="学生列表")
 
 

@@ -70,7 +70,6 @@ class TestRunOrchestratorBackground:
                 session_id=42,
                 topic="Python 变量",
                 teaching_mode="didactic",
-                checkpoint_count=1,
                 students_config=[],
             )
 
@@ -116,7 +115,6 @@ class TestRunOrchestratorBackground:
                 session_id=42,
                 topic="Python 变量",
                 teaching_mode="didactic",
-                checkpoint_count=1,
                 students_config=[],
             )
 
@@ -169,7 +167,6 @@ class TestRunOrchestratorBackground:
                 session_id=42,
                 topic="Python 变量",
                 teaching_mode="didactic",
-                checkpoint_count=1,
                 students_config=[],
             )
 
@@ -212,7 +209,6 @@ class TestRunOrchestratorBackground:
                 session_id=42,
                 topic="Python 变量",
                 teaching_mode="didactic",
-                checkpoint_count=1,
                 students_config=[],
             )
 
@@ -251,7 +247,6 @@ class TestRunOrchestratorBackground:
                 session_id=42,
                 topic="Python 变量",
                 teaching_mode="didactic",
-                checkpoint_count=1,
                 students_config=[],
             )
 
@@ -279,7 +274,6 @@ class TestRunOrchestratorBackground:
                 session_id=42,
                 topic="Python 变量",
                 teaching_mode="didactic",
-                checkpoint_count=1,
                 students_config=[],
             )
 
@@ -311,7 +305,6 @@ class TestRunOrchestratorBackground:
                 session_id=42,
                 topic="Python 变量",
                 teaching_mode="didactic",
-                checkpoint_count=1,
                 students_config=[],
             )
 

@@ -7,8 +7,8 @@ from pydantic import BaseModel, Field
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from core.database import get_db
-from models.checkpoint.persistence_service import CheckpointPlanPersistence
 from models.checkpoint.schemas import Checkpoint, CheckpointPlan, CheckpointState
+from models.checkpoint.services.persistence_service import CheckpointPlanPersistence
 
 router = APIRouter(prefix="/checkpoint-plans", tags=["checkpoint-plans"])
 

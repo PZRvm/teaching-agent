@@ -14,7 +14,6 @@ def test_start_observation_creates_session():
     payload = {
         "topic": "Python Basics",
         "teaching_mode": "heuristic",
-        "checkpoint_count": 3,
         "students": [
             {
                 "name": "Student1",
@@ -98,7 +97,6 @@ class TestObservationApiRegistration:
                 json={
                     "topic": "Python 变量",
                     "teaching_mode": "didactic",
-                    "checkpoint_count": 1,
                     "students": [
                         {
                             "name": "张三",

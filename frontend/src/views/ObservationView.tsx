@@ -64,6 +64,7 @@ export default function ObservationView() {
         </div>
       )}
 
+      {sessionReady && connectionState === 'connected' && (
       <div className="content-layout">
         <aside className="sidebar">
           <div className="sidebar-card">
@@ -110,7 +111,7 @@ export default function ObservationView() {
           ) : (
             <div className="message-list">
               {messages.map((msg, index) => (
-                <div key={index} className="message-item">
+                <div key={`${msg.sender}-${msg.message_type}-${index}`} className="message-item">
                   <div className="message-header">
                     <span className="message-sender">{msg.sender}</span>
                     <span className="message-type-badge">{msg.message_type}</span>
@@ -123,10 +124,11 @@ export default function ObservationView() {
                         ul: ({ children }) => <ul className="markdown-list">{children}</ul>,
                         ol: ({ children }) => <ol className="markdown-list">{children}</ol>,
                         li: ({ children }) => <li className="markdown-item">{children}</li>,
-                        code({ inline, children, ...props }: Record<string, unknown>) {
-                          const classNameAttr = inline
-                            ? 'markdown-inline-code'
-                            : 'markdown-code-block'
+                        code({ className, children, ...props }: Record<string, unknown>) {
+                          const isBlock = typeof className === 'string' && className.includes('language-')
+                          const classNameAttr = isBlock
+                            ? 'markdown-code-block'
+                            : 'markdown-inline-code'
                           return <code className={classNameAttr} {...props}>{children}</code>
                         },
                         strong: ({ children }) => <strong>{children}</strong>,
@@ -142,6 +144,7 @@ export default function ObservationView() {
           )}
         </main>
       </div>
+      )}
 
       <Footer />
     </Wrapper>

@@ -25,7 +25,6 @@ export default function ObservationConfig() {
   const navigate = useNavigate()
   const [topic, setTopic] = useState('')
   const [teachingMode, setTeachingMode] = useState<TeachingMode>('heuristic')
-  const [checkpointCount, setCheckpointCount] = useState(5)
   const [students, setStudents] = useState<StudentProfile[]>([])
 
   // 加载状态
@@ -178,9 +177,14 @@ export default function ObservationConfig() {
       generatedCount++
     }
 
+    if (generatedCount < total) {
+      setError(`姓名池不足，仅生成了 ${generatedCount} 名学生（请求 ${total} 名）。请减少数量或清除已有学生。`)
+    } else {
+      setError('')
+    }
+
     // 叠加到现有学生列表
     setStudents((prev) => [...prev, ...generated])
-    setError('')
     // 切换到手动输入标签页以显示生成的学生
     setStudentSource('manual')
   }
@@ -234,7 +238,6 @@ export default function ObservationConfig() {
       const response = await startObservation({
         topic: topic.trim(),
         teaching_mode: teachingMode,
-        checkpoint_count: checkpointCount,
         students,
       })
       console.log('后端返回响应:', response)
@@ -297,16 +300,6 @@ export default function ObservationConfig() {
               讨论式
             </RoughButton>
           </div>
-        </section>
-
-        {/* 步骤 2.5：检查点数量 */}
-        <section className="step-card">
-          <div className="step-header">
-            <span className="step-number">2.5</span>
-            <h2 className="step-title">检查点数量</h2>
-          </div>
-          <input type="number" className="topic-input" min="1" max="10" value={checkpointCount} onChange={(e) => setCheckpointCount(Math.max(1, Math.min(10, Number(e.target.value))))} />
-          <p className="checkpoint-hint">建议 3-7 个，每个检查点涵盖一个知识点</p>
         </section>
 
         {/* 步骤 3：学生配置 */}

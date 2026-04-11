@@ -64,7 +64,6 @@ export interface StudentCreateRequest {
 export interface ObservationConfigPayload {
   topic: string
   teaching_mode: TeachingMode
-  checkpoint_count: number
   students: StudentProfile[]
 }
 

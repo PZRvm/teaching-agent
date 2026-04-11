@@ -222,7 +222,7 @@ def test_full_observation_session_with_console_output():
     from agents.student_agent import StudentAgent
     from agents.teacher_agent import TeacherAgent
     from core.llm_client import LLMClient
-    from models.checkpoint.service import CheckpointPlanService
+    from models.checkpoint.services.plan_service import CheckpointPlanService
     from models.session.services.observation_service import SessionOrchestrator
     from schemas.student import StudentAttitude, StudentLevel, StudentProfile
 
@@ -273,7 +273,7 @@ def test_full_observation_session_with_console_output():
 
         checkpoint_service = CheckpointPlanService(llm=llm)
         plan = await checkpoint_service.generate_plan(
-            topic="Python 变量基础", teaching_mode="heuristic", checkpoint_count=2
+            topic="Python 变量基础", teaching_mode="heuristic"
         )
 
         print("生成的检查点计划:")
@@ -405,7 +405,7 @@ def test_multi_student_classroom():
     from agents.student_agent import StudentAgent
     from agents.teacher_agent import TeacherAgent
     from core.llm_client import LLMClient
-    from models.checkpoint.service import CheckpointPlanService
+    from models.checkpoint.services.plan_service import CheckpointPlanService
     from models.session.services.observation_service import SessionOrchestrator
     from schemas.student import StudentAttitude, StudentLevel, StudentProfile
 
@@ -465,7 +465,7 @@ def test_multi_student_classroom():
         print("[1/4] 生成检查点计划...")
         checkpoint_service = CheckpointPlanService(llm=llm)
         plan = await checkpoint_service.generate_plan(
-            topic=session_memory.topic, teaching_mode="heuristic", checkpoint_count=3
+            topic=session_memory.topic, teaching_mode="heuristic"
         )
 
         print(f"[2/4] 检查点计划生成完成，共 {len(plan.checkpoints)} 个检查点\n")

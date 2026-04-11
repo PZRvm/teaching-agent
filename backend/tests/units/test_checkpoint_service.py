@@ -7,7 +7,7 @@ from models.checkpoint.schemas import (
     Checkpoint,
     CheckpointPlan,
 )
-from models.checkpoint.service import CheckpointPlanService
+from models.checkpoint.services.plan_service import CheckpointPlanService
 
 
 @pytest.mark.asyncio
@@ -32,7 +32,6 @@ class TestCheckpointPlanService:
         plan = await service.generate_plan(
             topic="Python 基础入门",
             teaching_mode="heuristic",
-            checkpoint_count=3,
         )
 
         assert plan.topic == "Python 基础入门"
@@ -65,7 +64,6 @@ class TestCheckpointPlanService:
         plan = await service.generate_plan(
             topic="Python 基础入门",
             teaching_mode="heuristic",
-            checkpoint_count=3,
         )
 
         assert plan.topic == "Python 基础入门"
@@ -83,7 +81,6 @@ class TestCheckpointPlanService:
         plan = await service.generate_plan(
             topic="Python 基础入门",
             teaching_mode="heuristic",
-            checkpoint_count=3,
         )
 
         # 返回单个检查点的兜底计划
@@ -112,7 +109,6 @@ class TestCheckpointPlanService:
             await service.generate_plan(
                 topic="Python 基础入门",
                 teaching_mode="heuristic",
-                checkpoint_count=3,
             )
 
     async def test_build_prompt_includes_topic_and_mode(self):
@@ -122,13 +118,13 @@ class TestCheckpointPlanService:
         mock_llm = MagicMock()
         service = CheckpointPlanService(mock_llm)
 
-        prompt = service._build_prompt("Python 基础入门", "heuristic", 3)
+        prompt = service._build_prompt("Python 基础入门", "heuristic")
 
         # 验证 prompt 包含关键信息
         assert "Python 基础入门" in prompt
         assert "heuristic" in prompt
-        assert "3" in prompt
         assert "检查点" in prompt
+        assert "最多 10 个" in prompt
 
     async def test_load_mode_instructions(self):
         """验证加载教学模式指令."""
@@ -144,30 +140,6 @@ class TestCheckpointPlanService:
         # 无效模式应返回默认指令
         default_instruction = service._load_mode_instructions("invalid")
         assert "检查点" in default_instruction
-
-    async def test_generate_plan_honors_checkpoint_count(self, mock_llm_with_structured_output):
-        """生成计划时遵守指定的检查点数量."""
-        mock_llm_with_structured_output.ainvoke.return_value = CheckpointPlan(
-            topic="Python 基础入门",
-            teaching_mode="heuristic",
-            checkpoints=[
-                Checkpoint(
-                    title=f"检查点 {i}",
-                    key_point=f"知识点 {i}",
-                    checkpoint_question=f"问题 {i}?",
-                )
-                for i in range(5)
-            ],
-        )
-
-        service = CheckpointPlanService(mock_llm_with_structured_output)
-        plan = await service.generate_plan(
-            topic="Python 基础入门",
-            teaching_mode="heuristic",
-            checkpoint_count=5,
-        )
-
-        assert len(plan.checkpoints) == 5
 
     async def test_parse_json_handles_markdown_code_blocks(self):
         """验证 JSON 解析能处理 Markdown 代码块."""

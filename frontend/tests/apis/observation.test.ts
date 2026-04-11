@@ -44,7 +44,6 @@ describe('startObservation', () => {
     const payload: ObservationConfigPayload = {
       topic: 'Python变量',
       teaching_mode: 'heuristic',
-      checkpoint_count: 5,
       students: [{ name: '张三', level: 'average', attitude: 'neutral', learning_ability: 5 }],
     }
 
@@ -54,7 +53,6 @@ describe('startObservation', () => {
     expect(mockPost).toHaveBeenCalledWith('/observation/start', {
       topic: 'Python变量',
       teaching_mode: 'heuristic',
-      checkpoint_count: 5,
       students: [{ name: '张三', level: 'average', attitude: 'neutral', learning_ability: 5 }],
     })
     expect(result).toEqual({ session_id: 42, status: 'running' })
@@ -68,7 +66,6 @@ describe('startObservation', () => {
     await expect(startObservation({
       topic: '',
       teaching_mode: 'heuristic',
-      checkpoint_count: 5,
       students: [{ name: '张三', level: 'average', attitude: 'neutral', learning_ability: 5 }],
     })).rejects.toThrow('Topic is required')
   })

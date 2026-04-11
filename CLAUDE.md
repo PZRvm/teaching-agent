@@ -32,8 +32,9 @@ backend/
 │   │   ├── router_websocket.py # WebSocket endpoint (ws/{session_id})
 │   │   └── schemas.py          # Message schemas
 │   ├── checkpoint/      # Checkpoint system (检查点系统)
-│   │   ├── service.py          # CheckpointPlan generation service
-│   │   ├── persistence_service.py # Checkpoint persistence (checkpoint_plans table)
+│   │   ├── services/            # 服务层
+│   │   │   ├── plan_service.py       # CheckpointPlan generation service
+│   │   │   └── persistence_service.py # Checkpoint persistence (checkpoint_plans table)
 │   │   ├── router.py           # GET/POST/PUT/DELETE /checkpoint-plans/
 │   │   └── schemas.py          # Checkpoint, CheckpointPlan, CheckpointState
 │   ├── observation/      # Observation mode (观察模式)
@@ -111,8 +112,8 @@ from agents.memories import SessionMemory, TeacherAgentMemory, StudentAgentMemor
 
 # 检查点系统
 from models.checkpoint.schemas import Checkpoint, CheckpointPlan, CheckpointState
-from models.checkpoint.service import CheckpointPlanService
-from models.checkpoint.persistence_service import CheckpointPlanPersistence
+from models.checkpoint.services.plan_service import CheckpointPlanService
+from models.checkpoint.services.persistence_service import CheckpointPlanPersistence
 
 # Session 系统
 from models.session.services.observation_service import SessionOrchestrator
