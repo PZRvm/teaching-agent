@@ -11,7 +11,7 @@ from agents.student_agent import StudentAgent
 from main import app
 from models.checkpoint.persistence_service import CheckpointPlanPersistence
 from models.checkpoint.schemas import Checkpoint, CheckpointPlan, CheckpointState
-from models.session.teacher_controller import TeacherSessionController
+from models.session.services.teacher_service import TeacherSessionController
 from orm.teaching_session import TeachingSessionModel
 from schemas.student import StudentAttitude, StudentLevel, StudentProfile
 

@@ -4,7 +4,7 @@ from unittest.mock import Mock
 
 from models.checkpoint.schemas import CheckpointState
 from models.session.schemas import MessageType
-from models.session.teacher_controller import TeacherSessionController
+from models.session.services.teacher_service import TeacherSessionController
 from schemas.student import StudentAttitude, StudentLevel, StudentProfile
 
 

@@ -86,9 +86,8 @@ class TestObservationApiRegistration:
         """
         from httpx import ASGITransport, AsyncClient
 
-        from core.session_registry import SessionRegistry
+        from core.session_registry import SessionRegistry, set_session_registry
         from main import app
-        from models.session.router_websocket import set_session_registry
 
         # 重置全局 SessionRegistry
         set_session_registry(SessionRegistry())
@@ -119,7 +118,7 @@ class TestObservationApiRegistration:
         assert data["status"] == "initializing"
 
         # 验证 mode 已立即注册
-        from models.session.router_websocket import get_session_registry
+        from core.session_registry import get_session_registry
 
         registry = get_session_registry()
         info = registry.get_session_info(session_id)

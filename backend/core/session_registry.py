@@ -8,8 +8,8 @@ from typing import TYPE_CHECKING
 """
 
 if TYPE_CHECKING:
-    from models.session.orchestrator import SessionOrchestrator
-    from models.session.teacher_controller import TeacherSessionController
+    from models.session.services.observation_service import SessionOrchestrator
+    from models.session.services.teacher_service import TeacherSessionController
 
 
 class SessionRegistry:
@@ -71,3 +71,21 @@ class SessionRegistry:
         if mode is None:
             return None
         return {"mode": mode}
+
+
+# 模块级单例实例（应用生命周期内唯一）
+_session_registry: SessionRegistry | None = None
+
+
+def get_session_registry() -> SessionRegistry:
+    """获取全局 SessionRegistry 实例."""
+    global _session_registry
+    if _session_registry is None:
+        _session_registry = SessionRegistry()
+    return _session_registry
+
+
+def set_session_registry(registry: SessionRegistry) -> None:
+    """设置全局 SessionRegistry 实例（用于测试注入）."""
+    global _session_registry
+    _session_registry = registry

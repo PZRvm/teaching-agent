@@ -56,7 +56,7 @@ class TestSessionOrchestratorInit:
         )
 
         # 创建 orchestrator
-        from models.session.orchestrator import SessionOrchestrator
+        from models.session.services.observation_service import SessionOrchestrator
 
         orchestrator = SessionOrchestrator(
             teacher_agent=teacher,
@@ -84,7 +84,7 @@ class TestRunAutonomousSession:
         from agents.student_agent import StudentAgent
         from agents.teacher_agent import TeacherAgent
         from models.checkpoint.schemas import Checkpoint, CheckpointPlan
-        from models.session.orchestrator import SessionOrchestrator
+        from models.session.services.observation_service import SessionOrchestrator
         from schemas.student import StudentAttitude, StudentLevel, StudentProfile
 
         # Mock LLM

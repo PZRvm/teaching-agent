@@ -22,7 +22,7 @@ def test_acceptance_criteria():
     from agents.student_agent import StudentAgent
     from agents.teacher_agent import TeacherAgent
     from models.checkpoint.schemas import Checkpoint, CheckpointPlan
-    from models.session.orchestrator import SessionOrchestrator
+    from models.session.services.observation_service import SessionOrchestrator
     from schemas import MessageType
     from schemas.student import StudentAttitude, StudentLevel, StudentProfile
 
@@ -114,7 +114,7 @@ def test_full_observation_session():
     from agents.student_agent import StudentAgent
     from agents.teacher_agent import TeacherAgent
     from models.checkpoint.schemas import Checkpoint, CheckpointPlan, CheckpointState
-    from models.session.orchestrator import SessionOrchestrator
+    from models.session.services.observation_service import SessionOrchestrator
     from schemas.student import StudentAttitude, StudentLevel, StudentProfile
 
     async def test():
@@ -223,7 +223,7 @@ def test_full_observation_session_with_console_output():
     from agents.teacher_agent import TeacherAgent
     from core.llm_client import LLMClient
     from models.checkpoint.service import CheckpointPlanService
-    from models.session.orchestrator import SessionOrchestrator
+    from models.session.services.observation_service import SessionOrchestrator
     from schemas.student import StudentAttitude, StudentLevel, StudentProfile
 
     async def test():
@@ -406,7 +406,7 @@ def test_multi_student_classroom():
     from agents.teacher_agent import TeacherAgent
     from core.llm_client import LLMClient
     from models.checkpoint.service import CheckpointPlanService
-    from models.session.orchestrator import SessionOrchestrator
+    from models.session.services.observation_service import SessionOrchestrator
     from schemas.student import StudentAttitude, StudentLevel, StudentProfile
 
     async def test():

@@ -13,7 +13,7 @@ class TestOrchestratorWsPush:
     @pytest.mark.asyncio
     async def test_ws_push_uses_connection_manager(self):
         """_ws_push_checkpoint_state 通过 ConnectionManager 广播消息."""
-        from models.session.orchestrator import SessionOrchestrator
+        from models.session.services.observation_service import SessionOrchestrator
 
         mock_teacher = MagicMock()
         mock_students = []
@@ -39,7 +39,7 @@ class TestOrchestratorWsPush:
 
         # Mock ConnectionManager.broadcast
         mock_broadcast = AsyncMock()
-        with patch("models.session.orchestrator.get_connection_manager") as mock_get_cm:
+        with patch("models.session.services.observation_service.get_connection_manager") as mock_get_cm:
             mock_manager = MagicMock()
             mock_manager.broadcast = mock_broadcast
             mock_manager.get_connection_count.return_value = 1
@@ -58,7 +58,7 @@ class TestOrchestratorWsPush:
     @pytest.mark.asyncio
     async def test_ws_push_skips_when_no_connections(self):
         """_ws_push_checkpoint_state 在无活跃连接时不广播."""
-        from models.session.orchestrator import SessionOrchestrator
+        from models.session.services.observation_service import SessionOrchestrator
 
         mock_teacher = MagicMock()
         mock_students = []
@@ -83,7 +83,7 @@ class TestOrchestratorWsPush:
         )
 
         mock_broadcast = AsyncMock()
-        with patch("models.session.orchestrator.get_connection_manager") as mock_get_cm:
+        with patch("models.session.services.observation_service.get_connection_manager") as mock_get_cm:
             mock_manager = MagicMock()
             mock_manager.broadcast = mock_broadcast
             mock_manager.get_connection_count.return_value = 0
@@ -96,7 +96,7 @@ class TestOrchestratorWsPush:
     @pytest.mark.asyncio
     async def test_ws_push_message_format(self):
         """_ws_push_checkpoint_state 广播的消息格式正确."""
-        from models.session.orchestrator import SessionOrchestrator
+        from models.session.services.observation_service import SessionOrchestrator
 
         mock_teacher = MagicMock()
         mock_students = []
@@ -124,7 +124,7 @@ class TestOrchestratorWsPush:
         checkpoint.state = CheckpointState.TEACHING
 
         mock_broadcast = AsyncMock()
-        with patch("models.session.orchestrator.get_connection_manager") as mock_get_cm:
+        with patch("models.session.services.observation_service.get_connection_manager") as mock_get_cm:
             mock_manager = MagicMock()
             mock_manager.broadcast = mock_broadcast
             mock_manager.get_connection_count.return_value = 1

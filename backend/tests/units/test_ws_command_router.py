@@ -115,15 +115,15 @@ class TestWsCommandRouter:
         mock_controller = MagicMock()
         mock_controller.handle_broadcast_lecture = MagicMock()
 
-        with patch("models.session.router_websocket.get_session_registry") as mock_sr:
+        with patch("models.session.services.websocket_handlers.get_session_registry") as mock_sr:
             mock_registry = MagicMock()
             mock_registry.get_session_info.return_value = {"mode": "teacher"}
             mock_registry.get_controller.return_value = mock_controller
             mock_sr.return_value = mock_registry
 
-            from models.session.router_websocket import _handle_command
+            from models.session.services.websocket_handlers import handle_command
 
-            await _handle_command(
+            await handle_command(
                 AsyncMock(), 1, {"type": "broadcast_lecture", "content": "测试讲授"}
             )
 
@@ -135,15 +135,15 @@ class TestWsCommandRouter:
         mock_controller = MagicMock()
         mock_controller.handle_ask_to_all = MagicMock()
 
-        with patch("models.session.router_websocket.get_session_registry") as mock_sr:
+        with patch("models.session.services.websocket_handlers.get_session_registry") as mock_sr:
             mock_registry = MagicMock()
             mock_registry.get_session_info.return_value = {"mode": "teacher"}
             mock_registry.get_controller.return_value = mock_controller
             mock_sr.return_value = mock_registry
 
-            from models.session.router_websocket import _handle_command
+            from models.session.services.websocket_handlers import handle_command
 
-            await _handle_command(
+            await handle_command(
                 AsyncMock(), 1, {"type": "ask_to_all", "question": "什么是变量？"}
             )
 
@@ -155,15 +155,15 @@ class TestWsCommandRouter:
         mock_ws = AsyncMock()
         mock_ws.send_json = AsyncMock()
 
-        with patch("models.session.router_websocket.get_session_registry") as mock_sr:
+        with patch("models.session.services.websocket_handlers.get_session_registry") as mock_sr:
             mock_registry = MagicMock()
             mock_registry.get_session_info.return_value = {"mode": "teacher"}
             mock_registry.get_controller.return_value = MagicMock()
             mock_sr.return_value = mock_registry
 
-            from models.session.router_websocket import _handle_command
+            from models.session.services.websocket_handlers import handle_command
 
-            await _handle_command(mock_ws, 1, {"type": "nonexistent"})
+            await handle_command(mock_ws, 1, {"type": "nonexistent"})
 
             mock_ws.send_json.assert_called_once()
             call_args = mock_ws.send_json.call_args[0][0]
@@ -176,14 +176,14 @@ class TestWsCommandRouter:
         mock_ws = AsyncMock()
         mock_ws.send_json = AsyncMock()
 
-        with patch("models.session.router_websocket.get_session_registry") as mock_sr:
+        with patch("models.session.services.websocket_handlers.get_session_registry") as mock_sr:
             mock_registry = MagicMock()
             mock_registry.get_session_info.return_value = None
             mock_sr.return_value = mock_registry
 
-            from models.session.router_websocket import _handle_command
+            from models.session.services.websocket_handlers import handle_command
 
-            await _handle_command(mock_ws, 1, {"type": "broadcast_lecture", "content": "测试"})
+            await handle_command(mock_ws, 1, {"type": "broadcast_lecture", "content": "测试"})
 
             mock_ws.send_json.assert_called_once()
             call_args = mock_ws.send_json.call_args[0][0]
@@ -196,15 +196,15 @@ class TestWsCommandRouter:
         mock_controller = MagicMock()
         mock_controller.handle_advance_checkpoint = MagicMock()
 
-        with patch("models.session.router_websocket.get_session_registry") as mock_sr:
+        with patch("models.session.services.websocket_handlers.get_session_registry") as mock_sr:
             mock_registry = MagicMock()
             mock_registry.get_session_info.return_value = {"mode": "teacher"}
             mock_registry.get_controller.return_value = mock_controller
             mock_sr.return_value = mock_registry
 
-            from models.session.router_websocket import _handle_command
+            from models.session.services.websocket_handlers import handle_command
 
-            await _handle_command(AsyncMock(), 1, {"type": "advance_checkpoint"})
+            await handle_command(AsyncMock(), 1, {"type": "advance_checkpoint"})
 
             mock_controller.handle_advance_checkpoint.assert_called_once()
 
@@ -217,15 +217,15 @@ class TestWsCommandRouter:
         mock_ws = AsyncMock()
         mock_ws.send_json = AsyncMock()
 
-        with patch("models.session.router_websocket.get_session_registry") as mock_sr:
+        with patch("models.session.services.websocket_handlers.get_session_registry") as mock_sr:
             mock_registry = MagicMock()
             mock_registry.get_session_info.return_value = {"mode": "teacher"}
             mock_registry.get_controller.return_value = mock_controller
             mock_sr.return_value = mock_registry
 
-            from models.session.router_websocket import _handle_command
+            from models.session.services.websocket_handlers import handle_command
 
-            await _handle_command(mock_ws, 1, {"type": "broadcast_lecture", "content": "测试"})
+            await handle_command(mock_ws, 1, {"type": "broadcast_lecture", "content": "测试"})
 
             # 验证发送了成功响应
             mock_ws.send_json.assert_called()
@@ -240,15 +240,15 @@ class TestWsCommandRouter:
         mock_controller = MagicMock()
         mock_controller.handle_end_dialogue = MagicMock()
 
-        with patch("models.session.router_websocket.get_session_registry") as mock_sr:
+        with patch("models.session.services.websocket_handlers.get_session_registry") as mock_sr:
             mock_registry = MagicMock()
             mock_registry.get_session_info.return_value = {"mode": "teacher"}
             mock_registry.get_controller.return_value = mock_controller
             mock_sr.return_value = mock_registry
 
-            from models.session.router_websocket import _handle_command
+            from models.session.services.websocket_handlers import handle_command
 
-            await _handle_command(AsyncMock(), 1, {"type": "end_dialogue"})
+            await handle_command(AsyncMock(), 1, {"type": "end_dialogue"})
 
             mock_controller.handle_end_dialogue.assert_called_once()
 
@@ -258,15 +258,15 @@ class TestWsCommandRouter:
         mock_controller = MagicMock()
         mock_controller.handle_assign_homework = MagicMock()
 
-        with patch("models.session.router_websocket.get_session_registry") as mock_sr:
+        with patch("models.session.services.websocket_handlers.get_session_registry") as mock_sr:
             mock_registry = MagicMock()
             mock_registry.get_session_info.return_value = {"mode": "teacher"}
             mock_registry.get_controller.return_value = mock_controller
             mock_sr.return_value = mock_registry
 
-            from models.session.router_websocket import _handle_command
+            from models.session.services.websocket_handlers import handle_command
 
-            await _handle_command(
+            await handle_command(
                 AsyncMock(), 1, {"type": "assign_homework", "content": "完成作业"}
             )
 
@@ -278,15 +278,15 @@ class TestWsCommandRouter:
         mock_controller = MagicMock()
         mock_controller.handle_collect_homework = MagicMock()
 
-        with patch("models.session.router_websocket.get_session_registry") as mock_sr:
+        with patch("models.session.services.websocket_handlers.get_session_registry") as mock_sr:
             mock_registry = MagicMock()
             mock_registry.get_session_info.return_value = {"mode": "teacher"}
             mock_registry.get_controller.return_value = mock_controller
             mock_sr.return_value = mock_registry
 
-            from models.session.router_websocket import _handle_command
+            from models.session.services.websocket_handlers import handle_command
 
-            await _handle_command(
+            await handle_command(
                 AsyncMock(), 1, {"type": "collect_homework", "homework_prompt": "练习1"}
             )
 
@@ -298,14 +298,14 @@ class TestWsCommandRouter:
         mock_controller = MagicMock()
         mock_controller.handle_end_teaching = MagicMock(return_value={"feedbacks": []})
 
-        with patch("models.session.router_websocket.get_session_registry") as mock_sr:
+        with patch("models.session.services.websocket_handlers.get_session_registry") as mock_sr:
             mock_registry = MagicMock()
             mock_registry.get_session_info.return_value = {"mode": "teacher"}
             mock_registry.get_controller.return_value = mock_controller
             mock_sr.return_value = mock_registry
 
-            from models.session.router_websocket import _handle_command
+            from models.session.services.websocket_handlers import handle_command
 
-            await _handle_command(AsyncMock(), 1, {"type": "end_teaching"})
+            await handle_command(AsyncMock(), 1, {"type": "end_teaching"})
 
             mock_controller.handle_end_teaching.assert_called_once()

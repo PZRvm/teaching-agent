@@ -29,7 +29,7 @@ class TestTeacherControllerWsPush:
     @pytest.mark.asyncio
     async def test_handle_ask_to_all_broadcasts_answers(self):
         """handle_ask_to_all 通过 ConnectionManager 广播学生回答."""
-        from models.session.teacher_controller import TeacherSessionController
+        from models.session.services.teacher_service import TeacherSessionController
 
         mock_student = MagicMock()
         mock_student.profile.name = "张三"
@@ -46,7 +46,7 @@ class TestTeacherControllerWsPush:
         )
 
         mock_broadcast = AsyncMock()
-        with patch("models.session.teacher_controller.get_connection_manager") as mock_get_cm:
+        with patch("models.session.services.teacher_service.get_connection_manager") as mock_get_cm:
             mock_manager = MagicMock()
             mock_manager.broadcast = mock_broadcast
             mock_manager.get_connection_count.return_value = 1
@@ -64,7 +64,7 @@ class TestTeacherControllerWsPush:
     @pytest.mark.asyncio
     async def test_handle_broadcast_lecture_pushes_message(self):
         """handle_broadcast_lecture 通过 ConnectionManager 推送消息."""
-        from models.session.teacher_controller import TeacherSessionController
+        from models.session.services.teacher_service import TeacherSessionController
 
         mock_memory_manager = MagicMock()
         mock_memory_manager.session_memory.session_id = 1
@@ -77,7 +77,7 @@ class TestTeacherControllerWsPush:
         )
 
         mock_broadcast = AsyncMock()
-        with patch("models.session.teacher_controller.get_connection_manager") as mock_get_cm:
+        with patch("models.session.services.teacher_service.get_connection_manager") as mock_get_cm:
             mock_manager = MagicMock()
             mock_manager.broadcast = mock_broadcast
             mock_manager.get_connection_count.return_value = 1
@@ -96,7 +96,7 @@ class TestTeacherControllerWsPush:
         """没有运行中的事件循环时，WebSocket 推送被安全跳过."""
         import asyncio
 
-        from models.session.teacher_controller import TeacherSessionController
+        from models.session.services.teacher_service import TeacherSessionController
 
         mock_memory_manager = MagicMock()
         mock_memory_manager.session_memory.session_id = 1
@@ -113,7 +113,7 @@ class TestTeacherControllerWsPush:
             asyncio.get_running_loop()
 
         # 调用不应抛出异常
-        with patch("models.session.teacher_controller.get_connection_manager") as mock_get_cm:
+        with patch("models.session.services.teacher_service.get_connection_manager") as mock_get_cm:
             mock_manager = MagicMock()
             mock_manager.get_connection_count.return_value = 1
             mock_get_cm.return_value = mock_manager

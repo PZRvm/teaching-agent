@@ -5,9 +5,8 @@ from unittest.mock import AsyncMock, MagicMock, patch
 import pytest
 
 from core.connection_manager import ConnectionManager, set_connection_manager
-from core.session_registry import SessionRegistry
+from core.session_registry import SessionRegistry, set_session_registry
 from models.checkpoint.schemas import Checkpoint, CheckpointPlan
-from models.session.router_websocket import set_session_registry
 
 
 @pytest.fixture
@@ -56,18 +55,18 @@ class TestRunOrchestratorBackground:
         cm.broadcast = AsyncMock()
 
         with (
-            patch("models.observation.router._create_llm_client", return_value=mock_llm),
-            patch("models.observation.router._create_memory_manager"),
-            patch("models.observation.router._create_teacher_agent"),
-            patch("models.observation.router._create_student_agents", return_value=[]),
+            patch("models.observation.service._create_llm_client", return_value=mock_llm),
+            patch("models.observation.service._create_memory_manager"),
+            patch("models.observation.service._create_teacher_agent"),
+            patch("models.observation.service._create_student_agents", return_value=[]),
             patch(
-                "models.observation.router._generate_checkpoint_plan", return_value=mock_plan
+                "models.observation.service._generate_checkpoint_plan", return_value=mock_plan
             ),
         ):
-            from models.observation.router import _run_orchestrator_background
+            from models.observation.service import _run_background_task
 
             registry.register(session_id=42, mode="observation")
-            await _run_orchestrator_background(
+            await _run_background_task(
                 session_id=42,
                 topic="Python 变量",
                 teaching_mode="didactic",
@@ -96,24 +95,24 @@ class TestRunOrchestratorBackground:
         cm.broadcast = AsyncMock()
 
         with (
-            patch("models.observation.router._create_llm_client", return_value=mock_llm),
-            patch("models.observation.router._create_memory_manager"),
-            patch("models.observation.router._create_teacher_agent"),
-            patch("models.observation.router._create_student_agents", return_value=[]),
-            patch("models.observation.router._generate_checkpoint_plan", return_value=mock_plan),
+            patch("models.observation.service._create_llm_client", return_value=mock_llm),
+            patch("models.observation.service._create_memory_manager"),
+            patch("models.observation.service._create_teacher_agent"),
+            patch("models.observation.service._create_student_agents", return_value=[]),
+            patch("models.observation.service._generate_checkpoint_plan", return_value=mock_plan),
             patch(
-                "models.observation.router.SessionOrchestrator",
+                "models.observation.service.SessionOrchestrator",
                 return_value=mock_orchestrator_instance,
             ),
-            patch("models.observation.router.CheckpointPlanPersistence") as mock_persistence_cls,
+            patch("models.observation.service.CheckpointPlanPersistence") as mock_persistence_cls,
         ):
             mock_persistence_instance = AsyncMock()
             mock_persistence_cls.return_value = mock_persistence_instance
 
-            from models.observation.router import _run_orchestrator_background
+            from models.observation.service import _run_background_task
 
             registry.register(session_id=42, mode="observation")
-            await _run_orchestrator_background(
+            await _run_background_task(
                 session_id=42,
                 topic="Python 变量",
                 teaching_mode="didactic",
@@ -149,24 +148,24 @@ class TestRunOrchestratorBackground:
         registry.register_orchestrator = capture_register
 
         with (
-            patch("models.observation.router._create_llm_client", return_value=mock_llm),
-            patch("models.observation.router._create_memory_manager"),
-            patch("models.observation.router._create_teacher_agent"),
-            patch("models.observation.router._create_student_agents", return_value=[]),
-            patch("models.observation.router._generate_checkpoint_plan", return_value=mock_plan),
+            patch("models.observation.service._create_llm_client", return_value=mock_llm),
+            patch("models.observation.service._create_memory_manager"),
+            patch("models.observation.service._create_teacher_agent"),
+            patch("models.observation.service._create_student_agents", return_value=[]),
+            patch("models.observation.service._generate_checkpoint_plan", return_value=mock_plan),
             patch(
-                "models.observation.router.SessionOrchestrator",
+                "models.observation.service.SessionOrchestrator",
                 return_value=mock_orchestrator_instance,
             ),
-            patch("models.observation.router.CheckpointPlanPersistence") as mock_persistence_cls,
+            patch("models.observation.service.CheckpointPlanPersistence") as mock_persistence_cls,
         ):
             mock_persistence_instance = AsyncMock()
             mock_persistence_cls.return_value = mock_persistence_instance
 
-            from models.observation.router import _run_orchestrator_background
+            from models.observation.service import _run_background_task
 
             registry.register(session_id=42, mode="observation")
-            await _run_orchestrator_background(
+            await _run_background_task(
                 session_id=42,
                 topic="Python 变量",
                 teaching_mode="didactic",
@@ -192,24 +191,24 @@ class TestRunOrchestratorBackground:
         cm.broadcast = AsyncMock()
 
         with (
-            patch("models.observation.router._create_llm_client", return_value=mock_llm),
-            patch("models.observation.router._create_memory_manager"),
-            patch("models.observation.router._create_teacher_agent"),
-            patch("models.observation.router._create_student_agents", return_value=[]),
-            patch("models.observation.router._generate_checkpoint_plan", return_value=mock_plan),
+            patch("models.observation.service._create_llm_client", return_value=mock_llm),
+            patch("models.observation.service._create_memory_manager"),
+            patch("models.observation.service._create_teacher_agent"),
+            patch("models.observation.service._create_student_agents", return_value=[]),
+            patch("models.observation.service._generate_checkpoint_plan", return_value=mock_plan),
             patch(
-                "models.observation.router.SessionOrchestrator",
+                "models.observation.service.SessionOrchestrator",
                 return_value=mock_orchestrator_instance,
             ),
-            patch("models.observation.router.CheckpointPlanPersistence") as mock_persistence_cls,
+            patch("models.observation.service.CheckpointPlanPersistence") as mock_persistence_cls,
         ):
             mock_persistence_instance = AsyncMock()
             mock_persistence_cls.return_value = mock_persistence_instance
 
-            from models.observation.router import _run_orchestrator_background
+            from models.observation.service import _run_background_task
 
             registry.register(session_id=42, mode="observation")
-            await _run_orchestrator_background(
+            await _run_background_task(
                 session_id=42,
                 topic="Python 变量",
                 teaching_mode="didactic",
@@ -231,24 +230,24 @@ class TestRunOrchestratorBackground:
         cm.broadcast = AsyncMock()
 
         with (
-            patch("models.observation.router._create_llm_client", return_value=mock_llm),
-            patch("models.observation.router._create_memory_manager"),
-            patch("models.observation.router._create_teacher_agent"),
-            patch("models.observation.router._create_student_agents", return_value=[]),
-            patch("models.observation.router._generate_checkpoint_plan", return_value=mock_plan),
+            patch("models.observation.service._create_llm_client", return_value=mock_llm),
+            patch("models.observation.service._create_memory_manager"),
+            patch("models.observation.service._create_teacher_agent"),
+            patch("models.observation.service._create_student_agents", return_value=[]),
+            patch("models.observation.service._generate_checkpoint_plan", return_value=mock_plan),
             patch(
-                "models.observation.router.SessionOrchestrator",
+                "models.observation.service.SessionOrchestrator",
                 return_value=mock_orchestrator_instance,
             ),
-            patch("models.observation.router.CheckpointPlanPersistence") as mock_persistence_cls,
+            patch("models.observation.service.CheckpointPlanPersistence") as mock_persistence_cls,
         ):
             mock_persistence_instance = AsyncMock()
             mock_persistence_cls.return_value = mock_persistence_instance
 
-            from models.observation.router import _run_orchestrator_background
+            from models.observation.service import _run_background_task
 
             registry.register(session_id=42, mode="observation")
-            await _run_orchestrator_background(
+            await _run_background_task(
                 session_id=42,
                 topic="Python 变量",
                 teaching_mode="didactic",
@@ -267,16 +266,16 @@ class TestRunOrchestratorBackground:
         cm.broadcast = AsyncMock()
 
         with (
-            patch("models.observation.router._create_llm_client", return_value=mock_llm),
+            patch("models.observation.service._create_llm_client", return_value=mock_llm),
             patch(
-                "models.observation.router._create_memory_manager",
+                "models.observation.service._create_memory_manager",
                 side_effect=RuntimeError("内存不足"),
             ),
         ):
-            from models.observation.router import _run_orchestrator_background
+            from models.observation.service import _run_background_task
 
             registry.register(session_id=42, mode="observation")
-            await _run_orchestrator_background(
+            await _run_background_task(
                 session_id=42,
                 topic="Python 变量",
                 teaching_mode="didactic",
@@ -299,16 +298,16 @@ class TestRunOrchestratorBackground:
         cm.broadcast = AsyncMock()
 
         with (
-            patch("models.observation.router._create_llm_client", return_value=mock_llm),
+            patch("models.observation.service._create_llm_client", return_value=mock_llm),
             patch(
-                "models.observation.router._create_memory_manager",
+                "models.observation.service._create_memory_manager",
                 side_effect=RuntimeError("fail"),
             ),
         ):
-            from models.observation.router import _run_orchestrator_background
+            from models.observation.service import _run_background_task
 
             registry.register(session_id=42, mode="observation")
-            await _run_orchestrator_background(
+            await _run_background_task(
                 session_id=42,
                 topic="Python 变量",
                 teaching_mode="didactic",

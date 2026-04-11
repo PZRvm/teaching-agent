@@ -27,7 +27,7 @@ def test_teach_checkpoint_ws_push_didactic():
         from agents.teacher_agent import TeacherAgent
         from core.llm_client import LLMClient
         from models.checkpoint.schemas import Checkpoint, CheckpointPlan, CheckpointState
-        from models.session.orchestrator import SessionOrchestrator
+        from models.session.services.observation_service import SessionOrchestrator
         from schemas.student import StudentAttitude, StudentLevel, StudentProfile
 
         llm = LLMClient.from_config()
@@ -127,7 +127,7 @@ def test_teach_checkpoint_ws_push_heuristic():
         from agents.teacher_agent import TeacherAgent
         from core.llm_client import LLMClient
         from models.checkpoint.schemas import Checkpoint, CheckpointPlan, CheckpointState
-        from models.session.orchestrator import SessionOrchestrator
+        from models.session.services.observation_service import SessionOrchestrator
         from schemas.student import StudentAttitude, StudentLevel, StudentProfile
 
         llm = LLMClient.from_config()

@@ -12,8 +12,7 @@ from main import app
 def reset_globals():
     """每个测试前重置全局状态."""
     from core.connection_manager import ConnectionManager, set_connection_manager
-    from core.session_registry import SessionRegistry
-    from models.session.router_websocket import set_session_registry
+    from core.session_registry import SessionRegistry, set_session_registry
 
     set_connection_manager(ConnectionManager())
     set_session_registry(SessionRegistry())
@@ -53,7 +52,7 @@ class TestWebSocketCommandIntegration:
 
     def test_broadcast_lecture_command_via_websocket(self):
         """通过 WebSocket 发送 broadcast_lecture 命令，controller 被调用."""
-        from models.session.router_websocket import get_session_registry
+        from core.session_registry import get_session_registry
 
         mock_controller = MagicMock()
         mock_controller.handle_broadcast_lecture = MagicMock()
@@ -83,7 +82,7 @@ class TestWebSocketCommandIntegration:
 
     def test_unknown_command_returns_error_via_websocket(self):
         """发送未知命令类型时返回 error."""
-        from models.session.router_websocket import get_session_registry
+        from core.session_registry import get_session_registry
 
         mock_controller = MagicMock()
         registry = get_session_registry()
@@ -116,7 +115,7 @@ class TestWebSocketCommandIntegration:
 
     def test_observation_mode_rejects_commands(self):
         """观察模式会话拒绝教师命令."""
-        from models.session.router_websocket import get_session_registry
+        from core.session_registry import get_session_registry
 
         mock_orchestrator = MagicMock()
         registry = get_session_registry()

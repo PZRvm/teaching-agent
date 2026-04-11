@@ -7,7 +7,7 @@ from agents.memories.session_memory import SessionMemory
 from agents.memories.teacher_memory import TeacherAgentMemory
 from agents.student_agent import StudentAgent
 from models.checkpoint.schemas import Checkpoint, CheckpointPlan, CheckpointState
-from models.session.teacher_controller import TeacherSessionController
+from models.session.services.teacher_service import TeacherSessionController
 from schemas.student import StudentAttitude, StudentLevel
 
 
