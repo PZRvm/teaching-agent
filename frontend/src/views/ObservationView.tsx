@@ -4,7 +4,7 @@ import styled from 'styled-components'
 import PageNav from '../components/PageNav'
 import RoughBadge from '../components/RoughBadge'
 import Footer from '../components/Footer'
-import { useWebSocket } from '../hooks/useWebSocket'
+import { useWebSocketBase } from '../hooks/useWebSocketBase'
 import { useElapsedTime } from '../hooks/useElapsedTime'
 import { TEACHING_MODE_LABELS } from '../types/observation'
 import ReactMarkdown from 'react-markdown'
@@ -19,7 +19,7 @@ export default function ObservationView() {
   // 如果 sessionId 无效，不连接 WebSocket
   const shouldConnect = sessionIdNum > 0
   const { connectionState, messages, checkpointState, sessionEnded, teachingMode, sessionReady } =
-    useWebSocket(shouldConnect ? sessionIdNum : -1)
+    useWebSocketBase(shouldConnect ? sessionIdNum : -1)
   const elapsedTime = useElapsedTime(connectionState === 'connected')
 
   const teachingModeLabel = teachingMode ? TEACHING_MODE_LABELS[teachingMode] : null
@@ -43,6 +43,16 @@ export default function ObservationView() {
           </>
         }
       />
+
+      {/* 连接断开时显示提示 */}
+      {connectionState === 'disconnected' && (
+        <div className="loading-container">
+          <div className="loading-card">
+            <p className="loading-text">连接已断开</p>
+            <p className="loading-subtext">请刷新页面重新连接</p>
+          </div>
+        </div>
+      )}
 
       {/* 会话未就绪时显示加载状态 */}
       {!sessionReady && connectionState === 'connected' && (

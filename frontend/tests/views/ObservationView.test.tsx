@@ -6,13 +6,14 @@ import ObservationView from '../../src/views/ObservationView'
 
 const mockNavigate = vi.fn()
 
-// Mock useWebSocket
+// Mock useWebSocketBase
 const mockWsReturn = {
-  connectionState: 'connected',
+  connectionState: 'connected' as const,
   messages: [],
   checkpointState: null,
   sessionEnded: false,
-  teachingMode: 'heuristic',
+  teachingMode: 'heuristic' as const,
+  sessionReady: true,
 }
 
 vi.mock('react-router-dom', async () => {
@@ -24,8 +25,8 @@ vi.mock('react-router-dom', async () => {
   }
 })
 
-vi.mock('../../src/hooks/useWebSocket', () => ({
-  useWebSocket: () => mockWsReturn,
+vi.mock('../../src/hooks/useWebSocketBase', () => ({
+  useWebSocketBase: () => mockWsReturn,
 }))
 
 vi.mock('../../src/hooks/useElapsedTime', () => ({

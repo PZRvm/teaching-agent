@@ -27,6 +27,39 @@ export interface StudentProfile {
   special_traits?: string[]
 }
 
+/** 学生水平枚举（用于选择器） */
+export const STUDENT_LEVEL_OPTIONS = [
+  { value: 'excellent' as StudentLevel, label: '优秀', color: '#E3F2FD' },
+  { value: 'average' as StudentLevel, label: '中等', color: '#FFF9C4' },
+  { value: 'basic' as StudentLevel, label: '基础', color: '#FFECB3' },
+] as const
+
+/** 学生态度枚举（用于选择器） */
+export const STUDENT_ATTITUDE_OPTIONS = [
+  { value: 'active' as StudentAttitude, label: '积极', color: '#C8E6C9' },
+  { value: 'neutral' as StudentAttitude, label: '中性', color: '#FFF9C4' },
+  { value: 'passive' as StudentAttitude, label: '消极', color: '#FFCDD2' },
+] as const
+
+/** 学生创建方式 */
+export type StudentCreateSource = 'manual' | 'random' | 'json'
+
+/** 随机班级生成配置 */
+export interface RandomClassConfig {
+  total_students: number
+  level_distribution: { [key: string]: number }
+  attitude_distribution: { [key: string]: number }
+  random_seed?: number | null
+}
+
+/** 学生创建请求（对应后端 StudentCreateRequest） */
+export interface StudentCreateRequest {
+  source: StudentCreateSource
+  manual_students?: StudentProfile[]
+  random_config?: RandomClassConfig
+  json_data?: string
+}
+
 /** 观察模式配置（对应后端 ObservationConfig） */
 export interface ObservationConfigPayload {
   topic: string
@@ -60,6 +93,8 @@ export interface WsEvent {
 /** WebSocket 连接确认事件 */
 export interface WsConnectedEvent extends WsEvent {
   type: 'connected'
+  mode?: 'observation' | 'teacher'
+  ready?: boolean // orchestrator 是否已就绪
 }
 
 /** WebSocket 消息事件（教师讲授/学生回答等） */
@@ -91,9 +126,11 @@ export interface WsCheckpointStateEvent extends WsEvent {
 export interface WsSessionStateEvent extends WsEvent {
   type: 'session_state'
   teaching_mode: string
-  phase: string
-  checkpoint_index: number
-  total_checkpoints: number
+  status?: string // 'initializing' | 'running' | 'error' | 'ended'
+  phase?: string
+  checkpoint_index?: number
+  total_checkpoints?: number
+  message?: string // 错误消息（当 status='error' 时）
 }
 
 /** WebSocket 会话结束事件 */

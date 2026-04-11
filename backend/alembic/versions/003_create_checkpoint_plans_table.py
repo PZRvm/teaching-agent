@@ -25,7 +25,7 @@ def upgrade() -> None:
         "checkpoint_plans",
         sa.Column("id", sa.Integer(), autoincrement=True, nullable=False),
         sa.Column("session_id", sa.Integer(), nullable=False),
-        sa.Column("plan_data", sa.JSON(), nullable=False),
+        sa.Column("plan_data", sa.Text(), nullable=False),  # SQLite 使用 TEXT 存储 JSON
         sa.ForeignKeyConstraint(
             ["session_id"],
             ["teaching_sessions.id"],

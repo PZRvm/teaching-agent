@@ -11,7 +11,6 @@ from collections.abc import Sequence
 import sqlalchemy as sa
 
 from alembic import op
-from schemas.student import StudentAttitude, StudentLevel
 
 # revision identifiers, used by Alembic.
 revision: str = "002"
@@ -27,12 +26,12 @@ def upgrade() -> None:
         sa.Column("id", sa.Integer(), autoincrement=True, nullable=False),
         sa.Column("session_id", sa.Integer(), nullable=False),
         sa.Column("student_name", sa.String(length=50), nullable=False),
-        sa.Column("level", sa.Enum(StudentLevel), nullable=True),
-        sa.Column("attitude", sa.Enum(StudentAttitude), nullable=True),
+        sa.Column("level", sa.String(length=20), nullable=True),  # SQLite 不支持 ENUM，使用 String
+        sa.Column("attitude", sa.String(length=20), nullable=True),  # SQLite 不支持 ENUM，使用 String
         sa.Column("learning_ability", sa.Integer(), nullable=True),
-        sa.Column("learned_concepts", sa.JSON(), nullable=True),
-        sa.Column("confused_points", sa.JSON(), nullable=True),
-        sa.Column("questions_asked", sa.JSON(), nullable=True),
+        sa.Column("learned_concepts", sa.Text(), nullable=True),  # SQLite 使用 TEXT 存储 JSON
+        sa.Column("confused_points", sa.Text(), nullable=True),
+        sa.Column("questions_asked", sa.Text(), nullable=True),
         sa.Column("initial_knowledge_level", sa.Float(), nullable=True),
         sa.Column("current_knowledge_level", sa.Float(), nullable=True),
         sa.Column("learning_rate", sa.Float(), nullable=True),

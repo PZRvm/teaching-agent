@@ -32,13 +32,20 @@ class SessionRegistry:
         orchestrator: SessionOrchestrator | None = None,
         controller: TeacherSessionController | None = None,
     ) -> None:
-        """注册会话实例."""
+        """注册会话实例.
+
+        支持仅注册 mode（不传 orchestrator/controller），后续通过
+        register_orchestrator() 延迟注册。
+        """
+        self._session_modes[session_id] = mode
         if mode == "observation" and orchestrator is not None:
             self._orchestrators[session_id] = orchestrator
-            self._session_modes[session_id] = "observation"
         elif mode == "teacher" and controller is not None:
             self._controllers[session_id] = controller
-            self._session_modes[session_id] = "teacher"
+
+    def register_orchestrator(self, session_id: int, orchestrator: SessionOrchestrator) -> None:
+        """延迟注册 orchestrator（初始化完成后调用）."""
+        self._orchestrators[session_id] = orchestrator
 
     def unregister(self, session_id: int) -> None:
         """注销会话."""

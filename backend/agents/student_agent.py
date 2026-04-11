@@ -89,6 +89,9 @@ class StudentAgent:
         return f"""{student_context}
 
 {level_section}
+
+**重要提示：你必须使用中文回答所有问题和进行所有交流。**
+
 {context}
 """
 
@@ -222,8 +225,7 @@ class StudentAgent:
         # 从会话记忆中提取最近的讲授内容作为"概念"
         # 收集所有 lecture 消息的内容作为潜在概念
         lecture_messages = [
-            m for m in self.session_memory.message_history
-            if m.message_type == MessageType.LECTURE
+            m for m in self.session_memory.message_history if m.message_type == MessageType.LECTURE
         ]
 
         # 提取概念（简化版：将每个 lecture 消息视为一个"概念"）

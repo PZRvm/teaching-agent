@@ -1,11 +1,14 @@
 """SessionOrchestrator - 观察模式核心控制器."""
 
+from __future__ import annotations
+
 import random
 from collections.abc import Callable
 
 from agents.student_agent import StudentAgent
 from core.connection_manager import get_connection_manager
 from models.checkpoint.schemas import Checkpoint, CheckpointState
+from models.session.schemas import Message, MessageType
 
 
 class SessionOrchestrator:
@@ -46,6 +49,26 @@ class SessionOrchestrator:
         """设置 WebSocket 推送回调（用于测试）."""
         self._ws_push_callback = callback
 
+    async def _broadcast_message(self, message: Message) -> None:
+        """广播消息到前端 WebSocket.
+
+        Args:
+            message: Message 对象
+        """
+        cm = get_connection_manager()
+        session_id = self.memory_manager.session_memory.session_id
+
+        await cm.broadcast(
+            session_id,
+            {
+                "type": "message",
+                "sender": message.sender,
+                "message_type": message.message_type.value,
+                "content": message.content,
+                "receiver": message.receiver or "all",
+            },
+        )
+
     async def run_autonomous_session(self) -> None:
         """运行自动教学会话（基于检查点）.
 
@@ -80,6 +103,25 @@ class SessionOrchestrator:
         # 所有检查点完成后，布置作业和收集反馈
         await self._assign_homework()
         await self._collect_homework_and_feedback()
+
+        # 广播会话结束事件
+        cm = get_connection_manager()
+        session_id = self.memory_manager.session_memory.session_id
+        await cm.broadcast(
+            session_id,
+            {
+                "type": "session_state",
+                "session_id": session_id,
+                "status": "ended",
+            },
+        )
+        await cm.broadcast(
+            session_id,
+            {
+                "type": "session_end",
+                "session_id": session_id,
+            },
+        )
 
     async def _teach_checkpoint(self, checkpoint: Checkpoint) -> None:
         """教授单个检查点.
@@ -141,7 +183,7 @@ class SessionOrchestrator:
         # 记录到会话记忆
         from datetime import datetime
 
-        from models.session.schemas import Message, MessageType
+
 
         message = Message(
             sender="teacher",
@@ -152,6 +194,7 @@ class SessionOrchestrator:
         )
 
         self.memory_manager.process_message(message)
+        await self._broadcast_message(message)
 
     async def _handle_checkpoint_questions(self, checkpoint: Checkpoint) -> None:
         """处理检查点问题环节.
@@ -174,7 +217,7 @@ class SessionOrchestrator:
         # 记录问题到会话记忆
         from datetime import datetime
 
-        from models.session.schemas import Message, MessageType
+
 
         message = Message(
             sender="teacher",
@@ -185,6 +228,7 @@ class SessionOrchestrator:
         )
 
         self.memory_manager.process_message(message)
+        await self._broadcast_message(message)
 
         # 收集学生回答
         await self._collect_student_answers()
@@ -216,9 +260,9 @@ class SessionOrchestrator:
                 print("-" * 70)
                 print(f"  {answer}")
                 print("-" * 70)
-                self._record_student_message(student.profile.name, answer)
+                await self._record_student_message(student.profile.name, answer)
 
-    async def _single_student_answer(self, student: "StudentAgent") -> None:
+    async def _single_student_answer(self, student: StudentAgent) -> None:
         """让被指定的学生回答.
 
         Args:
@@ -230,9 +274,9 @@ class SessionOrchestrator:
         print("-" * 70)
         print(f"  {answer}")
         print("-" * 70)
-        self._record_student_message(student.profile.name, answer)
+        await self._record_student_message(student.profile.name, answer)
 
-    def _record_student_message(self, student_name: str, content: str) -> None:
+    async def _record_student_message(self, student_name: str, content: str) -> None:
         """记录学生消息到记忆.
 
         Args:
@@ -241,7 +285,7 @@ class SessionOrchestrator:
         """
         from datetime import datetime
 
-        from models.session.schemas import Message, MessageType
+
 
         message = Message(
             sender=student_name,
@@ -252,6 +296,7 @@ class SessionOrchestrator:
         )
 
         self.memory_manager.process_message(message)
+        await self._broadcast_message(message)
 
     async def _assign_homework(self) -> None:
         """布置作业."""
@@ -272,7 +317,7 @@ class SessionOrchestrator:
         # 记录到会话记忆
         from datetime import datetime
 
-        from models.session.schemas import Message, MessageType
+
 
         message = Message(
             sender="teacher",
@@ -283,12 +328,13 @@ class SessionOrchestrator:
         )
 
         self.memory_manager.process_message(message)
+        await self._broadcast_message(message)
 
     async def _collect_homework_and_feedback(self) -> None:
         """收集作业和反馈."""
         from datetime import datetime
 
-        from models.session.schemas import Message, MessageType
+
 
         # 收集每个学生的作业
         for student in self.student_agents:
@@ -309,6 +355,7 @@ class SessionOrchestrator:
                 timestamp=datetime.now(),
             )
             self.memory_manager.process_message(homework_message)
+            await self._broadcast_message(homework_message)
 
             # 教师批改作业并反馈（同步方法，需要学生名）
             feedback = self.teacher_agent.grade_homework(student.profile.name, homework)
@@ -327,6 +374,7 @@ class SessionOrchestrator:
                 timestamp=datetime.now(),
             )
             self.memory_manager.process_message(feedback_message)
+            await self._broadcast_message(feedback_message)
 
         # 教师总结反馈（同步方法）
         end_feedback = self.teacher_agent.end_feedback()
@@ -346,6 +394,7 @@ class SessionOrchestrator:
             timestamp=datetime.now(),
         )
         self.memory_manager.process_message(end_message)
+        await self._broadcast_message(end_message)
 
     async def _trigger_observer_learning_for_checkpoint(self, checkpoint: Checkpoint) -> None:
         """触发观察者学习检查点知识点.

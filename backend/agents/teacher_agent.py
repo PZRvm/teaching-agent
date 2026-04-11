@@ -110,11 +110,12 @@ class TeacherAgent:
 {teacher_context}
 
 ## 重要提醒
-1. 避免重复讲授已覆盖的知识点
-2. 根据学生的参与度和理解程度调整教学节奏
-3. 对于困惑的学生，提供更详细的解释
-4. 每次讲授一个完整的知识点段，不要太长也不要太短
-5. 使用通俗易懂的语言，适当使用类比和实例
+1. **你必须使用中文进行所有教学和交流**
+2. 避免重复讲授已覆盖的知识点
+3. 根据学生的参与度和理解程度调整教学节奏
+4. 对于困惑的学生，提供更详细的解释
+5. 每次讲授一个完整的知识点段，不要太长也不要太短
+6. 使用通俗易懂的语言，适当使用类比和实例
 
 {context}
 """
@@ -384,7 +385,9 @@ class TeacherAgent:
         summary = self.session_memory.teaching_summary or "暂无"
 
         # 获取教师记忆中的参与度信息
-        participation_count = self.memory_manager.teacher_memory.student_participation.get(student_name, 0)
+        participation_count = self.memory_manager.teacher_memory.student_participation.get(
+            student_name, 0
+        )
 
         return f"""你是教师，正在批改学生"{topic}"相关课程的作业。
 
