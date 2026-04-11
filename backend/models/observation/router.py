@@ -1,7 +1,7 @@
 """观察模式 API 路由."""
 
 import logging
-from typing import Annotated
+from typing import Annotated, Any
 
 from fastapi import APIRouter, BackgroundTasks, Depends
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -44,9 +44,7 @@ def _create_llm_client() -> LLMClient:
     )
 
 
-def _create_teacher_agent(
-    llm: LLMClient, memory_manager: MemoryManager, teaching_mode: str
-):
+def _create_teacher_agent(llm: LLMClient, memory_manager: MemoryManager, teaching_mode: str):
     """创建教师 Agent."""
     from agents.teacher_agent import TeacherAgent
 
@@ -93,15 +91,115 @@ async def _generate_checkpoint_plan(
     return await service.generate_plan(topic, teaching_mode, checkpoint_count)
 
 
-async def _run_orchestrator_background(session_id: int, orchestrator: SessionOrchestrator) -> None:
-    """后台运行 orchestrator 自动教学流程."""
-    try:
-        await orchestrator.run_autonomous_session()
-    except Exception as e:
-        logger.error("Orchestrator 运行失败 (session_id=%d): %s", session_id, e, exc_info=True)
-    finally:
-        get_session_registry().unregister(session_id)
-        logger.info("Orchestrator 已清理 (session_id=%d)", session_id)
+async def _run_orchestrator_background(
+    session_id: int,
+    topic: str,
+    teaching_mode: str,
+    checkpoint_count: int,
+    students_config: list[dict],
+) -> None:
+    """后台初始化并运行 orchestrator.
+
+    此函数负责：
+    1. 推送 initializing 状态事件
+    2. 初始化 LLM、agents、memory manager
+    3. 生成检查点计划
+    4. 持久化检查点计划
+    5. 创建并注册 orchestrator
+    6. 推送 running 状态事件
+    7. 运行教学流程
+    8. 清理资源（unregister）
+
+    Args:
+        session_id: 会话 ID
+        topic: 教学主题
+        teaching_mode: 教学模式
+        checkpoint_count: 检查点数量
+        students_config: 学生配置列表
+    """
+    from core.connection_manager import get_connection_manager
+    from core.database import async_session_maker
+
+    cm = get_connection_manager()
+    registry = get_session_registry()
+
+    # 创建新的数据库 session（后台任务独立于请求的 session）
+    async with async_session_maker() as db:
+        try:
+            # 1. 推送初始化中状态
+            await cm.broadcast(
+                session_id,
+                {
+                    "type": "session_state",
+                    "session_id": session_id,
+                    "teaching_mode": teaching_mode,
+                    "status": "initializing",
+                },
+            )
+
+            # 2. 初始化 LLM、agents、memory manager
+            llm = _create_llm_client()
+            memory_manager = _create_memory_manager(session_id, topic)
+            teacher_agent = _create_teacher_agent(llm, memory_manager, teaching_mode)
+            student_agents = _create_student_agents(students_config, llm, memory_manager)
+
+            # 3. 生成检查点计划（慢 LLM 调用）
+            checkpoint_plan = await _generate_checkpoint_plan(
+                topic, teaching_mode, checkpoint_count, llm
+            )
+
+            # 4. 持久化
+            persistence = CheckpointPlanPersistence(db)
+            await persistence.save_plan(session_id, checkpoint_plan)
+
+            # 5. 创建并注册 orchestrator
+            orchestrator = SessionOrchestrator(
+                teacher_agent=teacher_agent,
+                student_agents=student_agents,
+                checkpoint_plan=checkpoint_plan,
+                memory_manager=memory_manager,
+            )
+            registry.register_orchestrator(session_id, orchestrator)
+
+            # 6. 推送就绪状态
+            await cm.broadcast(
+                session_id,
+                {
+                    "type": "session_state",
+                    "session_id": session_id,
+                    "teaching_mode": teaching_mode,
+                    "status": "running",
+                },
+            )
+
+            # 7. 运行教学流程
+            await orchestrator.run_autonomous_session()
+
+        except Exception as e:
+            logger.error(
+                "观察模式后台任务失败 (session_id=%d): %s",
+                session_id,
+                e,
+                exc_info=True,
+            )
+            # 推送错误状态
+            import contextlib
+
+            with contextlib.suppress(Exception):
+                await cm.broadcast(
+                    session_id,
+                    {
+                        "type": "session_state",
+                        "session_id": session_id,
+                        "status": "error",
+                        "message": str(e),
+                    },
+                )
+
+        finally:
+            # 8. 清理资源
+            registry.unregister(session_id)
+            logger.info("观察模式会话已清理 (session_id=%d)", session_id)
 
 
 @router.post("/start", summary="启动观察模式会话", response_model=ObservationStartResponse)
@@ -112,8 +210,8 @@ async def start_observation(
 ) -> ObservationStartResponse:
     """启动观察模式自动教学会话.
 
-    创建 teaching_session 记录，初始化 SessionOrchestrator，
-    注册到 SessionRegistry，后台异步运行教学流程。
+    创建 teaching_session 记录，注册 session 到 SessionRegistry，
+    后台异步完成初始化和教学流程。
 
     Args:
         config: 观察模式配置
@@ -121,7 +219,7 @@ async def start_observation(
         background_tasks: FastAPI 后台任务
 
     Returns:
-        会话 ID 和状态
+        会话 ID 和状态（immediate 返回，status="initializing"）
     """
     # 创建 teaching_session 记录
     session = TeachingSessionModel(
@@ -134,46 +232,56 @@ async def start_observation(
     session_id = session.id
     await db.commit()
 
-    # 初始化 LLM 和 agents
-    llm = _create_llm_client()
-    memory_manager = _create_memory_manager(session_id, config.topic)
-    teacher_agent = _create_teacher_agent(llm, memory_manager, config.teaching_mode)
-    student_agents = _create_student_agents(
-        [s.model_dump() for s in config.students], llm, memory_manager
-    )
-
-    # 生成检查点计划
-    checkpoint_plan = await _generate_checkpoint_plan(
-        config.topic, config.teaching_mode, config.checkpoint_count, llm
-    )
-
-    # 持久化检查点计划
-    persistence = CheckpointPlanPersistence(db)
-    await persistence.save_plan(session_id, checkpoint_plan)
-
-    # 创建 orchestrator
-    orchestrator = SessionOrchestrator(
-        teacher_agent=teacher_agent,
-        student_agents=student_agents,
-        checkpoint_plan=checkpoint_plan,
-        memory_manager=memory_manager,
-    )
-
-    # 注册到 SessionRegistry（WebSocket 端点可通过 session_id 找到 orchestrator）
+    # 注册 session（仅 mode，无 orchestrator）
     registry = get_session_registry()
-    registry.register(session_id=session_id, mode="observation", orchestrator=orchestrator)
+    registry.register(session_id=session_id, mode="observation")
 
-    # 后台运行教学流程
-    background_tasks.add_task(_run_orchestrator_background, session_id, orchestrator)
+    # 后台执行所有初始化 + 教学
+    background_tasks.add_task(
+        _run_orchestrator_background,
+        session_id=session_id,
+        topic=config.topic,
+        teaching_mode=config.teaching_mode,
+        checkpoint_count=config.checkpoint_count,
+        students_config=[s.model_dump() for s in config.students],
+    )
 
     logger.info(
-        "观察模式会话启动成功 (session_id=%d, students=%d, checkpoints=%d)",
+        "观察模式会话启动成功 (session_id=%d, students=%d)",
         session_id,
-        len(student_agents),
-        len(checkpoint_plan.checkpoints),
+        len(config.students),
     )
 
     return ObservationStartResponse(
         session_id=session_id,
-        status="running",
+        status="initializing",
     )
+
+
+@router.get("/{session_id}/status", summary="获取观察会话状态")
+async def get_observation_status(session_id: int) -> dict[str, Any]:
+    """获取观察会话的当前状态.
+
+    用于前端验证 session 是否仍然有效。
+
+    Args:
+        session_id: 会话 ID
+
+    Returns:
+        会话状态信息
+    """
+    from models.session.router_websocket import get_session_registry
+
+    registry = get_session_registry()
+    session_info = registry.get_session_info(session_id)
+
+    if session_info is None:
+        return {"exists": False, "message": "Session 不存在或已结束"}
+
+    orchestrator = registry.get_orchestrator(session_id) if session_info["mode"] == "observation" else None
+
+    return {
+        "exists": True,
+        "mode": session_info["mode"],
+        "ready": orchestrator is not None,
+    }

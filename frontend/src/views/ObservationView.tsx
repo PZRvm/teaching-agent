@@ -7,13 +7,19 @@ import Footer from '../components/Footer'
 import { useWebSocket } from '../hooks/useWebSocket'
 import { useElapsedTime } from '../hooks/useElapsedTime'
 import { TEACHING_MODE_LABELS } from '../types/observation'
+import ReactMarkdown from 'react-markdown'
+import remarkGfm from 'remark-gfm'
 
 export default function ObservationView() {
   const { sessionId } = useParams<{ sessionId: string }>()
   const navigate = useNavigate()
+  // 如果没有 sessionId，导航回首页
   const sessionIdNum = sessionId ? Number(sessionId) : 0
-  const { connectionState, messages, checkpointState, sessionEnded, teachingMode } =
-    useWebSocket(sessionIdNum)
+
+  // 如果 sessionId 无效，不连接 WebSocket
+  const shouldConnect = sessionIdNum > 0
+  const { connectionState, messages, checkpointState, sessionEnded, teachingMode, sessionReady } =
+    useWebSocket(shouldConnect ? sessionIdNum : -1)
   const elapsedTime = useElapsedTime(connectionState === 'connected')
 
   const teachingModeLabel = teachingMode ? TEACHING_MODE_LABELS[teachingMode] : null
@@ -38,8 +44,17 @@ export default function ObservationView() {
         }
       />
 
+      {/* 会话未就绪时显示加载状态 */}
+      {!sessionReady && connectionState === 'connected' && (
+        <div className="loading-container">
+          <div className="loading-card">
+            <p className="loading-text">正在准备课堂...</p>
+            <p className="loading-subtext">AI 正在生成教学计划，请稍候</p>
+          </div>
+        </div>
+      )}
+
       <div className="content-layout">
-        {/* 左侧：检查点进度 */}
         <aside className="sidebar">
           <div className="sidebar-card">
             <h3 className="sidebar-title">检查点进度</h3>
@@ -91,7 +106,25 @@ export default function ObservationView() {
                     <span className="message-type-badge">{msg.message_type}</span>
                   </div>
                   <div className="message-bubble">
-                    {msg.content}
+                    <ReactMarkdown
+                      remarkPlugins={[remarkGfm]}
+                      components={{
+                        p: ({ children }) => <p className="markdown-paragraph">{children}</p>,
+                        ul: ({ children }) => <ul className="markdown-list">{children}</ul>,
+                        ol: ({ children }) => <ol className="markdown-list">{children}</ol>,
+                        li: ({ children }) => <li className="markdown-item">{children}</li>,
+                        code({ inline, children, ...props }: Record<string, unknown>) {
+                          const classNameAttr = inline
+                            ? 'markdown-inline-code'
+                            : 'markdown-code-block'
+                          return <code className={classNameAttr} {...props}>{children}</code>
+                        },
+                        strong: ({ children }) => <strong>{children}</strong>,
+                        em: ({ children }) => <em>{children}</em>,
+                      }}
+                    >
+                      {msg.content}
+                    </ReactMarkdown>
                   </div>
                 </div>
               ))}
@@ -130,6 +163,38 @@ const Wrapper = styled.div`
     font-size: 14px;
     color: #6c757d;
     font-weight: 600;
+  }
+
+  /* ===== 加载状态 ===== */
+  .loading-container {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    min-height: 400px;
+    padding: 24px;
+  }
+
+  .loading-card {
+    background: #ffffff;
+    border: 2px solid #1a1a1a;
+    border-radius: 8px;
+    padding: 32px 48px;
+    box-shadow: 3px 3px 0px 0px #1a1a1a;
+    text-align: center;
+  }
+
+  .loading-text {
+    font-family: 'Plus Jakarta Sans', system-ui, sans-serif;
+    font-size: 20px;
+    font-weight: 700;
+    margin: 0 0 8px 0;
+    color: #1a1a1a;
+  }
+
+  .loading-subtext {
+    font-size: 14px;
+    margin: 0;
+    color: #6c757d;
   }
 
   /* ===== 内容布局 ===== */
@@ -304,6 +369,125 @@ const Wrapper = styled.div`
     padding: 16px;
     box-shadow: 2px 2px 0px 0px #1a1a1a;
     background: #ffffff;
+    line-height: 1.6;
+
+    // Markdown 样式
+    .markdown-paragraph {
+      margin: 0 0 12px 0;
+
+      &:last-child {
+        margin-bottom: 0;
+      }
+    }
+
+    .markdown-list {
+      margin: 0 0 12px 20px;
+      padding-left: 20px;
+
+      &:last-child {
+        margin-bottom: 0;
+      }
+    }
+
+    .markdown-item {
+      margin-bottom: 4px;
+    }
+
+    .markdown-inline-code {
+      background: #f4f4f4;
+      padding: 2px 6px;
+      border-radius: 4px;
+      font-family: 'Courier New', monospace;
+      font-size: 0.9em;
+      color: #e83e8c;
+    }
+
+    .markdown-code-block {
+      display: block;
+      background: #2d2d2d;
+      color: #f8f8f2;
+      padding: 12px;
+      border-radius: 6px;
+      margin: 12px 0;
+      overflow-x: auto;
+      font-family: 'Courier New', monospace;
+      font-size: 0.9em;
+
+      &:last-child {
+        margin-bottom: 0;
+      }
+    }
+
+    // Markdown 标题样式
+    h1,
+    h2,
+    h3,
+    h4,
+    h5,
+    h6 {
+      margin-top: 16px;
+      margin-bottom: 12px;
+      font-weight: 700;
+      line-height: 1.3;
+
+      &:first-child {
+        margin-top: 0;
+      }
+    }
+
+    h1 {
+      font-size: 1.5em;
+    }
+
+    h2 {
+      font-size: 1.3em;
+    }
+
+    h3 {
+      font-size: 1.1em;
+    }
+
+    // Markdown 其他元素
+    blockquote {
+      border-left: 4px solid #1a1a1a;
+      padding-left: 16px;
+      margin: 12px 0;
+      color: #6c757d;
+      font-style: italic;
+    }
+
+    hr {
+      border: none;
+      border-top: 1px solid #e5e5e5;
+      margin: 16px 0;
+    }
+
+    a {
+      color: #2e5cff;
+      text-decoration: underline;
+
+      &:hover {
+        color: #1a4adb;
+      }
+    }
+
+    table {
+      border-collapse: collapse;
+      width: 100%;
+      margin: 12px 0;
+
+      th,
+      td {
+        border: 1px solid #e5e5e5;
+        padding: 8px;
+        text-align: left;
+      }
+
+      th {
+        background: #f8f9fa;
+        font-weight: 700;
+      }
+    }
   }
 
   /* ===== 响应式 ===== */
