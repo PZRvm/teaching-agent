@@ -1,159 +1,99 @@
-"""Alembic 迁移测试 - 验证数据库表结构正确创建."""
+"""Alembic 迁移测试 - 验证 PostgreSQL 迁移文件结构与 ORM 模型一致."""
 
-import sqlite3
 from pathlib import Path
 
 import pytest
 
 
-class TestAlembicMigration:
-    """测试 Alembic 迁移是否正确执行."""
+class TestAlembicMigrationFile:
+    """验证 Alembic 迁移文件存在且包含正确的表定义."""
 
     @pytest.fixture
-    def db_path(self):
-        """获取数据库文件路径."""
-        return Path(__file__).parents[2] / "datas" / "database.db"
+    def migration_path(self):
+        """获取迁移文件路径."""
+        versions_dir = Path(__file__).parents[2] / "alembic" / "versions"
+        migrations = sorted(versions_dir.glob("*.py"))
+        assert len(migrations) >= 1, "未找到 Alembic 迁移文件"
+        return migrations[0]
 
-    def test_database_file_exists(self, db_path):
-        """测试数据库文件是否存在."""
-        assert db_path.exists(), "数据库文件不存在，请先运行 alembic upgrade head"
+    def test_migration_file_exists(self, migration_path):
+        """测试迁移文件存在."""
+        assert migration_path.exists()
 
-    def test_all_tables_exist(self, db_path):
-        """测试所有表是否已创建."""
-        if not db_path.exists():
-            pytest.skip("数据库文件不存在，跳过表检查")
+    def test_migration_has_revision_id(self, migration_path):
+        """测试迁移文件包含 revision ID."""
+        content = migration_path.read_text()
+        assert 'revision: str' in content
+        assert 'down_revision' in content
 
-        conn = sqlite3.connect(str(db_path))
-        cursor = conn.cursor()
+    def test_migration_creates_all_tables(self, migration_path):
+        """测试 upgrade 函数创建了所有预期的表."""
+        content = migration_path.read_text()
 
-        cursor.execute("SELECT name FROM sqlite_master WHERE type='table'")
-        tables = {row[0] for row in cursor.fetchall()}
-
-        conn.close()
-
-        expected_tables = {
+        expected_tables = [
             "teaching_sessions",
+            "messages",
             "session_memories",
             "teacher_memories",
+            "student_memories",
+            "checkpoint_plans",
+        ]
+
+        for table in expected_tables:
+            assert f"op.create_table('{table}'" in content, (
+                f"迁移文件中缺少 op.create_table('{table}')"
+            )
+
+    def test_migration_has_foreign_keys(self, migration_path):
+        """测试迁移文件包含外键约束."""
+        content = migration_path.read_text()
+
+        # messages 表 → teaching_sessions
+        assert "ForeignKeyConstraint(['session_id'], ['teaching_sessions.id']" in content
+
+    def test_migration_downgrade_drops_all_tables(self, migration_path):
+        """测试 downgrade 函数删除了所有表."""
+        content = migration_path.read_text()
+
+        expected_drops = [
+            "teacher_memories",
+            "student_memories",
+            "session_memories",
             "messages",
-            "alembic_version",
-        }
+            "teaching_sessions",
+            "checkpoint_plans",
+        ]
 
-        missing_tables = expected_tables - tables
-        assert not missing_tables, f"缺少表: {missing_tables}"
+        for table in expected_drops:
+            assert f"op.drop_table('{table}')" in content, (
+                f"迁移文件中缺少 op.drop_table('{table}')"
+            )
 
-    def test_teaching_sessions_structure(self, db_path):
-        """测试 teaching_sessions 表结构是否正确."""
-        if not db_path.exists():
-            pytest.skip("数据库文件不存在，跳过结构检查")
+    def test_migration_downgrade_drops_enum_types(self, migration_path):
+        """测试 downgrade 函数清理 PostgreSQL ENUM 类型."""
+        content = migration_path.read_text()
 
-        conn = sqlite3.connect(str(db_path))
-        cursor = conn.cursor()
+        assert "DROP TYPE IF EXISTS studentlevel" in content
+        assert "DROP TYPE IF EXISTS studentattitude" in content
 
-        cursor.execute("PRAGMA table_info(teaching_sessions)")
-        columns = {row[1]: row[2] for row in cursor.fetchall()}
 
-        conn.close()
+class TestMigrationMatchesORM:
+    """验证迁移文件中的表定义与 ORM 模型一致."""
 
-        # 验证必需的列存在
-        required_columns = {
-            "id": "INTEGER",
-            "teaching_mode": "VARCHAR",
-            "topic": "VARCHAR",
-            "students_config": "JSON",
-            "duration_seconds": "INTEGER",
-            "status": "VARCHAR",
-            "start_time": "DATETIME",
-            "end_time": "DATETIME",
-        }
+    def test_all_orm_tables_covered_by_migration(self, test_engine):
+        """测试 ORM 中定义的所有表都在迁移中创建."""
+        from pathlib import Path
 
-        for col_name, _expected_type in required_columns.items():
-            assert col_name in columns, f"缺少列: {col_name}"
+        _, base = test_engine
+        orm_tables = set(base.metadata.tables.keys())
 
-    def test_session_memories_structure(self, db_path):
-        """测试 session_memories 表结构是否正确."""
-        if not db_path.exists():
-            pytest.skip("数据库文件不存在，跳过结构检查")
+        versions_dir = Path(__file__).parents[2] / "alembic" / "versions"
+        migrations = sorted(versions_dir.glob("*.py"))
+        assert len(migrations) >= 1
 
-        conn = sqlite3.connect(str(db_path))
-        cursor = conn.cursor()
+        content = migrations[0].read_text()
 
-        cursor.execute("PRAGMA table_info(session_memories)")
-        columns = {row[1] for row in cursor.fetchall()}
-
-        conn.close()
-
-        required_columns = {
-            "id",
-            "session_id",
-            "message_history",
-            "teaching_summary",
-            "last_updated",
-        }
-        for col_name in required_columns:
-            assert col_name in columns, f"缺少列: {col_name}"
-
-    def test_messages_structure(self, db_path):
-        """测试 messages 表结构是否正确."""
-        if not db_path.exists():
-            pytest.skip("数据库文件不存在，跳过结构检查")
-
-        conn = sqlite3.connect(str(db_path))
-        cursor = conn.cursor()
-
-        cursor.execute("PRAGMA table_info(messages)")
-        columns = {row[1] for row in cursor.fetchall()}
-
-        conn.close()
-
-        required_columns = {"id", "session_id", "sender", "message_type", "content", "timestamp"}
-        for col_name in required_columns:
-            assert col_name in columns, f"缺少列: {col_name}"
-
-    def test_teacher_memories_structure(self, db_path):
-        """测试 teacher_memories 表结构是否正确."""
-        if not db_path.exists():
-            pytest.skip("数据库文件不存在，跳过结构检查")
-
-        conn = sqlite3.connect(str(db_path))
-        cursor = conn.cursor()
-
-        cursor.execute("PRAGMA table_info(teacher_memories)")
-        columns = {row[1] for row in cursor.fetchall()}
-
-        conn.close()
-
-        required_columns = {
-            "id",
-            "session_id",
-            "covered_topics",
-            "student_questions",
-            "student_participation",
-            "teaching_progress",
-            "student_misconceptions",
-        }
-        for col_name in required_columns:
-            assert col_name in columns, f"缺少列: {col_name}"
-
-    def test_foreign_keys_exist_in_schema(self, db_path):
-        """测试外键约束是否在 schema 中定义（SQLite 在连接时启用）."""
-        if not db_path.exists():
-            pytest.skip("数据库文件不存在，跳过外键检查")
-
-        conn = sqlite3.connect(str(db_path))
-        cursor = conn.cursor()
-
-        # 检查 session_memories 表的外键定义
-        cursor.execute(
-            "SELECT sql FROM sqlite_master WHERE type='table' AND name='session_memories'"
-        )
-        result = cursor.fetchone()
-        schema_sql = result[0] if result else ""
-
-        conn.close()
-
-        # SQLite 的外键约束在 CREATE TABLE 语句中定义
-        # 实际启用需要在每次连接时执行 PRAGMA foreign_keys = ON
-        assert "FOREIGN KEY(session_id) REFERENCES teaching_sessions (id)" in schema_sql, (
-            f"缺少外键约束定义。实际 schema: {schema_sql}"
-        )
+        for table_name in orm_tables:
+            assert f"op.create_table('{table_name}'" in content, (
+                f"ORM 定义了 {table_name} 表，但迁移文件中未创建"
+            )
