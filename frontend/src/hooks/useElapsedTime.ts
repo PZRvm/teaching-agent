@@ -9,9 +9,16 @@ function formatTime(totalSeconds: number): string {
   return `${String(minutes).padStart(2, '0')}:${String(seconds).padStart(2, '0')}`
 }
 
-/** 已进行时间计时器 hook，每秒更新一次 */
+/**
+ * 已进行时间计时器 hook.
+ *
+ * 从 running 变为 true 时开始计时，每秒递增一次。
+ * running 变为 false 时暂停，再次变为 true 时重置为 00:00。
+ *
+ * @param running 是否正在计时
+ * @returns 格式化后的时间字符串，格式为 MM:SS
+ */
 export function useElapsedTime(running: boolean): string {
-  // 当 running 变化时，用 derived state 计算初始值
   const [seconds, setSeconds] = useState(0)
 
   useEffect(() => {
@@ -19,7 +26,7 @@ export function useElapsedTime(running: boolean): string {
       return
     }
 
-    // 当开始运行时，重置为 0
+    // 开始计时，重置计数器
     setSeconds(0)
 
     const interval = setInterval(() => {

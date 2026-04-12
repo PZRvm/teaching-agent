@@ -3,17 +3,20 @@ import { useReducer, useEffect } from 'react'
 import { getCheckpointPlan } from '../apis/observation'
 import type { CheckpointPlanData } from '../apis/observation'
 
+/** 检查点计划加载状态 */
 interface PlanState {
   plan: CheckpointPlanData | null
   loading: boolean
   error: string | null
 }
 
+/** fetchReducer 的 action 类型 */
 type PlanAction =
   | { type: 'fetch' }
   | { type: 'success'; payload: CheckpointPlanData }
   | { type: 'error'; payload: string }
 
+/** 检查点计划加载的 reducer，使用 useReducer 避免在 useEffect 中调用 setState */
 function planReducer(state: PlanState, action: PlanAction): PlanState {
   switch (action.type) {
     case 'fetch':
@@ -26,9 +29,14 @@ function planReducer(state: PlanState, action: PlanAction): PlanState {
 }
 
 /**
- * 获取会话的检查点计划（包含所有检查点标题）。
+ * 获取会话的检查点计划（包含所有检查点标题）.
  *
  * 当 sessionReady 变为 true 时自动拉取，用于侧边栏渲染完整检查点列表。
+ * 如果拉取失败，保留 error 信息但不会重试。
+ *
+ * @param sessionId 会话 ID
+ * @param sessionReady 会话是否已就绪（orchestrator 已创建）
+ * @returns 包含 plan、loading、error 的状态对象
  */
 export function useCheckpointPlan(
   sessionId: number,
