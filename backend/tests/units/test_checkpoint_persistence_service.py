@@ -13,7 +13,7 @@ class TestCheckpointPlanPersistence:
 
     async def test_save_plan_creates_new_record(self, db_session):
         """保存新计划到数据库."""
-        from models.checkpoint.persistence_service import CheckpointPlanPersistence
+        from models.checkpoint.services.persistence_service import CheckpointPlanPersistence
 
         plan = CheckpointPlan(
             topic="Python 基础",
@@ -43,7 +43,7 @@ class TestCheckpointPlanPersistence:
 
     async def test_load_plan_by_session_id(self, db_session):
         """根据 session_id 加载计划."""
-        from models.checkpoint.persistence_service import CheckpointPlanPersistence
+        from models.checkpoint.services.persistence_service import CheckpointPlanPersistence
 
         # 先保存一个计划
         plan = CheckpointPlan(
@@ -65,7 +65,7 @@ class TestCheckpointPlanPersistence:
 
     async def test_load_plan_returns_none_for_nonexistent_session(self, db_session):
         """不存在的 session_id 返回 None."""
-        from models.checkpoint.persistence_service import CheckpointPlanPersistence
+        from models.checkpoint.services.persistence_service import CheckpointPlanPersistence
 
         service = CheckpointPlanPersistence(db_session)
         loaded_plan = await service.load_plan(session_id=99999)
@@ -74,8 +74,8 @@ class TestCheckpointPlanPersistence:
 
     async def test_update_checkpoint_state(self, db_session):
         """更新检查点状态."""
-        from models.checkpoint.persistence_service import CheckpointPlanPersistence
         from models.checkpoint.schemas import CheckpointState
+        from models.checkpoint.services.persistence_service import CheckpointPlanPersistence
 
         plan = CheckpointPlan(
             topic="状态测试",
@@ -101,8 +101,8 @@ class TestCheckpointPlanPersistence:
 
     async def test_advance_to_next_checkpoint(self, db_session):
         """推进到下一个检查点."""
-        from models.checkpoint.persistence_service import CheckpointPlanPersistence
         from models.checkpoint.schemas import CheckpointState
+        from models.checkpoint.services.persistence_service import CheckpointPlanPersistence
 
         plan = CheckpointPlan(
             topic="推进测试",
@@ -126,7 +126,7 @@ class TestCheckpointPlanPersistence:
 
     async def test_delete_plan_by_session_id(self, db_session):
         """删除计划."""
-        from models.checkpoint.persistence_service import CheckpointPlanPersistence
+        from models.checkpoint.services.persistence_service import CheckpointPlanPersistence
 
         plan = CheckpointPlan(
             topic="删除测试",

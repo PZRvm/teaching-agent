@@ -38,3 +38,8 @@ STUDENT_RESPOND_PROBABILITIES: dict[str, float] = _LLM["student_respond_probabil
 
 # 默认响应概率（态度未匹配时）
 DEFAULT_RESPOND_PROBABILITY: float = 0.5
+
+# CORS 配置
+CORS_ALLOW_ORIGINS: list[str] = _APP["app"]["cors"]["allow_origins"]
+CORS_ALLOW_METHODS: list[str] = _APP["app"]["cors"]["allow_methods"]
+CORS_ALLOW_HEADERS: list[str] = _APP["app"]["cors"]["allow_headers"]

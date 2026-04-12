@@ -1,16 +1,14 @@
 """TeacherSessionController - 教师模式核心控制器."""
 
-import asyncio
 import logging
 from collections.abc import Callable
 from datetime import datetime
-from typing import Any
 
 from agents.memories.memory_manager import MemoryManager
 from agents.student_agent import StudentAgent
-from core.connection_manager import get_connection_manager
 from models.checkpoint.schemas import CheckpointPlan
 from models.session.schemas import Message, MessageType
+from models.session.services.message_service import MessageService
 
 logger = logging.getLogger(__name__)
 
@@ -35,6 +33,7 @@ class TeacherSessionController:
         memory_manager: MemoryManager,
         checkpoint_plan: CheckpointPlan,
         ws_push_callback: Callable | None = None,
+        message_service: MessageService | None = None,
     ):
         """初始化教师模式控制器.
 
@@ -43,33 +42,21 @@ class TeacherSessionController:
             memory_manager: 记忆管理器
             checkpoint_plan: 检查点计划
             ws_push_callback: WebSocket 推送回调（用于测试）
+            message_service: 消息服务（可选，用于测试注入）
         """
         self.student_agents = student_agents
         self.memory_manager = memory_manager
         self.checkpoint_plan = checkpoint_plan
         self._ws_push_callback = ws_push_callback
 
+        # 消息服务（广播 + 持久化）
+        self._message_service = message_service or MessageService(
+            session_id=memory_manager.session_memory.session_id
+        )
+
         # 对话状态追踪
         self._active_dialogue: dict | None = None  # 当前活跃对话 {student_name: round_count}
         self._dialogue_round_count: int = 0  # 当前对话轮数
-
-    def _ws_broadcast(self, message: dict[str, Any]) -> None:
-        """通过 ConnectionManager 异步广播消息（从同步上下文调用）.
-
-        Args:
-            message: 要广播的消息字典
-        """
-        session_id = self.memory_manager.session_memory.session_id
-        cm = get_connection_manager()
-        if cm.get_connection_count(session_id=session_id) > 0:
-            try:
-                loop = asyncio.get_running_loop()
-                loop.create_task(cm.broadcast(session_id=session_id, message=message))
-            except RuntimeError:
-                logger.warning(
-                    "WebSocket push skipped: no running event loop (session_id=%d)",
-                    session_id,
-                )
 
     def handle_broadcast_lecture(self, content: str) -> None:
         """处理用户广播讲授内容.
@@ -91,14 +78,7 @@ class TeacherSessionController:
 
         self.memory_manager.session_memory.message_history.append(message)
 
-        self._ws_broadcast({
-            "type": "message",
-            "session_id": self.memory_manager.session_memory.session_id,
-            "sender": "teacher",
-            "message_type": "lecture",
-            "content": content,
-            "receiver": "all",
-        })
+        self._message_service.emit_message_sync(message)
 
     def handle_ask_to_all(self, question: str) -> None:
         """向全体学生提问并收集回答.
@@ -120,6 +100,7 @@ class TeacherSessionController:
             timestamp=datetime.now(),
         )
         self.memory_manager.session_memory.message_history.append(question_message)
+        self._message_service.emit_message_sync(question_message)
 
         # 收集所有学生的回答
         for student in self.student_agents:
@@ -132,14 +113,7 @@ class TeacherSessionController:
                 timestamp=datetime.now(),
             )
             self.memory_manager.session_memory.message_history.append(answer_message)
-
-            self._ws_broadcast({
-                "type": "student_answer",
-                "session_id": self.memory_manager.session_memory.session_id,
-                "student_name": student.profile.name,
-                "content": answer,
-                "message_type": "answer_to_checkpoint",
-            })
+            self._message_service.emit_message_sync(answer_message)
 
     def handle_ask_to_student(self, question: str, student_name: str) -> dict[str, str] | None:
         """向单个学生提问并收集回答.
@@ -165,6 +139,7 @@ class TeacherSessionController:
             timestamp=datetime.now(),
         )
         self.memory_manager.session_memory.message_history.append(question_message)
+        self._message_service.emit_message_sync(question_message)
 
         # 找到目标学生并收集回答
         target_student = None
@@ -183,14 +158,7 @@ class TeacherSessionController:
                 timestamp=datetime.now(),
             )
             self.memory_manager.session_memory.message_history.append(answer_message)
-
-            self._ws_broadcast({
-                "type": "student_answer",
-                "session_id": self.memory_manager.session_memory.session_id,
-                "student_name": student_name,
-                "content": answer,
-                "message_type": "answer_to_checkpoint",
-            })
+            self._message_service.emit_message_sync(answer_message)
 
             return {"student_name": student_name, "content": answer}
         return None
@@ -216,6 +184,7 @@ class TeacherSessionController:
             timestamp=datetime.now(),
         )
         self.memory_manager.session_memory.message_history.append(reply_message)
+        self._message_service.emit_message_sync(reply_message)
 
         # 更新对话状态
         self._active_dialogue = {
@@ -271,6 +240,7 @@ class TeacherSessionController:
             timestamp=datetime.now(),
         )
         self.memory_manager.session_memory.message_history.append(message)
+        self._message_service.emit_message_sync(message)
 
     def handle_collect_homework(self, homework_prompt: str) -> None:
         """收集所有学生作业提交.
@@ -293,6 +263,7 @@ class TeacherSessionController:
                     timestamp=datetime.now(),
                 )
                 self.memory_manager.session_memory.message_history.append(message)
+                self._message_service.emit_message_sync(message)
 
     def handle_end_teaching(self) -> dict[str, list[str]]:
         """结束教学，收集所有学生反馈.
@@ -318,5 +289,6 @@ class TeacherSessionController:
                     timestamp=datetime.now(),
                 )
                 self.memory_manager.session_memory.message_history.append(message)
+                self._message_service.emit_message_sync(message)
 
         return {"feedbacks": feedbacks}

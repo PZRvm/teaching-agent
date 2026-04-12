@@ -83,8 +83,21 @@ class ConnectionManager:
         for websocket in connections:
             try:
                 await websocket.send_json(message)
-            except Exception:
-                logger.warning("WebSocket 发送失败，移除连接 (session=%d)", session_id)
+            except Exception as e:
+                # 区分正常断开和异常断开
+                error_type = type(e).__name__
+                error_msg = str(e)
+
+                # 正常断开情况：客户端主动关闭、连接已关闭等
+                if "close" in error_msg.lower() or "disconnect" in error_msg.lower():
+                    logger.debug("WebSocket 连接已关闭，移除连接 (session=%d)", session_id)
+                else:
+                    logger.warning(
+                        "WebSocket 发送失败 (session=%d, error=%s): %s",
+                        session_id,
+                        error_type,
+                        error_msg,
+                    )
                 dead_connections.append(websocket)
 
         for ws in dead_connections:
@@ -99,8 +112,12 @@ class ConnectionManager:
         """
         try:
             await websocket.send_json(message)
-        except Exception:
-            logger.warning("WebSocket 个人消息发送失败")
+        except Exception as e:
+            error_msg = str(e)
+            if "close" in error_msg.lower() or "disconnect" in error_msg.lower():
+                logger.debug("WebSocket 个人消息发送失败：连接已关闭")
+            else:
+                logger.warning("WebSocket 个人消息发送失败: %s", error_msg)
 
     def get_connection_count(self, session_id: int) -> int:
         """获取指定 session 的活跃连接数.

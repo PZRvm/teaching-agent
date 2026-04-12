@@ -413,7 +413,6 @@ POST /observation/start
 {
   "topic": "Python 变量与数据类型",
   "teaching_mode": "heuristic",
-  "checkpoint_count": 3,
   "students": [
     {
       "name": "张三",
@@ -428,7 +427,6 @@ POST /observation/start
 **字段说明:**
 - `topic` (string, required) - 教学主题，最少 1 字符
 - `teaching_mode` (string, required) - 教学模式：`didactic`、`heuristic`、`discussion`
-- `checkpoint_count` (integer, optional) - 检查点数量，1-10，默认 5
 - `students` (array, required, min 1) - 学生列表，不能为空
 
 **响应示例:**

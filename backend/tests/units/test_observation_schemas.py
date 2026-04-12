@@ -12,7 +12,6 @@ class TestObservationSchemas:
         config = ObservationConfig(
             topic="Python Basics",
             teaching_mode="heuristic",
-            checkpoint_count=3,
             students=[
                 StudentProfile(
                     name="Student1",

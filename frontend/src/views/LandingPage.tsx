@@ -1,12 +1,17 @@
 import styled from 'styled-components'
 import { useNavigate } from 'react-router-dom'
 import RoughButton from '../components/RoughButton'
+import Footer from '../components/Footer'
 
 export default function LandingPage() {
   const navigate = useNavigate()
 
   return (
     <Wrapper>
+      {/* 背景装饰元素 */}
+      <div className="bg-decoration-left" aria-hidden="true" />
+      <div className="bg-decoration-right" aria-hidden="true" />
+
       {/* 导航栏 */}
       <nav className="top-nav">
         <div className="top-nav-left">
@@ -15,7 +20,7 @@ export default function LandingPage() {
           <span className="brand-subtitle">教学智能体</span>
         </div>
         <div className="top-nav-right">
-          <button className="nav-icon" aria-label="教学历史" onClick={() => navigate('/history')}>
+          <button className="nav-icon" aria-label="教学历史" disabled>
             <span className="material-symbols-outlined">history</span>
           </button>
           <button className="nav-icon" aria-label="设置" disabled>
@@ -104,7 +109,7 @@ export default function LandingPage() {
               <p className="card-description">
                 扮演引导者角色，直接参与教学模拟。设定教学目标，干预Agent学习进程，并在高保真模拟环境中验证您的教学策略与课程设计。
               </p>
-              <RoughButton variant="teacher" className="card-button" onClick={() => navigate('/teacher/config')}>
+              <RoughButton variant="teacher" className="card-button" disabled>
                 开始教学 →
               </RoughButton>
             </div>
@@ -118,26 +123,7 @@ export default function LandingPage() {
         </section>
       </main>
 
-      {/* Footer */}
-      <footer className="footer">
-        <div className="footer-divider" aria-hidden="true">
-          <div className="footer-divider-skew" />
-        </div>
-        <p className="footer-text">
-          技术栈：<span className="footer-highlight">FastAPI</span> +{' '}
-          <span className="footer-highlight">React</span> +{' '}
-          <span className="footer-highlight">Qwen</span> +{' '}
-          <span className="footer-highlight">SQLite</span>
-        </p>
-        <div className="footer-tags">
-          <div className="footer-tag footer-tag-beta sketch-shadow">
-            BETA v0.8.2
-          </div>
-          <div className="footer-tag footer-tag-ai sketch-shadow">
-            AI SIMULATION
-          </div>
-        </div>
-      </footer>
+      <Footer />
     </Wrapper>
   )
 }
@@ -153,6 +139,35 @@ const Wrapper = styled.div`
   align-items: center;
   font-family: 'Be Vietnam Pro', system-ui, -apple-system, BlinkMacSystemFont,
     sans-serif;
+  position: relative;
+  overflow: hidden;
+
+  /* ===== 背景装饰 ===== */
+  .bg-decoration-left {
+    position: fixed;
+    top: 10%;
+    left: -5%;
+    width: 200px;
+    height: 200px;
+    background: rgba(46, 92, 255, 0.03);
+    border-radius: 50%;
+    filter: blur(40px);
+    pointer-events: none;
+    z-index: 0;
+  }
+
+  .bg-decoration-right {
+    position: fixed;
+    bottom: 10%;
+    right: -5%;
+    width: 250px;
+    height: 250px;
+    background: rgba(39, 224, 169, 0.03);
+    border-radius: 50%;
+    filter: blur(50px);
+    pointer-events: none;
+    z-index: 0;
+  }
 
   /* ===== 导航栏 ===== */
   .top-nav {
@@ -423,69 +438,6 @@ const Wrapper = styled.div`
       color: #27e0a9;
       font-variation-settings: 'FILL' 1;
     }
-  }
-
-  /* ===== Footer ===== */
-  .footer {
-    width: 100%;
-    padding: 48px 24px;
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    gap: 24px;
-  }
-
-  .footer-divider {
-    width: 100%;
-    max-width: 896px;
-    height: 2px;
-    background: #d4d4d4;
-    position: relative;
-    overflow: hidden;
-  }
-
-  .footer-divider-skew {
-    position: absolute;
-    top: 0;
-    left: 0;
-    width: 100%;
-    height: 100%;
-    background: #d4d4d4;
-    transform: scaleY(0.5) skewX(12deg);
-  }
-
-  .footer-text {
-    font-size: 14px;
-    font-weight: 500;
-    color: #747688;
-    letter-spacing: 0.5px;
-  }
-
-  .footer-highlight {
-    color: #171717;
-    font-weight: 700;
-  }
-
-  .footer-tags {
-    display: flex;
-    gap: 16px;
-  }
-
-  .footer-tag {
-    padding: 4px 12px;
-    font-size: 12px;
-    font-weight: 700;
-    border: 1px solid #1a1a1a;
-  }
-
-  .footer-tag-beta {
-    background: #fce4ec;
-    transform: rotate(2deg);
-  }
-
-  .footer-tag-ai {
-    background: #fff9c4;
-    transform: rotate(-1deg);
   }
 
   /* ===== 响应式 ===== */

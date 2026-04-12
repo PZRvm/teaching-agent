@@ -18,6 +18,10 @@ logger = logging.getLogger(__name__)
 class StudentAgent:
     """学生 Agent - 负责回答问题和互动."""
 
+    # 学生 agent 上下文中最多保留的最近消息条数
+    # 7B 模型上下文窗口 32K，需要限制消息数量避免超限
+    MAX_CONTEXT_MESSAGES = 10
+
     # 水平对应的回答指导
     _LEVEL_INSTRUCTIONS = {
         "excellent": (
@@ -80,7 +84,9 @@ class StudentAgent:
         """
         topic = self.session_memory.topic
         student_context = self.memory.get_system_prompt_addition(topic)
-        context = self.session_memory.get_agent_context()
+        context = self.session_memory.get_agent_context(
+            max_recent_messages=self.MAX_CONTEXT_MESSAGES
+        )
 
         level_section = self._LEVEL_INSTRUCTIONS.get(
             self.profile.level.value, self._LEVEL_INSTRUCTIONS["average"]
@@ -89,6 +95,9 @@ class StudentAgent:
         return f"""{student_context}
 
 {level_section}
+
+**重要提示：你必须使用中文回答所有问题和进行所有交流。**
+
 {context}
 """
 
@@ -222,8 +231,7 @@ class StudentAgent:
         # 从会话记忆中提取最近的讲授内容作为"概念"
         # 收集所有 lecture 消息的内容作为潜在概念
         lecture_messages = [
-            m for m in self.session_memory.message_history
-            if m.message_type == MessageType.LECTURE
+            m for m in self.session_memory.message_history if m.message_type == MessageType.LECTURE
         ]
 
         # 提取概念（简化版：将每个 lecture 消息视为一个"概念"）

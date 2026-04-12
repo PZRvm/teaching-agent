@@ -37,9 +37,16 @@ class SessionMemory:
         """获取最近 N 条消息."""
         return self.message_history[-self.max_history_messages :]
 
-    def get_agent_context(self) -> str:
-        """获取 agent 完整上下文."""
-        recent = self.get_recent_messages()
+    def get_agent_context(self, max_recent_messages: int | None = None) -> str:
+        """获取 agent 上下文.
+
+        Args:
+            max_recent_messages: 最多包含的最近消息条数，None 表示使用 max_history_messages
+        """
+        if max_recent_messages is not None:
+            recent = self.message_history[-max_recent_messages:]
+        else:
+            recent = self.get_recent_messages()
         parts = [
             f"教学主题: {self.topic}",
             f"教学摘要: {self.teaching_summary}",

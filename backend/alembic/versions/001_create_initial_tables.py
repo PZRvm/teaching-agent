@@ -27,7 +27,7 @@ def upgrade() -> None:
         sa.Column("id", sa.Integer(), autoincrement=True, nullable=False),
         sa.Column("teaching_mode", sa.String(length=20), nullable=False),
         sa.Column("topic", sa.String(length=200), nullable=False),
-        sa.Column("students_config", sa.JSON(), nullable=False),
+        sa.Column("students_config", sa.Text(), nullable=False),  # SQLite 使用 TEXT 存储 JSON
         sa.Column("duration_seconds", sa.Integer(), nullable=True),
         sa.Column("status", sa.String(length=20), nullable=False),
         sa.Column("start_time", sa.DateTime(), nullable=False),
@@ -52,7 +52,7 @@ def upgrade() -> None:
         "session_memories",
         sa.Column("id", sa.Integer(), autoincrement=True, nullable=False),
         sa.Column("session_id", sa.Integer(), nullable=False),
-        sa.Column("message_history", sa.JSON(), nullable=False),
+        sa.Column("message_history", sa.Text(), nullable=False),  # SQLite 使用 TEXT 存储 JSON
         sa.Column("teaching_summary", sa.Text(), nullable=True),
         sa.Column("last_updated", sa.DateTime(), nullable=False),
         sa.ForeignKeyConstraint(
@@ -65,11 +65,11 @@ def upgrade() -> None:
         "teacher_memories",
         sa.Column("id", sa.Integer(), autoincrement=True, nullable=False),
         sa.Column("session_id", sa.Integer(), nullable=False),
-        sa.Column("covered_topics", sa.JSON(), nullable=False),
-        sa.Column("student_questions", sa.JSON(), nullable=False),
-        sa.Column("student_participation", sa.JSON(), nullable=False),
+        sa.Column("covered_topics", sa.Text(), nullable=False),  # SQLite 使用 TEXT 存储 JSON
+        sa.Column("student_questions", sa.Text(), nullable=False),
+        sa.Column("student_participation", sa.Text(), nullable=False),
         sa.Column("teaching_progress", sa.Float(), nullable=False),
-        sa.Column("student_misconceptions", sa.JSON(), nullable=False),
+        sa.Column("student_misconceptions", sa.Text(), nullable=False),
         sa.ForeignKeyConstraint(
             ["session_id"],
             ["teaching_sessions.id"],

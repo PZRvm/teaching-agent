@@ -24,12 +24,17 @@ The backend follows a modular structure organized by feature:
 backend/
 ├── models/              # Feature modules (router + service + schemas)
 │   ├── session/        # Teaching session management
-│   │   ├── orchestrator.py     # SessionOrchestrator (观察模式核心)
+│   │   ├── services/           # 业务逻辑层
+│   │   │   ├── observation_service.py  # SessionOrchestrator (观察模式核心)
+│   │   │   ├── teacher_service.py      # TeacherSessionController (教师模式核心)
+│   │   │   └── websocket_handlers.py   # WebSocket 命令处理器
+│   │   ├── router.py           # HTTP 路由
 │   │   ├── router_websocket.py # WebSocket endpoint (ws/{session_id})
-│   │   └── schemas.py          # Message schemas (moved from schemas/)
+│   │   └── schemas.py          # Message schemas
 │   ├── checkpoint/      # Checkpoint system (检查点系统)
-│   │   ├── service.py          # CheckpointPlan generation service
-│   │   ├── persistence_service.py # Checkpoint persistence (checkpoint_plans table)
+│   │   ├── services/            # 服务层
+│   │   │   ├── plan_service.py       # CheckpointPlan generation service
+│   │   │   └── persistence_service.py # Checkpoint persistence (checkpoint_plans table)
 │   │   ├── router.py           # GET/POST/PUT/DELETE /checkpoint-plans/
 │   │   └── schemas.py          # Checkpoint, CheckpointPlan, CheckpointState
 │   ├── observation/      # Observation mode (观察模式)
@@ -84,7 +89,7 @@ backend/
    - 灌输式跳过 QUESTIONS 状态
    - 三层降级机制（LLM 生成失败时的兜底策略）
 
-5. **SessionOrchestrator**: 观察模式核心控制器（`models/session/orchestrator.py`）
+5. **SessionOrchestrator**: 观察模式核心控制器（`models/session/services/observation_service.py`）
    - 自动运行基于检查点的教学流程
    - 支持场景 A（教师提问）和场景 B（学生提问）对话循环
    - 至少一轮对话约束（双方均可结束）
@@ -107,11 +112,12 @@ from agents.memories import SessionMemory, TeacherAgentMemory, StudentAgentMemor
 
 # 检查点系统
 from models.checkpoint.schemas import Checkpoint, CheckpointPlan, CheckpointState
-from models.checkpoint.service import CheckpointPlanService
-from models.checkpoint.persistence_service import CheckpointPlanPersistence
+from models.checkpoint.services.plan_service import CheckpointPlanService
+from models.checkpoint.services.persistence_service import CheckpointPlanPersistence
 
 # Session 系统
-from models.session.orchestrator import SessionOrchestrator
+from models.session.services.observation_service import SessionOrchestrator
+from models.session.services.teacher_service import TeacherSessionController
 from models.session.schemas import Message, MessageType
 
 # Message schemas（向后兼容导入）

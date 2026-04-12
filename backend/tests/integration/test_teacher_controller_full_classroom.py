@@ -7,7 +7,7 @@ import pytest
 from agents.memories import SessionMemory
 from models.checkpoint.schemas import Checkpoint, CheckpointPlan, CheckpointState
 from models.session.schemas import MessageType
-from models.session.teacher_controller import TeacherSessionController
+from models.session.services.teacher_service import TeacherSessionController
 
 
 @pytest.mark.asyncio

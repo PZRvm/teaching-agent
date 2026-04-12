@@ -4,7 +4,7 @@ from unittest.mock import Mock
 
 from models.checkpoint.schemas import CheckpointState
 from models.session.schemas import MessageType
-from models.session.teacher_controller import TeacherSessionController
+from models.session.services.teacher_service import TeacherSessionController
 from schemas.student import StudentAttitude, StudentLevel, StudentProfile
 
 
@@ -25,6 +25,7 @@ class TestTeacherSessionControllerInit:
             memory_manager=mock_memory_manager,
             checkpoint_plan=mock_checkpoint_plan,
             ws_push_callback=mock_ws_callback,
+            message_service=Mock(),
         )
 
         # Assert
@@ -51,6 +52,7 @@ class TestHandleBroadcastLecture:
             memory_manager=mock_memory_manager,
             checkpoint_plan=Mock(),
             ws_push_callback=None,
+            message_service=Mock(),
         )
         lecture_content = "今天我们学习 Python 变量的基本概念"
 
@@ -94,6 +96,7 @@ class TestHandleAskToAll:
             memory_manager=mock_memory_manager,
             checkpoint_plan=Mock(),
             ws_push_callback=None,
+            message_service=Mock(),
         )
         question = "Python 中的变量和数学中的变量有什么区别？"
 
@@ -142,6 +145,7 @@ class TestHandleAskToStudent:
             memory_manager=mock_memory_manager,
             checkpoint_plan=Mock(),
             ws_push_callback=None,
+            message_service=Mock(),
         )
         question = "请张三回答：Python 中列表和元组的区别是什么？"
 
@@ -181,6 +185,7 @@ class TestHandleAskToStudent:
             memory_manager=mock_memory_manager,
             checkpoint_plan=Mock(),
             ws_push_callback=None,
+            message_service=Mock(),
         )
         question = "请王五回答：这个问题"
         nonexistent_student = "王五"
@@ -214,6 +219,7 @@ class TestHandleTeacherReply:
             memory_manager=mock_memory_manager,
             checkpoint_plan=Mock(),
             ws_push_callback=None,
+            message_service=Mock(),
         )
         reply_content = "张三的回答很好，列表是可变的，元组是不可变的"
 
@@ -245,6 +251,7 @@ class TestHandleTeacherReply:
             memory_manager=mock_memory_manager,
             checkpoint_plan=Mock(),
             ws_push_callback=None,
+            message_service=Mock(),
         )
 
         # Act - 多轮对话
@@ -271,6 +278,7 @@ class TestHandleTeacherReply:
             memory_manager=mock_memory_manager,
             checkpoint_plan=Mock(),
             ws_push_callback=None,
+            message_service=Mock(),
         )
 
         # Act
@@ -306,6 +314,7 @@ class TestHandleEndDialogue:
             memory_manager=mock_memory_manager,
             checkpoint_plan=Mock(),
             ws_push_callback=None,
+            message_service=Mock(),
         )
 
         # 先建立对话状态
@@ -354,6 +363,7 @@ class TestHandleEndDialogue:
             memory_manager=mock_memory_manager,
             checkpoint_plan=Mock(),
             ws_push_callback=None,
+            message_service=Mock(),
         )
 
         # Act - 张三和教师对话后结束
@@ -380,6 +390,7 @@ class TestHandleEndDialogue:
             memory_manager=mock_memory_manager,
             checkpoint_plan=Mock(),
             ws_push_callback=None,
+            message_service=Mock(),
         )
 
         # Act - 直接结束对话（没有进行任何对话轮）
@@ -420,6 +431,7 @@ class TestHandleAdvanceCheckpoint:
             memory_manager=mock_memory_manager,
             checkpoint_plan=mock_checkpoint_plan,
             ws_push_callback=None,
+            message_service=Mock(),
         )
 
         # 建立对话状态
@@ -459,6 +471,7 @@ class TestHandleAdvanceCheckpoint:
             memory_manager=mock_memory_manager,
             checkpoint_plan=mock_checkpoint_plan,
             ws_push_callback=None,
+            message_service=Mock(),
         )
 
         # Act - 直接推进检查点（没有活跃对话）
@@ -483,6 +496,7 @@ class TestHandleAssignHomework:
             memory_manager=mock_memory_manager,
             checkpoint_plan=Mock(),
             ws_push_callback=None,
+            message_service=Mock(),
         )
         homework_content = "完成 Python 列表和元组的练习题"
 
@@ -524,6 +538,7 @@ class TestHandleCollectHomework:
             memory_manager=mock_memory_manager,
             checkpoint_plan=Mock(),
             ws_push_callback=None,
+            message_service=Mock(),
         )
 
         # Act
@@ -557,6 +572,7 @@ class TestHandleCollectHomework:
             memory_manager=mock_memory_manager,
             checkpoint_plan=Mock(),
             ws_push_callback=None,
+            message_service=Mock(),
         )
 
         # Act
@@ -596,6 +612,7 @@ class TestHandleEndTeaching:
             memory_manager=mock_memory_manager,
             checkpoint_plan=Mock(),
             ws_push_callback=None,
+            message_service=Mock(),
         )
 
         # Act
@@ -635,6 +652,7 @@ class TestHandleEndTeaching:
             memory_manager=mock_memory_manager,
             checkpoint_plan=Mock(),
             ws_push_callback=None,
+            message_service=Mock(),
         )
 
         # Act

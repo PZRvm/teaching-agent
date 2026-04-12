@@ -1,254 +1,20 @@
 """WebSocket 路由 - 实时双向通信."""
 
 import logging
-from typing import Any
 
 from fastapi import APIRouter, WebSocket, WebSocketDisconnect
-from pydantic import ValidationError
 
 from core.connection_manager import get_connection_manager
-from core.session_registry import SessionRegistry
-from models.session.schemas import (
-    WsAskToAllCommand,
-    WsAskToStudentCommand,
-    WsAssignHomeworkCommand,
-    WsBroadcastLectureCommand,
-    WsCollectHomeworkCommand,
-    WsTeacherReplyCommand,
-)
+from core.session_registry import get_session_registry, set_session_registry
+from models.session.services.websocket_handlers import TEACHER_COMMAND_HANDLERS, handle_command
 
 logger = logging.getLogger(__name__)
 
 router = APIRouter()
 
-# 模块级 SessionRegistry 实例（应用生命周期内唯一）
-_session_registry = SessionRegistry()
-
-
-def get_session_registry() -> SessionRegistry:
-    """获取全局 SessionRegistry 实例（用于测试注入）."""
-    return _session_registry
-
-
-def set_session_registry(registry: SessionRegistry) -> None:
-    """设置全局 SessionRegistry 实例（用于测试注入）."""
-    global _session_registry
-    _session_registry = registry
-
-
-# 教师模式命令映射
-_TEACHER_COMMAND_HANDLERS: dict[str, str] = {
-    "broadcast_lecture": "_handle_broadcast_lecture",
-    "ask_to_all": "_handle_ask_to_all",
-    "ask_to_student": "_handle_ask_to_student",
-    "teacher_reply": "_handle_teacher_reply",
-    "advance_checkpoint": "_handle_advance_checkpoint",
-    "end_dialogue": "_handle_end_dialogue",
-    "assign_homework": "_handle_assign_homework",
-    "collect_homework": "_handle_collect_homework",
-    "end_teaching": "_handle_end_teaching",
-}
-
-
-async def _handle_command(
-    websocket: WebSocket, session_id: int, data: dict[str, Any]
-) -> None:
-    """处理 WebSocket 命令并路由到对应的 handler.
-
-    Args:
-        websocket: WebSocket 连接实例
-        session_id: 会话 ID
-        data: 接收到的 JSON 数据
-    """
-    registry = get_session_registry()
-    session_info = registry.get_session_info(session_id)
-
-    if session_info is None:
-        await websocket.send_json({
-            "type": "error",
-            "message": f"Session {session_id} not found",
-            "session_id": session_id,
-        })
-        return
-
-    mode = session_info["mode"]
-    command_type = data.get("type", "")
-
-    if mode == "teacher":
-        await _handle_teacher_command(websocket, session_id, command_type, data, registry)
-    else:
-        # 观察模式：当前 orchestrator 自动运行，WebSocket 只接收观察命令
-        await websocket.send_json({
-            "type": "error",
-            "message": f"Observation mode does not support command '{command_type}'",
-            "session_id": session_id,
-        })
-
-
-async def _handle_teacher_command(
-    websocket: WebSocket,
-    session_id: int,
-    command_type: str,
-    data: dict[str, Any],
-    registry: SessionRegistry,
-) -> None:
-    """处理教师模式命令."""
-    controller = registry.get_controller(session_id)
-    if controller is None:
-        await websocket.send_json({
-            "type": "error",
-            "message": f"No controller for session {session_id}",
-            "session_id": session_id,
-        })
-        return
-
-    handler_name = _TEACHER_COMMAND_HANDLERS.get(command_type)
-    if handler_name is None:
-        await websocket.send_json({
-            "type": "error",
-            "message": f"Unknown command: {command_type}",
-            "session_id": session_id,
-        })
-        return
-
-    try:
-        await getattr(_TeacherCommandHandlers, handler_name)(
-            websocket, session_id, data, controller
-        )
-    except ValidationError as e:
-        await websocket.send_json({
-            "type": "error",
-            "message": f"Invalid command data: {e}",
-            "command": command_type,
-            "session_id": session_id,
-        })
-    except Exception as e:
-        logger.error("Command '%s' failed: %s", command_type, e, exc_info=True)
-        await websocket.send_json({
-            "type": "error",
-            "message": f"Command '{command_type}' failed: {e}",
-            "command": command_type,
-            "session_id": session_id,
-        })
-
-
-class _TeacherCommandHandlers:
-    """教师模式命令处理器（静态方法集合）."""
-
-    @staticmethod
-    async def _handle_broadcast_lecture(
-        websocket: WebSocket, session_id: int, data: dict[str, Any], controller: Any
-    ) -> None:
-        cmd = WsBroadcastLectureCommand(**data)
-        controller.handle_broadcast_lecture(cmd.content)
-        await websocket.send_json({
-            "type": "command_result",
-            "command": "broadcast_lecture",
-            "success": True,
-            "session_id": session_id,
-        })
-
-    @staticmethod
-    async def _handle_ask_to_all(
-        websocket: WebSocket, session_id: int, data: dict[str, Any], controller: Any
-    ) -> None:
-        cmd = WsAskToAllCommand(**data)
-        controller.handle_ask_to_all(cmd.question)
-        await websocket.send_json({
-            "type": "command_result",
-            "command": "ask_to_all",
-            "success": True,
-            "session_id": session_id,
-        })
-
-    @staticmethod
-    async def _handle_ask_to_student(
-        websocket: WebSocket, session_id: int, data: dict[str, Any], controller: Any
-    ) -> None:
-        cmd = WsAskToStudentCommand(**data)
-        result = controller.handle_ask_to_student(cmd.question, cmd.student_name)
-        await websocket.send_json({
-            "type": "command_result",
-            "command": "ask_to_student",
-            "success": True,
-            "session_id": session_id,
-            "data": result,
-        })
-
-    @staticmethod
-    async def _handle_teacher_reply(
-        websocket: WebSocket, session_id: int, data: dict[str, Any], controller: Any
-    ) -> None:
-        cmd = WsTeacherReplyCommand(**data)
-        controller.handle_teacher_reply(cmd.reply, cmd.student_name)
-        await websocket.send_json({
-            "type": "command_result",
-            "command": "teacher_reply",
-            "success": True,
-            "session_id": session_id,
-        })
-
-    @staticmethod
-    async def _handle_advance_checkpoint(
-        websocket: WebSocket, session_id: int, data: dict[str, Any], controller: Any
-    ) -> None:
-        controller.handle_advance_checkpoint()
-        await websocket.send_json({
-            "type": "command_result",
-            "command": "advance_checkpoint",
-            "success": True,
-            "session_id": session_id,
-        })
-
-    @staticmethod
-    async def _handle_end_dialogue(
-        websocket: WebSocket, session_id: int, data: dict[str, Any], controller: Any
-    ) -> None:
-        controller.handle_end_dialogue()
-        await websocket.send_json({
-            "type": "command_result",
-            "command": "end_dialogue",
-            "success": True,
-            "session_id": session_id,
-        })
-
-    @staticmethod
-    async def _handle_assign_homework(
-        websocket: WebSocket, session_id: int, data: dict[str, Any], controller: Any
-    ) -> None:
-        cmd = WsAssignHomeworkCommand(**data)
-        controller.handle_assign_homework(cmd.content)
-        await websocket.send_json({
-            "type": "command_result",
-            "command": "assign_homework",
-            "success": True,
-            "session_id": session_id,
-        })
-
-    @staticmethod
-    async def _handle_collect_homework(
-        websocket: WebSocket, session_id: int, data: dict[str, Any], controller: Any
-    ) -> None:
-        cmd = WsCollectHomeworkCommand(**data)
-        controller.handle_collect_homework(cmd.homework_prompt)
-        await websocket.send_json({
-            "type": "command_result",
-            "command": "collect_homework",
-            "success": True,
-            "session_id": session_id,
-        })
-
-    @staticmethod
-    async def _handle_end_teaching(
-        websocket: WebSocket, session_id: int, data: dict[str, Any], controller: Any
-    ) -> None:
-        controller.handle_end_teaching()
-        await websocket.send_json({
-            "type": "command_result",
-            "command": "end_teaching",
-            "success": True,
-            "session_id": session_id,
-        })
+# 向后兼容：外部代码可能从 router_websocket 导入这些函数
+# 实际实现在 core.session_registry 模块
+__all__ = ["router", "get_session_registry", "set_session_registry"]
 
 
 @router.websocket("/ws/sessions/{session_id}")
@@ -266,17 +32,41 @@ async def websocket_session(websocket: WebSocket, session_id: int):
     manager = get_connection_manager()
     manager.connect(session_id=session_id, websocket=websocket)
 
-    # 发送连接确认
-    await websocket.send_json(
-        {
-            "type": "connected",
-            "session_id": session_id,
-        }
-    )
-
     logger.info("WebSocket 连接建立 (session_id=%d)", session_id)
 
     try:
+        # 检查会话是否已注册且 orchestrator 是否就绪
+        registry = get_session_registry()
+        logger.debug("当前注册的会话: %s", session_id)
+        session_info = registry.get_session_info(session_id)
+
+        if session_info is None:
+            # 会话不存在，发送错误并关闭连接
+            logger.warning("WebSocket 连接请求的会话不存在 (session_id=%d)", session_id)
+            await websocket.send_json(
+                {
+                    "type": "error",
+                    "message": f"Session {session_id} not found",
+                    "session_id": session_id,
+                }
+            )
+            await websocket.close(code=1008, reason="Session not found")
+            return
+
+        # 发送连接确认和当前会话状态
+        mode = session_info["mode"]
+        orchestrator = registry.get_orchestrator(session_id) if mode == "observation" else None
+        logger.info("发送 connected 事件 (session_id=%d, mode=%s, ready=%s)", session_id, mode, orchestrator is not None)
+
+        await websocket.send_json(
+            {
+                "type": "connected",
+                "session_id": session_id,
+                "mode": mode,
+                "ready": orchestrator is not None,
+            }
+        )
+
         while True:
             data = await websocket.receive_json()
 
@@ -286,16 +76,18 @@ async def websocket_session(websocket: WebSocket, session_id: int):
                 await websocket.send_json({"type": "pong"})
             elif msg_type == "pong":
                 pass  # 客户端心跳响应
-            elif msg_type in _TEACHER_COMMAND_HANDLERS:
+            elif msg_type in TEACHER_COMMAND_HANDLERS:
                 # 路由到命令处理器
-                await _handle_command(websocket, session_id, data)
+                await handle_command(websocket, session_id, data)
             elif msg_type:
                 # 未知命令类型
-                await websocket.send_json({
-                    "type": "error",
-                    "message": f"Unknown command: {msg_type}",
-                    "session_id": session_id,
-                })
+                await websocket.send_json(
+                    {
+                        "type": "error",
+                        "message": f"Unknown command: {msg_type}",
+                        "session_id": session_id,
+                    }
+                )
 
     except WebSocketDisconnect:
         logger.info("WebSocket 客户端断开 (session_id=%d)", session_id)

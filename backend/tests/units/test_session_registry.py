@@ -85,3 +85,48 @@ class TestSessionRegistryTypes:
 
         assert registry.get_session_info(session_id=1) is None
         assert registry.get_controller(session_id=1) is None
+
+
+class TestSessionRegistryDeferredRegistration:
+    """SessionRegistry 延迟注册 orchestrator 测试."""
+
+    def test_register_mode_only_sets_session_info(self):
+        """仅注册 mode（不传 orchestrator）时，session_info 可用."""
+        registry = SessionRegistry()
+        registry.register(session_id=1, mode="observation")
+
+        info = registry.get_session_info(session_id=1)
+        assert info == {"mode": "observation"}
+        assert registry.get_orchestrator(session_id=1) is None
+
+    def test_register_mode_only_teacher(self):
+        """仅注册 teacher mode（不传 controller）时，session_info 可用."""
+        registry = SessionRegistry()
+        registry.register(session_id=1, mode="teacher")
+
+        info = registry.get_session_info(session_id=1)
+        assert info == {"mode": "teacher"}
+        assert registry.get_controller(session_id=1) is None
+
+    def test_register_orchestrator_deferred(self):
+        """register_orchestrator 延迟注册 orchestrator 到已注册的 session."""
+        registry = SessionRegistry()
+        registry.register(session_id=1, mode="observation")
+
+        mock_orch = MagicMock()
+        registry.register_orchestrator(session_id=1, orchestrator=mock_orch)
+
+        assert registry.get_orchestrator(session_id=1) is mock_orch
+        info = registry.get_session_info(session_id=1)
+        assert info == {"mode": "observation"}
+
+    def test_register_orchestrator_overwrites_existing(self):
+        """register_orchestrator 可以覆盖已注册的 orchestrator."""
+        registry = SessionRegistry()
+        mock_orch_1 = MagicMock()
+        mock_orch_2 = MagicMock()
+        registry.register(session_id=1, mode="observation", orchestrator=mock_orch_1)
+
+        registry.register_orchestrator(session_id=1, orchestrator=mock_orch_2)
+
+        assert registry.get_orchestrator(session_id=1) is mock_orch_2

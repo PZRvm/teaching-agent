@@ -68,26 +68,22 @@ describe('LandingPage', () => {
     expect(mockNavigate).toHaveBeenCalledWith('/observation/config')
   })
 
-  it('navigates to teacher config when clicking 开始教学', async () => {
-    const user = userEvent.setup()
+  it('开始教学按钮已禁用（功能未实现）', async () => {
     render(
       <MemoryRouter>
         <LandingPage />
       </MemoryRouter>,
     )
-    await user.click(screen.getByRole('button', { name: '开始教学 →' }))
-    expect(mockNavigate).toHaveBeenCalledWith('/teacher/config')
+    expect(screen.getByRole('button', { name: '开始教学 →' })).toBeDisabled()
   })
 
-  it('navigates to history page when clicking history icon', async () => {
-    const user = userEvent.setup()
+  it('教学历史按钮已禁用（功能未实现）', () => {
     render(
       <MemoryRouter>
         <LandingPage />
       </MemoryRouter>,
     )
-    await user.click(screen.getByLabelText('教学历史'))
-    expect(mockNavigate).toHaveBeenCalledWith('/history')
+    expect(screen.getByLabelText('教学历史')).toBeDisabled()
   })
 
   it('uses rough design elements like tape, decorations, and footer tags', () => {

@@ -21,14 +21,13 @@ class CheckpointPlanService:
         self.llm = llm
 
     async def generate_plan(
-        self, topic: str, teaching_mode: str, checkpoint_count: int
+        self, topic: str, teaching_mode: str
     ) -> CheckpointPlan:
         """生成检查点计划.
 
         Args:
             topic: 教学主题
             teaching_mode: 教学模式 (didactic/heuristic/discussion/teacher)
-            checkpoint_count: 检查点数量
 
         Returns:
             生成的检查点计划
@@ -38,7 +37,7 @@ class CheckpointPlanService:
         """
         from pydantic import ValidationError as PydanticValidationError
 
-        prompt = self._build_prompt(topic, teaching_mode, checkpoint_count)
+        prompt = self._build_prompt(topic, teaching_mode)
 
         try:
             # 尝试使用 structured output
@@ -69,20 +68,25 @@ class CheckpointPlanService:
                 # 最后的兜底方案：单个检查点
                 return self._create_fallback_plan(topic, teaching_mode)
 
-    def _build_prompt(self, topic: str, teaching_mode: str, checkpoint_count: int) -> str:
+    def _build_prompt(self, topic: str, teaching_mode: str) -> str:
         """构建 LLM prompt.
 
         Args:
             topic: 教学主题
             teaching_mode: 教学模式
-            checkpoint_count: 检查点数量
 
         Returns:
             完整的 prompt 字符串
         """
         mode_instruction = self._load_mode_instructions(teaching_mode)
 
-        return f"""请为主题 "{topic}" 生成一个包含 {checkpoint_count} 个检查点的教学计划。
+        return f"""请为主题 "{topic}" 生成一个教学计划。
+
+请根据主题的复杂度和知识量，自行决定需要多少个检查点。
+要求:
+- 每个检查点涵盖一个核心知识点
+- 检查点数量最多 10 个
+- 简单主题 3-5 个，复杂主题 5-8 个
 
 教学模式: {teaching_mode}
 {mode_instruction}

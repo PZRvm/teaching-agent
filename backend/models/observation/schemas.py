@@ -10,7 +10,6 @@ class ObservationConfig(BaseModel):
 
     topic: str = Field(min_length=1, description="教学主题")
     teaching_mode: str = Field(description="教学模式 (didactic/heuristic/discussion)")
-    checkpoint_count: int = Field(default=5, ge=1, le=10, description="检查点数量")
     students: list[StudentProfile] = Field(min_length=1, description="学生列表")
 
 
@@ -28,6 +27,31 @@ class ObservationMetrics(BaseModel):
     completed_checkpoints: int = Field(description="已完成检查点数")
     total_messages: int = Field(description="总消息数")
     student_participation: dict[str, int] = Field(default_factory=dict, description="学生参与次数")
+
+
+class CheckpointProgressInfo(BaseModel):
+    """单个检查点信息."""
+
+    title: str
+    state: str
+    key_point: str
+
+
+class CheckpointProgressCounts(BaseModel):
+    """检查点进度计数."""
+
+    current: int
+    total: int
+    completed: int
+
+
+class CheckpointProgressResponse(BaseModel):
+    """检查点进度响应."""
+
+    index: int
+    checkpoint: CheckpointProgressInfo
+    progress: CheckpointProgressCounts
+    checkpoints: list[CheckpointProgressInfo] = Field(description="所有检查点的名称和状态")
 
 
 class ObservationReport(BaseModel):

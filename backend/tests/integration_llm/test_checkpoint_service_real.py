@@ -17,7 +17,7 @@ from models.checkpoint.schemas import (  # noqa: E402
     CheckpointPlan,
     CheckpointState,
 )
-from models.checkpoint.service import CheckpointPlanService  # noqa: E402
+from models.checkpoint.services.plan_service import CheckpointPlanService  # noqa: E402
 
 
 @pytest.fixture(scope="module")
@@ -42,7 +42,6 @@ class TestCheckpointPlanServiceReal:
         plan = await service.generate_plan(
             topic="Python 变量与数据类型",
             teaching_mode="didactic",
-            checkpoint_count=3,
         )
 
         # 打印生成的计划
@@ -84,7 +83,6 @@ class TestCheckpointPlanServiceReal:
         plan = await service.generate_plan(
             topic="Python 循环结构",
             teaching_mode="heuristic",
-            checkpoint_count=4,
         )
 
         # 打印生成的计划
@@ -121,7 +119,6 @@ class TestCheckpointPlanServiceReal:
         plan = await service.generate_plan(
             topic="面向对象编程基础",
             teaching_mode="discussion",
-            checkpoint_count=5,
         )
 
         # 打印生成的计划
@@ -158,7 +155,6 @@ class TestCheckpointPlanServiceReal:
         plan = await service.generate_plan(
             topic="Python 函数",
             teaching_mode="heuristic",
-            checkpoint_count=3,
         )
 
         # 序列化为 JSON
@@ -192,7 +188,6 @@ class TestCheckpointPlanServiceReal:
         plan_single = await service.generate_plan(
             topic="Python 列表推导式",
             teaching_mode="didactic",
-            checkpoint_count=1,
         )
 
         print(f"生成的检查点数量: {len(plan_single.checkpoints)}")
@@ -209,7 +204,6 @@ class TestCheckpointPlanServiceReal:
         plan_multi = await service.generate_plan(
             topic="Python 装饰器",
             teaching_mode="heuristic",
-            checkpoint_count=7,
         )
 
         print(f"生成的检查点数量: {len(plan_multi.checkpoints)}")
