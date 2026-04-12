@@ -4,7 +4,7 @@ import sys
 from logging.config import fileConfig
 from pathlib import Path
 
-from sqlalchemy import engine_from_config, pool
+from sqlalchemy import engine_from_config
 
 from alembic import context
 
@@ -17,13 +17,21 @@ if sys_path not in sys.path:
 # noqa: E402 - 导入必须在 sys.path.append() 之后，这是 Alembic env.py 的特殊情况
 from core.database import Base  # noqa: E402
 
+from orm.checkpoint_plan import CheckpointPlanModel  # noqa: E401, F401
+from orm.message import MessageModel  # noqa: E401, F401
+from orm.session_memory import SessionMemoryModel  # noqa: E401, F401
+from orm.student_memory import StudentMemoryModel  # noqa: E401, F401
+from orm.teacher_memory import TeacherMemoryModel  # noqa: E401, F401
+from orm.teaching_session import TeachingSessionModel  # noqa: E401, F401
+
 # this is the Alembic Config object
 config = context.config
 
 # 将 async URL 转换为同步 URL（用于 Alembic migrations）
+# postgresql+asyncpg:// → postgresql+psycopg2://
 database_url = config.get_main_option("sqlalchemy.url")
-if database_url and "aiosqlite" in database_url:
-    database_url = database_url.replace("sqlite+aiosqlite://", "sqlite://")
+if database_url and "asyncpg" in database_url:
+    database_url = database_url.replace("+asyncpg", "+psycopg2")
     config.set_main_option("sqlalchemy.url", database_url)
 
 # Interpret the config file for Python logging.
@@ -68,7 +76,6 @@ def run_migrations_online() -> None:
     connectable = engine_from_config(
         config.get_section(config.config_ini_section, {}),
         prefix="sqlalchemy.",
-        poolclass=pool.NullPool,
     )
 
     with connectable.connect() as connection:
