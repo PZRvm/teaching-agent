@@ -103,6 +103,7 @@ export interface WsMessageEvent extends WsEvent {
   message_type: string
   content: string
   receiver?: string
+  timestamp?: string
 }
 
 /** WebSocket 检查点状态变更事件 */
