@@ -89,6 +89,7 @@ def teacher_controller(sample_checkpoint_plan, sample_student_agents, sample_mem
         memory_manager=sample_memory_manager,
         checkpoint_plan=sample_checkpoint_plan,
         ws_push_callback=None,
+        message_service=None,
     )
 
 
@@ -138,4 +139,5 @@ def create_test_controller():
         memory_manager=memory_manager,
         checkpoint_plan=plan,
         ws_push_callback=None,
+        message_service=None,
     )

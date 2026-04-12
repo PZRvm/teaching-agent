@@ -1,10 +1,9 @@
-"""TeacherSessionController WebSocket 推送测试."""
+"""TeacherSessionController 消息推送测试."""
 
-from unittest.mock import AsyncMock, MagicMock, patch
-
-import pytest
+from unittest.mock import MagicMock
 
 from models.checkpoint.schemas import Checkpoint, CheckpointPlan, CheckpointState
+from models.session.schemas import MessageType
 
 
 def _make_plan(topic: str = "一次函数", teaching_mode: str = "teacher") -> CheckpointPlan:
@@ -24,11 +23,10 @@ def _make_plan(topic: str = "一次函数", teaching_mode: str = "teacher") -> C
 
 
 class TestTeacherControllerWsPush:
-    """TeacherSessionController 通过 ConnectionManager 推送学生回答."""
+    """TeacherSessionController 通过 MessageService 推送消息."""
 
-    @pytest.mark.asyncio
-    async def test_handle_ask_to_all_broadcasts_answers(self):
-        """handle_ask_to_all 通过 ConnectionManager 广播学生回答."""
+    def test_handle_ask_to_all_calls_emit_message_sync(self):
+        """handle_ask_to_all 通过 MessageService 推送问题和学生回答."""
         from models.session.services.teacher_service import TeacherSessionController
 
         mock_student = MagicMock()
@@ -38,87 +36,83 @@ class TestTeacherControllerWsPush:
         mock_memory_manager = MagicMock()
         mock_memory_manager.session_memory.session_id = 1
 
+        mock_message_service = MagicMock()
+
         plan = _make_plan()
         controller = TeacherSessionController(
             student_agents=[mock_student],
             memory_manager=mock_memory_manager,
             checkpoint_plan=plan,
+            message_service=mock_message_service,
         )
 
-        mock_broadcast = AsyncMock()
-        with patch("models.session.services.teacher_service.get_connection_manager") as mock_get_cm:
-            mock_manager = MagicMock()
-            mock_manager.broadcast = mock_broadcast
-            mock_manager.get_connection_count.return_value = 1
-            mock_get_cm.return_value = mock_manager
+        controller.handle_ask_to_all("什么是一次函数？")
 
-            controller.handle_ask_to_all("什么是一次函数？")
+        # 应调用 emit_message_sync 两次：一次问题，一次回答
+        assert mock_message_service.emit_message_sync.call_count == 2
 
-            mock_broadcast.assert_called()
-            call_kwargs = mock_broadcast.call_args[1]
-            assert call_kwargs["session_id"] == 1
-            message = call_kwargs["message"]
-            assert message["type"] == "student_answer"
-            assert message["student_name"] == "张三"
+        # 验证问题消息
+        question_call = mock_message_service.emit_message_sync.call_args_list[0]
+        q_msg = question_call[0][0]
+        assert q_msg.sender == "teacher"
+        assert q_msg.message_type == MessageType.CHECKPOINT_QUESTION
+        assert q_msg.content == "什么是一次函数？"
 
-    @pytest.mark.asyncio
-    async def test_handle_broadcast_lecture_pushes_message(self):
-        """handle_broadcast_lecture 通过 ConnectionManager 推送消息."""
+        # 验证学生回答消息
+        answer_call = mock_message_service.emit_message_sync.call_args_list[1]
+        a_msg = answer_call[0][0]
+        assert a_msg.sender == "张三"
+        assert a_msg.message_type == MessageType.ANSWER_TO_CHECKPOINT
+        assert a_msg.content == "一次函数是 y=kx+b"
+
+    def test_handle_broadcast_lecture_calls_emit_message_sync(self):
+        """handle_broadcast_lecture 通过 MessageService 推送讲授消息."""
         from models.session.services.teacher_service import TeacherSessionController
 
         mock_memory_manager = MagicMock()
         mock_memory_manager.session_memory.session_id = 1
+
+        mock_message_service = MagicMock()
 
         plan = _make_plan()
         controller = TeacherSessionController(
             student_agents=[],
             memory_manager=mock_memory_manager,
             checkpoint_plan=plan,
+            message_service=mock_message_service,
         )
 
-        mock_broadcast = AsyncMock()
-        with patch("models.session.services.teacher_service.get_connection_manager") as mock_get_cm:
-            mock_manager = MagicMock()
-            mock_manager.broadcast = mock_broadcast
-            mock_manager.get_connection_count.return_value = 1
-            mock_get_cm.return_value = mock_manager
+        controller.handle_broadcast_lecture("今天我们学习一次函数")
 
-            controller.handle_broadcast_lecture("今天我们学习一次函数")
+        mock_message_service.emit_message_sync.assert_called_once()
+        msg = mock_message_service.emit_message_sync.call_args[0][0]
+        assert msg.sender == "teacher"
+        assert msg.message_type == MessageType.LECTURE
+        assert msg.content == "今天我们学习一次函数"
+        assert msg.receiver == "all"
 
-            mock_broadcast.assert_called_once()
-            call_kwargs = mock_broadcast.call_args[1]
-            message = call_kwargs["message"]
-            assert message["type"] == "message"
-            assert message["sender"] == "teacher"
-            assert message["message_type"] == "lecture"
-
-    def test_ws_broadcast_skipped_without_event_loop(self):
-        """没有运行中的事件循环时，WebSocket 推送被安全跳过."""
-        import asyncio
-
+    def test_handle_teacher_reply_calls_emit_message_sync(self):
+        """handle_teacher_reply 通过 MessageService 持久化回复消息."""
         from models.session.services.teacher_service import TeacherSessionController
 
         mock_memory_manager = MagicMock()
         mock_memory_manager.session_memory.session_id = 1
+
+        mock_message_service = MagicMock()
 
         plan = _make_plan()
         controller = TeacherSessionController(
             student_agents=[],
             memory_manager=mock_memory_manager,
             checkpoint_plan=plan,
+            message_service=mock_message_service,
         )
 
-        # 确认当前没有运行中的事件循环（同步测试中不存在）
-        with pytest.raises(RuntimeError):
-            asyncio.get_running_loop()
+        controller.handle_teacher_reply("回答得很好", "张三")
 
-        # 调用不应抛出异常
-        with patch("models.session.services.teacher_service.get_connection_manager") as mock_get_cm:
-            mock_manager = MagicMock()
-            mock_manager.get_connection_count.return_value = 1
-            mock_get_cm.return_value = mock_manager
-
-            controller.handle_broadcast_lecture("测试内容")
-
-            # broadcast 不应被调用（因为没有事件循环来调度任务）
-            mock_manager.broadcast.assert_not_called()
+        mock_message_service.emit_message_sync.assert_called_once()
+        msg = mock_message_service.emit_message_sync.call_args[0][0]
+        assert msg.sender == "teacher"
+        assert msg.message_type == MessageType.TEACHER_REPLY
+        assert msg.content == "回答得很好"
+        assert msg.receiver == "张三"
