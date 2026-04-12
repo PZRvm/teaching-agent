@@ -1,9 +1,13 @@
 """Pytest configuration and fixtures."""
 
+import os
 import sys
-import tempfile
 from collections.abc import AsyncGenerator
 from pathlib import Path
+
+# 在任何 database 模块导入之前设置测试数据库 URL
+# pytest 在加载测试模块之前会先加载 conftest.py
+os.environ.setdefault("DATABASE_URL", "sqlite+aiosqlite:///:memory:")
 
 import pytest
 import pytest_asyncio
@@ -51,17 +55,6 @@ async def test_engine():
     from orm.teacher_memory import TeacherMemoryModel  # noqa: F401
     from orm.teaching_session import TeachingSessionModel  # noqa: F401
 
-    # Enable foreign key support in SQLite for cascade delete tests
-    def create_connection():
-        """Create a connection with foreign keys enabled."""
-        import sqlite3
-
-        conn = sqlite3.connect(":memory:", check_same_thread=False)
-        conn.execute("PRAGMA foreign_keys = ON")
-        return conn
-
-    from sqlalchemy import event
-
     engine = create_async_engine(
         TEST_DATABASE_URL,
         connect_args={"check_same_thread": False},
@@ -69,6 +62,8 @@ async def test_engine():
     )
 
     # Enable FK for each new connection
+    from sqlalchemy import event
+
     def enable_fk(dbapi_conn, connection_record):
         dbapi_conn.execute("PRAGMA foreign_keys = ON")
 

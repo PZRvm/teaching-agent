@@ -5,9 +5,23 @@ import sys
 
 import pytest
 
+# 需要和 core.database 一起清除的 orm 模块列表
+_ORM_MODULES = [
+    "orm",
+    "orm.checkpoint_plan",
+    "orm.message",
+    "orm.session_memory",
+    "orm.student_memory",
+    "orm.teacher_memory",
+    "orm.teaching_session",
+]
+
 
 def _clear_and_reload_database(url: str):
-    """清除 core.settings 和 core.database 模块缓存，设置 DATABASE_URL 后重新加载.
+    """清除 core.settings、core.database 和所有 orm 模块缓存，设置 DATABASE_URL 后重新加载.
+
+    必须同时清除 orm 模块，否则它们仍引用旧 Base 的 metadata，
+    导致后续测试中 Base.metadata.tables 为空。
 
     Args:
         url: 要设置的 DATABASE_URL 值
@@ -21,7 +35,7 @@ def _clear_and_reload_database(url: str):
     os.environ["DATABASE_URL"] = url
 
     # 清除模块缓存（包括 core 包的 __dict__ 缓存）
-    for mod in ("core.settings", "core.database"):
+    for mod in ("core.settings", "core.database") + tuple(_ORM_MODULES):
         sys.modules.pop(mod, None)
     core = sys.modules.get("core")
     if core and hasattr(core, "__dict__"):
@@ -68,5 +82,5 @@ class TestDatabaseEngine:
     def teardown_class(self):
         """测试类结束后恢复默认状态."""
         os.environ["DATABASE_URL"] = "sqlite+aiosqlite:///:memory:"
-        for mod in ("core.settings", "core.database"):
+        for mod in ("core.settings", "core.database") + tuple(_ORM_MODULES):
             sys.modules.pop(mod, None)
