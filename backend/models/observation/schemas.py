@@ -29,6 +29,31 @@ class ObservationMetrics(BaseModel):
     student_participation: dict[str, int] = Field(default_factory=dict, description="学生参与次数")
 
 
+class CheckpointProgressInfo(BaseModel):
+    """单个检查点信息."""
+
+    title: str
+    state: str
+    key_point: str
+
+
+class CheckpointProgressCounts(BaseModel):
+    """检查点进度计数."""
+
+    current: int
+    total: int
+    completed: int
+
+
+class CheckpointProgressResponse(BaseModel):
+    """检查点进度响应."""
+
+    index: int
+    checkpoint: CheckpointProgressInfo
+    progress: CheckpointProgressCounts
+    checkpoints: list[CheckpointProgressInfo] = Field(description="所有检查点的名称和状态")
+
+
 class ObservationReport(BaseModel):
     """观察模式报告."""
 

@@ -1,6 +1,7 @@
 // frontend/src/apis/observation.ts
 import { api } from './base'
 import type {
+  CheckpointStateData,
   ObservationConfigPayload,
   ObservationStartResponse,
 } from '../types/observation'
@@ -32,6 +33,21 @@ export async function getCheckpointPlan(
 ): Promise<CheckpointPlanData> {
   const { data } = await api.get<CheckpointPlanData>(
     `/checkpoint-plans/${sessionId}`,
+  )
+  return data
+}
+
+/**
+ * 获取检查点进度（页面加载时调用）.
+ *
+ * @param sessionId 会话 ID
+ * @returns 当前检查点进度数据
+ */
+export async function getCheckpointProgress(
+  sessionId: number,
+): Promise<CheckpointStateData> {
+  const { data } = await api.get<CheckpointStateData>(
+    `/observation/${sessionId}/checkpoint-progress`,
   )
   return data
 }

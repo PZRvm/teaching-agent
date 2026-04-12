@@ -3,12 +3,17 @@
 import logging
 from typing import Annotated, Any
 
-from fastapi import APIRouter, BackgroundTasks, Depends
+from fastapi import APIRouter, BackgroundTasks, Depends, HTTPException, status
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from core.database import get_db
 from core.session_registry import get_session_registry
+from models.checkpoint.schemas import CheckpointState
+from models.checkpoint.services.persistence_service import CheckpointPlanPersistence
 from models.observation.schemas import (
+    CheckpointProgressCounts,
+    CheckpointProgressInfo,
+    CheckpointProgressResponse,
     ObservationConfig,
     ObservationStartResponse,
 )
@@ -83,3 +88,62 @@ async def get_observation_status(session_id: int) -> dict[str, Any]:
         "mode": session_info["mode"],
         "ready": orchestrator is not None,
     }
+
+
+@router.get(
+    "/{session_id}/checkpoint-progress",
+    summary="获取检查点进度",
+    response_model=CheckpointProgressResponse,
+)
+async def get_checkpoint_progress(
+    session_id: int,
+    db: Annotated[AsyncSession, Depends(get_db)],
+) -> CheckpointProgressResponse:
+    """获取当前检查点进度（索引、当前检查点信息、进度计数）.
+
+    数据源优先级：
+    1. orchestrator 在内存中运行时使用其实时数据
+    2. 否则回退到数据库中持久化的检查点计划
+    """
+    registry = get_session_registry()
+    orchestrator = registry.get_orchestrator(session_id)
+
+    if orchestrator is not None:
+        plan = orchestrator.checkpoint_plan
+    else:
+        service = CheckpointPlanPersistence(db)
+        plan = await service.load_plan(session_id=session_id)
+
+    if plan is None:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail=f"Checkpoint plan for session {session_id} not found",
+        )
+
+    idx = plan.current_index
+    current_cp = plan.checkpoints[idx]
+
+    return CheckpointProgressResponse(
+        index=idx,
+        checkpoint=CheckpointProgressInfo(
+            title=current_cp.title,
+            state=current_cp.state.value,
+            key_point=current_cp.key_point,
+        ),
+        progress=CheckpointProgressCounts(
+            current=idx + 1,
+            total=len(plan.checkpoints),
+            completed=sum(
+                1 for cp in plan.checkpoints[:idx]
+                if cp.state == CheckpointState.COMPLETE
+            ),
+        ),
+        checkpoints=[
+            CheckpointProgressInfo(
+                title=cp.title,
+                state=cp.state.value,
+                key_point=cp.key_point,
+            )
+            for cp in plan.checkpoints
+        ],
+    )

@@ -9,6 +9,7 @@ import { useWebSocketBase } from '../hooks/useWebSocketBase'
 import { useElapsedTime } from '../hooks/useElapsedTime'
 import { useSessionMessages } from '../hooks/useSessionMessages'
 import { useCheckpointPlan } from '../hooks/useCheckpointPlan'
+import { useCheckpointProgress } from '../hooks/useCheckpointProgress'
 import { TEACHING_MODE_LABELS } from '../types/observation'
 import ReactMarkdown from 'react-markdown'
 import remarkGfm from 'remark-gfm'
@@ -32,6 +33,13 @@ export default function ObservationView() {
     shouldConnect ? sessionIdNum : -1,
     sessionReady,
   )
+  const { progress: httpProgress, loading: progressLoading } = useCheckpointProgress(
+    shouldConnect ? sessionIdNum : -1,
+  )
+
+  // WebSocket 实时状态优先，HTTP 请求作为初始值
+  const effectiveCheckpointState = checkpointState ?? httpProgress
+  const initialLoading = (historyLoading || progressLoading) && messages.length === 0 && !effectiveCheckpointState
 
   const teachingModeLabel = teachingMode ? TEACHING_MODE_LABELS[teachingMode] : null
 
@@ -51,9 +59,9 @@ export default function ObservationView() {
         right={
           <>
             {teachingModeLabel && <RoughBadge variant="blue" rotation={-1}>{teachingModeLabel}</RoughBadge>}
-            {checkpointState && (
+            {effectiveCheckpointState && (
               <RoughBadge variant="yellow" rotation={2}>
-                检查点 {checkpointState.progress.current}/{checkpointState.progress.total}
+                检查点 {effectiveCheckpointState.progress.current}/{effectiveCheckpointState.progress.total}
               </RoughBadge>
             )}
             <span className="elapsed-label">已进行</span>
@@ -63,12 +71,11 @@ export default function ObservationView() {
         }
       />
 
-      {/* 连接断开时显示提示 */}
-      {connectionState === 'disconnected' && (
+      {/* 页面初始加载 */}
+      {initialLoading && (
         <div className="loading-container">
           <div className="loading-card">
-            <p className="loading-text">连接已断开</p>
-            <p className="loading-subtext">请刷新页面重新连接</p>
+            <p className="loading-text">正在加载课堂数据...</p>
           </div>
         </div>
       )}
@@ -92,44 +99,44 @@ export default function ObservationView() {
         </div>
       )}
 
-      {sessionReady && connectionState === 'connected' && (
+      {(sessionReady && connectionState === 'connected') || messages.length > 0 && (
       <div className="content-layout">
         <aside className="sidebar">
           <div className="sidebar-card">
             <h3 className="sidebar-title">检查点进度</h3>
-            {checkpointState ? (
+            {effectiveCheckpointState ? (
               <>
                 <div className="current-checkpoint">
-                  <p className="checkpoint-title-text">{checkpointState.checkpoint.title}</p>
-                  <p className="checkpoint-progress-text">{checkpointState.progress.current}/{checkpointState.progress.total}</p>
+                  <p className="checkpoint-title-text">{effectiveCheckpointState.checkpoint.title}</p>
+                  <p className="checkpoint-progress-text">{effectiveCheckpointState.progress.current}/{effectiveCheckpointState.progress.total}</p>
                 </div>
                 <div className="checkpoint-list">
                   {checkpointPlan
                     ? checkpointPlan.checkpoints.map((cp, i) => (
                         <div
                           key={i}
-                          className={`checkpoint-item ${i === checkpointState.index ? 'current' : ''} ${i < checkpointState.progress.current ? 'completed' : ''}`}
+                          className={`checkpoint-item ${i === effectiveCheckpointState.index ? 'current' : ''} ${i < effectiveCheckpointState.progress.current ? 'completed' : ''}`}
                         >
                           <span className="checkpoint-number">{i + 1}</span>
                           <span className="checkpoint-name">{cp.title}</span>
-                          {i === checkpointState.index && (
+                          {i === effectiveCheckpointState.index && (
                             <span className="checkpoint-label">进行中</span>
                           )}
-                          {i < checkpointState.progress.current && (
+                          {i < effectiveCheckpointState.progress.current && (
                             <span className="checkpoint-label">已完成</span>
                           )}
                         </div>
                       ))
-                    : Array.from({ length: checkpointState.progress.total }, (_, i) => (
+                    : Array.from({ length: effectiveCheckpointState.progress.total }, (_, i) => (
                         <div
                           key={i}
-                          className={`checkpoint-item ${i === checkpointState.index ? 'current' : ''} ${i < checkpointState.progress.current ? 'completed' : ''}`}
+                          className={`checkpoint-item ${i === effectiveCheckpointState.index ? 'current' : ''} ${i < effectiveCheckpointState.progress.current ? 'completed' : ''}`}
                         >
                           <span className="checkpoint-number">{i + 1}</span>
-                          {i === checkpointState.index && (
+                          {i === effectiveCheckpointState.index && (
                             <span className="checkpoint-label">进行中</span>
                           )}
-                          {i < checkpointState.progress.current && (
+                          {i < effectiveCheckpointState.progress.current && (
                             <span className="checkpoint-label">已完成</span>
                           )}
                         </div>
@@ -143,50 +150,56 @@ export default function ObservationView() {
         </aside>
 
         {/* 右侧：消息流 */}
-        <main className="message-area" ref={messageAreaRef}>
-          {sessionEnded && (
-            <div className="session-ended-banner">会话已结束</div>
+        <div className="message-column">
+          {connectionState === 'disconnected' && (
+            <div className="session-ended-banner">连接已断开，请刷新页面重新连接</div>
           )}
 
-          {messages.length === 0 ? (
-            <div className="empty-state">
-              <p>暂无消息</p>
-            </div>
-          ) : (
-            <div className="message-list">
-              {messages.map((msg, index) => (
-                <div key={`${msg.sender}-${msg.message_type}-${index}`} className="message-item">
-                  <div className="message-header">
-                    <span className="message-sender">{msg.sender}</span>
-                    <span className="message-type-badge">{msg.message_type}</span>
+          <main className="message-area" ref={messageAreaRef}>
+            {sessionEnded && (
+              <div className="session-ended-banner">会话已结束</div>
+            )}
+
+            {messages.length === 0 ? (
+              <div className="empty-state">
+                <p>暂无消息</p>
+              </div>
+            ) : (
+              <div className="message-list">
+                {messages.map((msg, index) => (
+                  <div key={`${msg.sender}-${msg.message_type}-${index}`} className="message-item">
+                    <div className="message-header">
+                      <span className="message-sender">{msg.sender}</span>
+                      <span className="message-type-badge">{msg.message_type}</span>
+                    </div>
+                    <div className="message-bubble">
+                      <ReactMarkdown
+                        remarkPlugins={[remarkGfm]}
+                        components={{
+                          p: ({ children }) => <p className="markdown-paragraph">{children}</p>,
+                          ul: ({ children }) => <ul className="markdown-list">{children}</ul>,
+                          ol: ({ children }) => <ol className="markdown-list">{children}</ol>,
+                          li: ({ children }) => <li className="markdown-item">{children}</li>,
+                          code({ className, children, ...props }: Record<string, unknown>) {
+                            const isBlock = typeof className === 'string' && className.includes('language-')
+                            const classNameAttr = isBlock
+                              ? 'markdown-code-block'
+                              : 'markdown-inline-code'
+                            return <code className={classNameAttr} {...props}>{children}</code>
+                          },
+                          strong: ({ children }) => <strong>{children}</strong>,
+                          em: ({ children }) => <em>{children}</em>,
+                        }}
+                      >
+                        {msg.content}
+                      </ReactMarkdown>
+                    </div>
                   </div>
-                  <div className="message-bubble">
-                    <ReactMarkdown
-                      remarkPlugins={[remarkGfm]}
-                      components={{
-                        p: ({ children }) => <p className="markdown-paragraph">{children}</p>,
-                        ul: ({ children }) => <ul className="markdown-list">{children}</ul>,
-                        ol: ({ children }) => <ol className="markdown-list">{children}</ol>,
-                        li: ({ children }) => <li className="markdown-item">{children}</li>,
-                        code({ className, children, ...props }: Record<string, unknown>) {
-                          const isBlock = typeof className === 'string' && className.includes('language-')
-                          const classNameAttr = isBlock
-                            ? 'markdown-code-block'
-                            : 'markdown-inline-code'
-                          return <code className={classNameAttr} {...props}>{children}</code>
-                        },
-                        strong: ({ children }) => <strong>{children}</strong>,
-                        em: ({ children }) => <em>{children}</em>,
-                      }}
-                    >
-                      {msg.content}
-                    </ReactMarkdown>
-                  </div>
-                </div>
-              ))}
-            </div>
-          )}
-        </main>
+                ))}
+              </div>
+            )}
+          </main>
+        </div>
       </div>
       )}
 
@@ -374,14 +387,26 @@ const Wrapper = styled.div`
     margin-left: auto;
   }
 
-  /* ===== 消息区域 ===== */
-  .message-area {
+  /* ===== 消息列（包含 banner + 消息区） ===== */
+  .message-column {
     flex: 1;
+    width: 0;
     display: flex;
     flex-direction: column;
     gap: 16px;
     min-height: 0;
+  }
+
+  /* ===== 消息区域 ===== */
+  .message-area {
+    flex: 1;
+    min-height: 0;
     overflow-y: auto;
+    border: 2px solid #1a1a1a;
+    border-radius: 8px;
+    padding: 24px 16px;
+    background: #ffffff;
+    box-shadow: 2px 2px 0px 0px #1a1a1a;
   }
 
   .session-ended-banner {
@@ -404,7 +429,8 @@ const Wrapper = styled.div`
   .message-list {
     display: flex;
     flex-direction: column;
-    gap: 12px;
+    gap: 16px;
+    padding: 0 16px;
   }
 
   .message-item {
