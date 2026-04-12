@@ -4,8 +4,6 @@ import os
 import sys
 from unittest.mock import patch
 
-import pytest
-
 
 class TestDatabaseSettings:
     """测试数据库配置从 YAML 和环境变量加载."""

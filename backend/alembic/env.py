@@ -16,13 +16,12 @@ if sys_path not in sys.path:
 # 导入 ORM Base 和所有模型
 # noqa: E402 - 导入必须在 sys.path.append() 之后，这是 Alembic env.py 的特殊情况
 from core.database import Base  # noqa: E402
-
-from orm.checkpoint_plan import CheckpointPlanModel  # noqa: E401, F401
-from orm.message import MessageModel  # noqa: E401, F401
-from orm.session_memory import SessionMemoryModel  # noqa: E401, F401
-from orm.student_memory import StudentMemoryModel  # noqa: E401, F401
-from orm.teacher_memory import TeacherMemoryModel  # noqa: E401, F401
-from orm.teaching_session import TeachingSessionModel  # noqa: E401, F401
+from orm.checkpoint_plan import CheckpointPlanModel  # noqa: E401, E402, F401
+from orm.message import MessageModel  # noqa: E401, E402, F401
+from orm.session_memory import SessionMemoryModel  # noqa: E401, E402, F401
+from orm.student_memory import StudentMemoryModel  # noqa: E401, E402, F401
+from orm.teacher_memory import TeacherMemoryModel  # noqa: E401, E402, F401
+from orm.teaching_session import TeachingSessionModel  # noqa: E401, E402, F401
 
 # this is the Alembic Config object
 config = context.config

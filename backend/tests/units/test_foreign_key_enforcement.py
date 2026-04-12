@@ -13,8 +13,6 @@ class TestForeignKeyEnforcement:
     @pytest.mark.asyncio
     async def test_messages_fk_detected_by_inspect(self, test_engine):
         """测试 messages 表的外键约束通过 ORM metadata 可检测."""
-        from sqlalchemy import inspect as sa_inspect
-
         engine, base = test_engine
         # 使用 Base.metadata 获取外键定义（不需要实际数据库连接）
         metadata_tables = base.metadata.tables

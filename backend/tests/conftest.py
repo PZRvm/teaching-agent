@@ -101,6 +101,8 @@ async def test_engine_file():
     This is required for tests using ASGITransport, which creates a separate database connection
     for each HTTP request. File database allows data to be shared across connections.
     """
+    import tempfile
+
     from core.database import Base
 
     # Import all ORM models so they register with Base.metadata
@@ -111,7 +113,6 @@ async def test_engine_file():
     from orm.teacher_memory import TeacherMemoryModel  # noqa: F401
     from orm.teaching_session import TeachingSessionModel  # noqa: F401
 
-    # Create a temporary file database
     with tempfile.NamedTemporaryFile(suffix=".db", delete=False) as tmp:
         tmp_path = tmp.name
 
