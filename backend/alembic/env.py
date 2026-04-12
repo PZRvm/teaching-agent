@@ -1,12 +1,18 @@
 """Alembic 环境配置."""
 
+import os
 import sys
 from logging.config import fileConfig
 from pathlib import Path
 
-from sqlalchemy import engine_from_config
+# 在导入 core 之前加载 .env，确保 DATABASE_URL 可用
+from dotenv import load_dotenv
 
-from alembic import context
+load_dotenv()
+
+from sqlalchemy import engine_from_config  # noqa: E402
+
+from alembic import context  # noqa: E402
 
 # 添加项目根目录到 Python 路径
 sys_path = str(Path(__file__).resolve().parents[1])
@@ -26,12 +32,17 @@ from orm.teaching_session import TeachingSessionModel  # noqa: E401, E402, F401
 # this is the Alembic Config object
 config = context.config
 
-# 将 async URL 转换为同步 URL（用于 Alembic migrations）
-# postgresql+asyncpg:// → postgresql+psycopg2://
-database_url = config.get_main_option("sqlalchemy.url")
-if database_url and "asyncpg" in database_url:
-    database_url = database_url.replace("+asyncpg", "+psycopg2")
-    config.set_main_option("sqlalchemy.url", database_url)
+# 以 .env 中的 DATABASE_URL 为准（覆盖 alembic.ini 中的默认值）
+# postgresql+asyncpg:// → postgresql+psycopg2://（Alembic 使用同步驱动）
+_database_url = os.getenv("DATABASE_URL", "")
+if _database_url:
+    _database_url = _database_url.replace("+asyncpg", "+psycopg2")
+    config.set_main_option("sqlalchemy.url", _database_url)
+else:
+    # 回退到 alembic.ini 中的 URL，确保也是同步驱动
+    database_url = config.get_main_option("sqlalchemy.url")
+    if database_url and "asyncpg" in database_url:
+        config.set_main_option("sqlalchemy.url", database_url.replace("+asyncpg", "+psycopg2"))
 
 # Interpret the config file for Python logging.
 if config.config_file_name is not None:

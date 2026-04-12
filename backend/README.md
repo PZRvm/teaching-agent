@@ -7,7 +7,7 @@
 - **FastAPI** - 高性能 Web 框架
 - **LangChain** - AI/LLM 应用开发框架
 - **硅基流动 / OpenAI SDK** - 大语言模型接口（兼容 OpenAI 格式）
-- **ChromaDB** - 向量数据库（用于 RAG、知识库）
+- **PostgreSQL** - 关系型数据库（通过 asyncpg 异步驱动）
 - **SQLAlchemy** - ORM 数据库操作
 - **Alembic** - 数据库迁移工具
 - **Uvicorn** - ASGI 服务器
@@ -78,20 +78,28 @@ cp .env.example .env
 |------|------|
 | `configs/llm.yml` | LLM 配置（模型、API 地址、参数） |
 | `configs/app.yml` | 应用配置（端口、CORS 等） |
-| `configs/database.yml` | 数据库配置（SQLite 数据库文件位于 `datas/` 目录） |
+| `configs/database.yml` | 数据库连接池配置（pool_size、max_overflow） |
 | `configs/chroma.yml` | 向量数据库配置 |
 
-**数据库文件位置**：
+### 3. 数据库配置
 
-数据库文件（SQLite）和数据存储统一放在 `datas/` 目录下：
+项目使用 **PostgreSQL** 作为主数据库，连接信息通过环境变量配置。
 
-- `datas/database.db` - SQLite 主数据库文件
-- `datas/chroma/` - ChromaDB 向量数据库存储（持久化知识库）
+**`.env` 配置**（必须）：
 
-这种组织方式的优点：
-- 数据文件集中管理，便于备份和清理
-- 与配置文件和代码分离，避免版本控制包含大文件
-- 符合 `.gitignore` 配置（已忽略 `*.db` 和 `*.sqlite*` 文件）
+```bash
+DATABASE_URL=postgresql+asyncpg://admin:123456@localhost:5432/teaching_agent_db
+```
+
+**`configs/database.yml`**（连接池参数，可选）：
+
+```yaml
+database:
+  pool_size: 5
+  max_overflow: 10
+```
+
+**数据库名统一规则**：`.env` 中的 `DATABASE_URL` 是唯一的连接信息来源。`alembic.ini` 中的 URL 仅作为 fallback，Alembic 运行时会优先读取 `.env` 中的 `DATABASE_URL` 并自动将 `+asyncpg` 转换为 `+psycopg2`（Alembic 使用同步驱动执行迁移）。
 
 **修改 LLM 模型：** 编辑 `configs/llm.yml`
 ```yaml
@@ -165,20 +173,30 @@ ruff format . --check     # 检查格式（不修改）
 
 项目使用 Alembic 进行数据库版本控制和迁移管理。
 
+### 前置条件
+
+1. PostgreSQL 服务已启动（本项目使用 Docker: `postgres:15`）
+2. `.env` 中已配置 `DATABASE_URL`
+
 ### 首次设置
 
 首次运行项目时，需要创建数据库表结构：
 
 ```bash
+# 创建数据库（如果不存在）
+docker exec pg-service-15 psql -U admin -c "CREATE DATABASE teaching_agent_db;"
+
 # 初始化数据库（创建所有表）
 alembic upgrade head
 ```
 
-执行后会在 `datas/database.db` 创建以下表：
+执行后会创建以下表：
 - `teaching_sessions` - 教学会话表
 - `session_memories` - 会话记忆表
 - `teacher_memories` - 教师记忆表
+- `student_memories` - 学生记忆表
 - `messages` - 消息表
+- `checkpoint_plans` - 检查点计划表
 - `alembic_version` - Alembic 版本控制表
 
 ### 创建新迁移
@@ -258,19 +276,14 @@ alembic/versions/
 
 ### 外键约束说明
 
-SQLite 默认不强制执行外键约束。项目已在 `alembic/env.py` 中配置自动启用外键约束。
+PostgreSQL 默认启用外键约束，所有包含 `session_id` 的表都通过 `ForeignKeyConstraint` 关联到 `teaching_sessions` 表，支持级联删除。
 
-使用其他 SQLite 客户端时，需要手动执行：
+### 数据库连接配置
 
-```sql
-PRAGMA foreign_keys = ON;
-```
-
-### 数据库文件位置
-
-- **SQLite 数据库**: `datas/database.db`
-- **迁移配置**: `alembic.ini`
-- **环境配置**: `alembic/env.py`
+- **连接信息**: `.env` 中的 `DATABASE_URL`（唯一来源）
+- **连接池**: `configs/database.yml`（pool_size、max_overflow）
+- **迁移配置**: `alembic.ini`（fallback，优先使用 .env）
+- **环境配置**: `alembic/env.py`（自动加载 .env，asyncpg→psycopg2 转换）
 
 ### 迁移最佳实践
 
