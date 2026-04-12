@@ -5,6 +5,37 @@ import type {
   ObservationStartResponse,
 } from '../types/observation'
 
+/** 单个检查点（对应后端 Checkpoint schema） */
+export interface CheckpointItem {
+  title: string
+  key_point: string
+  checkpoint_question: string
+  state: string
+}
+
+/** 检查点计划（对应后端 CheckpointPlan schema） */
+export interface CheckpointPlanData {
+  topic: string
+  teaching_mode: string
+  checkpoints: CheckpointItem[]
+  current_index: number
+}
+
+/**
+ * 获取会话的检查点计划.
+ *
+ * @param sessionId 会话 ID
+ * @returns 检查点计划数据（包含所有检查点标题）
+ */
+export async function getCheckpointPlan(
+  sessionId: number,
+): Promise<CheckpointPlanData> {
+  const { data } = await api.get<CheckpointPlanData>(
+    `/checkpoint-plans/${sessionId}`,
+  )
+  return data
+}
+
 /** 启动观察模式会话 */
 export async function startObservation(
   config: ObservationConfigPayload,

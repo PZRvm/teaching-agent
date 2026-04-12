@@ -153,6 +153,14 @@ describe('useSessionMessages', () => {
     expect(result.current.messages).toHaveLength(0)
   })
 
+  it('returns empty messages for sessionId=0 (boundary)', async () => {
+    const { result } = renderHook(() => useSessionMessages(0, []))
+
+    expect(mockGetSessionMessages).not.toHaveBeenCalled()
+    expect(result.current.loading).toBe(false)
+    expect(result.current.messages).toHaveLength(0)
+  })
+
   it('sets error state on API failure', async () => {
     mockGetSessionMessages.mockRejectedValueOnce(new Error('Network error'))
 
@@ -161,5 +169,42 @@ describe('useSessionMessages', () => {
     await waitFor(() => expect(result.current.loading).toBe(false))
     expect(result.current.error).toBe('Network error')
     expect(result.current.messages).toHaveLength(0)
+  })
+
+  it('deduplicates ws messages without timestamps by triple match', async () => {
+    const historyMessages = [
+      {
+        id: 1,
+        session_id: 1,
+        sender: 'teacher',
+        message_type: 'lecture',
+        content: 'Hello',
+        receiver: 'all',
+        timestamp: '2026-04-12T10:00:00',
+      },
+    ]
+    mockGetSessionMessages.mockResolvedValueOnce(historyMessages)
+
+    const { result, rerender } = renderHook(
+      ({ wsMessages }) => useSessionMessages(1, wsMessages),
+      { initialProps: { wsMessages: [] as WsMessageEvent[] } },
+    )
+
+    await waitFor(() => expect(result.current.loading).toBe(false))
+
+    rerender({
+      wsMessages: [
+        {
+          type: 'message' as const,
+          session_id: 1,
+          sender: 'teacher',
+          message_type: 'lecture',
+          content: 'Hello',
+          receiver: 'all',
+        },
+      ],
+    })
+
+    expect(result.current.messages).toHaveLength(1)
   })
 })

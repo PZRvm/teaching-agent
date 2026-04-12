@@ -57,6 +57,10 @@ class SessionOrchestrator:
         """设置 WebSocket 推送回调（用于测试）."""
         self._ws_push_callback = callback
 
+    async def stop(self) -> None:
+        """停止消息服务，等待队列清空."""
+        await self._message_service.stop()
+
     async def run_autonomous_session(self) -> None:
         """运行自动教学会话（基于检查点）.
 

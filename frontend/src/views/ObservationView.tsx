@@ -1,5 +1,6 @@
 // frontend/src/views/ObservationView.tsx
 import { useParams, useNavigate } from 'react-router-dom'
+import { useRef, useEffect } from 'react'
 import styled from 'styled-components'
 import PageNav from '../components/PageNav'
 import RoughBadge from '../components/RoughBadge'
@@ -7,6 +8,7 @@ import Footer from '../components/Footer'
 import { useWebSocketBase } from '../hooks/useWebSocketBase'
 import { useElapsedTime } from '../hooks/useElapsedTime'
 import { useSessionMessages } from '../hooks/useSessionMessages'
+import { useCheckpointPlan } from '../hooks/useCheckpointPlan'
 import { TEACHING_MODE_LABELS } from '../types/observation'
 import ReactMarkdown from 'react-markdown'
 import remarkGfm from 'remark-gfm'
@@ -26,8 +28,20 @@ export default function ObservationView() {
     wsMessages,
   )
   const elapsedTime = useElapsedTime(connectionState === 'connected')
+  const { plan: checkpointPlan } = useCheckpointPlan(
+    shouldConnect ? sessionIdNum : -1,
+    sessionReady,
+  )
 
   const teachingModeLabel = teachingMode ? TEACHING_MODE_LABELS[teachingMode] : null
+
+  // 自动滚动到最新消息
+  const messageAreaRef = useRef<HTMLDivElement>(null)
+  useEffect(() => {
+    if (messageAreaRef.current) {
+      messageAreaRef.current.scrollTop = messageAreaRef.current.scrollHeight
+    }
+  }, [messages.length])
 
   return (
     <Wrapper>
@@ -60,7 +74,7 @@ export default function ObservationView() {
       )}
 
       {/* 加载历史消息时显示提示 */}
-      {historyLoading && connectionState === 'connected' && !sessionReady && (
+      {historyLoading && connectionState === 'connected' && sessionReady && (
         <div className="loading-container">
           <div className="loading-card">
             <p className="loading-text">正在加载历史消息...</p>
@@ -90,20 +104,36 @@ export default function ObservationView() {
                   <p className="checkpoint-progress-text">{checkpointState.progress.current}/{checkpointState.progress.total}</p>
                 </div>
                 <div className="checkpoint-list">
-                  {Array.from({ length: checkpointState.progress.total }, (_, i) => (
-                    <div
-                      key={i}
-                      className={`checkpoint-item ${i === checkpointState.index ? 'current' : ''} ${i < checkpointState.progress.current ? 'completed' : ''}`}
-                    >
-                      <span className="checkpoint-number">{i + 1}</span>
-                      {i === checkpointState.index && (
-                        <span className="checkpoint-label">进行中</span>
-                      )}
-                      {i < checkpointState.progress.current && (
-                        <span className="checkpoint-label">已完成</span>
-                      )}
-                    </div>
-                  ))}
+                  {checkpointPlan
+                    ? checkpointPlan.checkpoints.map((cp, i) => (
+                        <div
+                          key={i}
+                          className={`checkpoint-item ${i === checkpointState.index ? 'current' : ''} ${i < checkpointState.progress.current ? 'completed' : ''}`}
+                        >
+                          <span className="checkpoint-number">{i + 1}</span>
+                          <span className="checkpoint-name">{cp.title}</span>
+                          {i === checkpointState.index && (
+                            <span className="checkpoint-label">进行中</span>
+                          )}
+                          {i < checkpointState.progress.current && (
+                            <span className="checkpoint-label">已完成</span>
+                          )}
+                        </div>
+                      ))
+                    : Array.from({ length: checkpointState.progress.total }, (_, i) => (
+                        <div
+                          key={i}
+                          className={`checkpoint-item ${i === checkpointState.index ? 'current' : ''} ${i < checkpointState.progress.current ? 'completed' : ''}`}
+                        >
+                          <span className="checkpoint-number">{i + 1}</span>
+                          {i === checkpointState.index && (
+                            <span className="checkpoint-label">进行中</span>
+                          )}
+                          {i < checkpointState.progress.current && (
+                            <span className="checkpoint-label">已完成</span>
+                          )}
+                        </div>
+                      ))}
                 </div>
               </>
             ) : (
@@ -113,7 +143,7 @@ export default function ObservationView() {
         </aside>
 
         {/* 右侧：消息流 */}
-        <main className="message-area">
+        <main className="message-area" ref={messageAreaRef}>
           {sessionEnded && (
             <div className="session-ended-banner">会话已结束</div>
           )}
@@ -166,7 +196,7 @@ export default function ObservationView() {
 }
 
 const Wrapper = styled.div`
-  min-height: 100dvh;
+  height: 100dvh;
   background: #fafafa;
   color: #1a1a1a;
   font-family: 'Be Vietnam Pro', system-ui, sans-serif;
@@ -233,12 +263,15 @@ const Wrapper = styled.div`
     max-width: 1280px;
     margin: 0 auto;
     width: 100%;
+    min-height: 0;
+    overflow: hidden;
   }
 
   /* ===== 侧边栏 ===== */
   .sidebar {
     width: 280px;
     flex-shrink: 0;
+    overflow-y: auto;
   }
 
   .sidebar-card {
@@ -316,6 +349,15 @@ const Wrapper = styled.div`
     justify-content: center;
     font-size: 12px;
     font-weight: 600;
+    flex-shrink: 0;
+  }
+
+  .checkpoint-name {
+    flex: 1;
+    font-size: 13px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
   }
 
   .checkpoint-item.completed .checkpoint-number {
@@ -338,6 +380,8 @@ const Wrapper = styled.div`
     display: flex;
     flex-direction: column;
     gap: 16px;
+    min-height: 0;
+    overflow-y: auto;
   }
 
   .session-ended-banner {

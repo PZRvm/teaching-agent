@@ -31,14 +31,14 @@ type FetchAction =
   | { type: 'success'; payload: DisplayMessage[] }
   | { type: 'error'; payload: string }
 
-function fetchReducer(_state: FetchState, action: FetchAction): FetchState {
+function fetchReducer(state: FetchState, action: FetchAction): FetchState {
   switch (action.type) {
     case 'fetch':
       return { history: [], loading: true, error: null }
     case 'success':
       return { history: action.payload, loading: false, error: null }
     case 'error':
-      return { history: [], loading: false, error: action.payload }
+      return { ...state, loading: false, error: action.payload }
   }
 }
 
@@ -70,8 +70,12 @@ function isDuplicate(
   if (existingMsgs.length === 0) return false
 
   const lastTimestamp = existingMsgs[existingMsgs.length - 1]?.timestamp
-  if (wsMsg.timestamp && lastTimestamp && wsMsg.timestamp > lastTimestamp) {
-    return false
+  if (wsMsg.timestamp && lastTimestamp) {
+    const wsTime = new Date(wsMsg.timestamp).getTime()
+    const lastTime = new Date(lastTimestamp).getTime()
+    if (!isNaN(wsTime) && !isNaN(lastTime) && wsTime > lastTime) {
+      return false
+    }
   }
 
   const checkCount = Math.min(existingMsgs.length, 5)

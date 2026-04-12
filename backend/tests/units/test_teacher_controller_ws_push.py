@@ -116,3 +116,137 @@ class TestTeacherControllerWsPush:
         assert msg.message_type == MessageType.TEACHER_REPLY
         assert msg.content == "回答得很好"
         assert msg.receiver == "张三"
+
+    def test_handle_assign_homework_calls_emit_message_sync(self):
+        """handle_assign_homework 通过 MessageService 推送作业消息."""
+        from models.session.services.teacher_service import TeacherSessionController
+
+        mock_memory_manager = MagicMock()
+        mock_memory_manager.session_memory.session_id = 1
+
+        mock_message_service = MagicMock()
+
+        plan = _make_plan()
+        controller = TeacherSessionController(
+            student_agents=[],
+            memory_manager=mock_memory_manager,
+            checkpoint_plan=plan,
+            message_service=mock_message_service,
+        )
+
+        controller.handle_assign_homework("完成练习题")
+
+        mock_message_service.emit_message_sync.assert_called_once()
+        msg = mock_message_service.emit_message_sync.call_args[0][0]
+        assert msg.message_type == MessageType.ASSIGN_HOMEWORK
+        assert msg.content == "完成练习题"
+
+    def test_handle_collect_homework_calls_emit_message_sync(self):
+        """handle_collect_homework 通过 MessageService 推送学生作业提交消息."""
+        from models.session.services.teacher_service import TeacherSessionController
+
+        mock_student = MagicMock()
+        mock_student.profile.name = "张三"
+        mock_student.submit_homework.return_value = "x = 1"
+
+        mock_memory_manager = MagicMock()
+        mock_memory_manager.session_memory.session_id = 1
+
+        mock_message_service = MagicMock()
+
+        plan = _make_plan()
+        controller = TeacherSessionController(
+            student_agents=[mock_student],
+            memory_manager=mock_memory_manager,
+            checkpoint_plan=plan,
+            message_service=mock_message_service,
+        )
+
+        controller.handle_collect_homework("完成练习题")
+
+        mock_message_service.emit_message_sync.assert_called_once()
+        msg = mock_message_service.emit_message_sync.call_args[0][0]
+        assert msg.sender == "张三"
+        assert msg.message_type == MessageType.HOMEWORK_SUBMISSION
+        assert msg.content == "x = 1"
+
+    def test_handle_end_teaching_calls_emit_message_sync(self):
+        """handle_end_teaching 通过 MessageService 推送学生反馈消息."""
+        from models.session.services.teacher_service import TeacherSessionController
+
+        mock_student = MagicMock()
+        mock_student.profile.name = "张三"
+        mock_student.give_feedback.return_value = "这节课很有趣"
+
+        mock_memory_manager = MagicMock()
+        mock_memory_manager.session_memory.session_id = 1
+
+        mock_message_service = MagicMock()
+
+        plan = _make_plan()
+        controller = TeacherSessionController(
+            student_agents=[mock_student],
+            memory_manager=mock_memory_manager,
+            checkpoint_plan=plan,
+            message_service=mock_message_service,
+        )
+
+        controller.handle_end_teaching()
+
+        mock_message_service.emit_message_sync.assert_called_once()
+        msg = mock_message_service.emit_message_sync.call_args[0][0]
+        assert msg.sender == "张三"
+        assert msg.message_type == MessageType.END_FEEDBACK
+
+    def test_handle_ask_to_student_calls_emit_message_sync(self):
+        """handle_ask_to_student 通过 MessageService 推送问题和回答消息."""
+        from models.session.services.teacher_service import TeacherSessionController
+
+        mock_student = MagicMock()
+        mock_student.profile.name = "张三"
+        mock_student.ask_question.return_value = "一次函数是 y=kx+b"
+
+        mock_memory_manager = MagicMock()
+        mock_memory_manager.session_memory.session_id = 1
+
+        mock_message_service = MagicMock()
+
+        plan = _make_plan()
+        controller = TeacherSessionController(
+            student_agents=[mock_student],
+            memory_manager=mock_memory_manager,
+            checkpoint_plan=plan,
+            message_service=mock_message_service,
+        )
+
+        result = controller.handle_ask_to_student("什么是一次函数？", "张三")
+
+        assert result is not None
+        assert result["student_name"] == "张三"
+        # 两次调用：问题 + 回答
+        assert mock_message_service.emit_message_sync.call_count == 2
+
+        question_call = mock_message_service.emit_message_sync.call_args_list[0]
+        q_msg = question_call[0][0]
+        assert q_msg.receiver == "张三"
+
+    def test_handle_advance_checkpoint_does_not_emit_message(self):
+        """handle_advance_checkpoint 无活跃对话时不推送消息."""
+        from models.session.services.teacher_service import TeacherSessionController
+
+        mock_memory_manager = MagicMock()
+        mock_memory_manager.session_memory.session_id = 1
+
+        mock_message_service = MagicMock()
+
+        plan = _make_plan()
+        controller = TeacherSessionController(
+            student_agents=[],
+            memory_manager=mock_memory_manager,
+            checkpoint_plan=plan,
+            message_service=mock_message_service,
+        )
+
+        controller.handle_advance_checkpoint()
+
+        mock_message_service.emit_message_sync.assert_not_called()

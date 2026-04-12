@@ -49,8 +49,9 @@ class TestRunOrchestratorBackground:
         mock_llm = MagicMock()
         mock_plan = _make_checkpoint_plan()
 
-        mock_orchestrator = MagicMock()
-        mock_orchestrator.run_autonomous_session = AsyncMock()
+        mock_orchestrator_instance = MagicMock()
+        mock_orchestrator_instance.run_autonomous_session = AsyncMock()
+        mock_orchestrator_instance.stop = AsyncMock()
 
         cm.broadcast = AsyncMock()
 
@@ -62,7 +63,15 @@ class TestRunOrchestratorBackground:
             patch(
                 "models.observation.service._generate_checkpoint_plan", return_value=mock_plan
             ),
+            patch(
+                "models.observation.service.SessionOrchestrator",
+                return_value=mock_orchestrator_instance,
+            ),
+            patch("models.observation.service.CheckpointPlanPersistence") as mock_persistence_cls,
         ):
+            mock_persistence_instance = AsyncMock()
+            mock_persistence_cls.return_value = mock_persistence_instance
+
             from models.observation.service import _run_background_task
 
             registry.register(session_id=42, mode="observation")
@@ -90,6 +99,7 @@ class TestRunOrchestratorBackground:
 
         mock_orchestrator_instance = MagicMock()
         mock_orchestrator_instance.run_autonomous_session = AsyncMock()
+        mock_orchestrator_instance.stop = AsyncMock()
 
         cm.broadcast = AsyncMock()
 
@@ -132,6 +142,7 @@ class TestRunOrchestratorBackground:
 
         mock_orchestrator_instance = MagicMock()
         mock_orchestrator_instance.run_autonomous_session = AsyncMock()
+        mock_orchestrator_instance.stop = AsyncMock()
 
         cm.broadcast = AsyncMock()
 
@@ -184,6 +195,7 @@ class TestRunOrchestratorBackground:
 
         mock_orchestrator_instance = MagicMock()
         mock_orchestrator_instance.run_autonomous_session = AsyncMock()
+        mock_orchestrator_instance.stop = AsyncMock()
 
         cm.broadcast = AsyncMock()
 
@@ -222,6 +234,7 @@ class TestRunOrchestratorBackground:
 
         mock_orchestrator_instance = MagicMock()
         mock_orchestrator_instance.run_autonomous_session = AsyncMock()
+        mock_orchestrator_instance.stop = AsyncMock()
 
         cm.broadcast = AsyncMock()
 
@@ -282,7 +295,7 @@ class TestRunOrchestratorBackground:
             call for call in cm.broadcast.call_args_list if call[0][1].get("status") == "error"
         ]
         assert len(error_calls) == 1
-        assert "内存不足" in error_calls[0][0][1].get("message", "")
+        assert error_calls[0][0][1].get("message", "") == "Session initialization failed"
 
     @pytest.mark.asyncio
     async def test_unregisters_on_error(self, registry, cm):
