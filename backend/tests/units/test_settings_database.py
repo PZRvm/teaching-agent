@@ -1,6 +1,7 @@
 """测试 settings.py 数据库配置加载."""
 
 import os
+import sys
 from unittest.mock import patch
 
 import pytest
@@ -19,10 +20,14 @@ class TestDatabaseSettings:
     def test_database_url_from_env(self):
         """测试 DATABASE_URL 环境变量覆盖 YAML 配置."""
         with patch.dict(os.environ, {"DATABASE_URL": "postgresql+asyncpg://test:123@localhost/testdb"}):
-            import importlib
+            # 清除缓存以强制重新加载
+            sys.modules.pop("core.settings", None)
+            core = sys.modules.get("core")
+            if core and hasattr(core, "__dict__"):
+                core.__dict__.pop("settings", None)
 
             from core import settings
-            importlib.reload(settings)
+
             assert settings.DATABASE_URL == "postgresql+asyncpg://test:123@localhost/testdb"
 
     def test_pool_settings_loaded(self):
