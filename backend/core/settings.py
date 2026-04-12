@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import os
 from pathlib import Path
 from zoneinfo import ZoneInfo
 
@@ -20,6 +21,7 @@ def _load_yaml(filename: str) -> dict:
 
 _APP = _load_yaml("app.yml")
 _LLM = _load_yaml("llm.yml")
+_DATABASE = _load_yaml("database.yml")
 
 # 时区
 TIMEZONE = ZoneInfo(_APP["app"]["timezone"])
@@ -43,3 +45,8 @@ DEFAULT_RESPOND_PROBABILITY: float = 0.5
 CORS_ALLOW_ORIGINS: list[str] = _APP["app"]["cors"]["allow_origins"]
 CORS_ALLOW_METHODS: list[str] = _APP["app"]["cors"]["allow_methods"]
 CORS_ALLOW_HEADERS: list[str] = _APP["app"]["cors"]["allow_headers"]
+
+# 数据库配置
+DATABASE_URL: str = os.getenv("DATABASE_URL", "")
+DATABASE_POOL_SIZE: int = _DATABASE["database"].get("pool_size", 5)
+DATABASE_MAX_OVERFLOW: int = _DATABASE["database"].get("max_overflow", 10)
