@@ -6,6 +6,7 @@ import RoughBadge from '../components/RoughBadge'
 import Footer from '../components/Footer'
 import { useWebSocketBase } from '../hooks/useWebSocketBase'
 import { useElapsedTime } from '../hooks/useElapsedTime'
+import { useSessionMessages } from '../hooks/useSessionMessages'
 import { TEACHING_MODE_LABELS } from '../types/observation'
 import ReactMarkdown from 'react-markdown'
 import remarkGfm from 'remark-gfm'
@@ -18,8 +19,12 @@ export default function ObservationView() {
 
   // 如果 sessionId 无效，不连接 WebSocket
   const shouldConnect = sessionIdNum > 0
-  const { connectionState, messages, checkpointState, sessionEnded, teachingMode, sessionReady } =
+  const { connectionState, messages: wsMessages, checkpointState, sessionEnded, teachingMode, sessionReady } =
     useWebSocketBase(shouldConnect ? sessionIdNum : -1)
+  const { messages, loading: historyLoading } = useSessionMessages(
+    shouldConnect ? sessionIdNum : -1,
+    wsMessages,
+  )
   const elapsedTime = useElapsedTime(connectionState === 'connected')
 
   const teachingModeLabel = teachingMode ? TEACHING_MODE_LABELS[teachingMode] : null
@@ -50,6 +55,15 @@ export default function ObservationView() {
           <div className="loading-card">
             <p className="loading-text">连接已断开</p>
             <p className="loading-subtext">请刷新页面重新连接</p>
+          </div>
+        </div>
+      )}
+
+      {/* 加载历史消息时显示提示 */}
+      {historyLoading && connectionState === 'connected' && !sessionReady && (
+        <div className="loading-container">
+          <div className="loading-card">
+            <p className="loading-text">正在加载历史消息...</p>
           </div>
         </div>
       )}
