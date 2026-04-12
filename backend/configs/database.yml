@@ -1,14 +1,5 @@
 # 数据库配置
 database:
-  # 主数据库连接（数据库文件存储在 datas/ 目录）
-  url: sqlite+aiosqlite:///./datas/database.db
-
-  # 连接池配置
-  # 注意: SQLite 使用 NullPool，忽略 pool_size 和 max_overflow 设置
-  # 这些配置在迁移到 PostgreSQL 时生效
+  # 连接池配置（PostgreSQL 生效）
   pool_size: 5
   max_overflow: 10
-
-  # SQLite 特定配置
-  sqlite:
-    check_same_thread: false
