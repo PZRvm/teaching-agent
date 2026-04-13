@@ -798,3 +798,184 @@ class TestSessionMemoryGetFullContext:
 
         assert "教学主题: Python变量" in context
         assert "最近的对话:" in context
+
+
+class TestMemoryManagerSummarizeCheckpoint:
+    """MemoryManager.summarize_checkpoint() 测试."""
+
+    def test_summarize_checkpoint_appends_summary(self):
+        """测试 summarize_checkpoint 将摘要追加到 checkpoint_summaries."""
+        from agents.memories.memory_manager import MemoryManager, SessionMemory
+
+        session_mem = SessionMemory(session_id=1, topic="Python基础")
+        session_mem.add_message(
+            Message(
+                sender="teacher",
+                message_type=MessageType.LECTURE,
+                content="变量是存储数据的容器",
+                timestamp=datetime.now(),
+            )
+        )
+
+        def mock_summary_fn(p):
+            return "讲授了变量，学生理解良好"
+
+        manager = MemoryManager(session_memory=session_mem, summary_fn=mock_summary_fn)
+
+        result = manager.summarize_checkpoint()
+
+        assert result == "讲授了变量，学生理解良好"
+        assert session_mem.checkpoint_summaries == ["讲授了变量，学生理解良好"]
+
+    def test_summarize_checkpoint_clears_message_history(self):
+        """测试 summarize_checkpoint 清空消息历史."""
+        from agents.memories.memory_manager import MemoryManager, SessionMemory
+
+        session_mem = SessionMemory(session_id=1, topic="Python基础")
+        session_mem.add_message(
+            Message(
+                sender="teacher",
+                message_type=MessageType.LECTURE,
+                content="变量是存储数据的容器",
+                timestamp=datetime.now(),
+            )
+        )
+
+        def mock_summary_fn(p):
+            return "摘要"
+
+        manager = MemoryManager(session_memory=session_mem, summary_fn=mock_summary_fn)
+
+        manager.summarize_checkpoint()
+
+        assert session_mem.message_history == []
+
+    def test_summarize_checkpoint_resets_last_summary_update(self):
+        """测试 summarize_checkpoint 重置 last_summary_update."""
+        from agents.memories.memory_manager import MemoryManager, SessionMemory
+
+        session_mem = SessionMemory(session_id=1, topic="Python基础")
+        session_mem.add_message(
+            Message(
+                sender="teacher",
+                message_type=MessageType.LECTURE,
+                content="变量",
+                timestamp=datetime.now(),
+            )
+        )
+        session_mem.last_summary_update = 1
+
+        def mock_summary_fn(p):
+            return "摘要"
+
+        manager = MemoryManager(session_memory=session_mem, summary_fn=mock_summary_fn)
+
+        manager.summarize_checkpoint()
+
+        assert session_mem.last_summary_update == 0
+
+    def test_summarize_checkpoint_empty_history_returns_none(self):
+        """测试空消息历史时返回 None."""
+        from agents.memories.memory_manager import MemoryManager, SessionMemory
+
+        session_mem = SessionMemory(session_id=1, topic="Python基础")
+
+        def mock_summary_fn(p):
+            return "摘要"
+
+        manager = MemoryManager(session_memory=session_mem, summary_fn=mock_summary_fn)
+
+        result = manager.summarize_checkpoint()
+
+        assert result is None
+        assert session_mem.checkpoint_summaries == []
+
+    def test_summarize_checkpoint_no_summary_fn_returns_none(self):
+        """测试无 summary_fn 时返回 None，但仍清除消息历史."""
+        from agents.memories.memory_manager import MemoryManager, SessionMemory
+
+        session_mem = SessionMemory(session_id=1, topic="Python基础")
+        session_mem.add_message(
+            Message(
+                sender="teacher",
+                message_type=MessageType.LECTURE,
+                content="变量",
+                timestamp=datetime.now(),
+            )
+        )
+
+        manager = MemoryManager(session_memory=session_mem, summary_fn=None)
+
+        result = manager.summarize_checkpoint()
+
+        assert result is None
+        assert session_mem.checkpoint_summaries == []
+        assert session_mem.message_history == []
+
+    def test_summarize_checkpoint_summary_failure_still_clears_history(self):
+        """测试摘要生成失败时仍然清除消息历史."""
+        import pytest
+
+        from agents.memories.memory_manager import MemoryManager, SessionMemory
+
+        session_mem = SessionMemory(session_id=1, topic="Python基础")
+        session_mem.add_message(
+            Message(
+                sender="teacher",
+                message_type=MessageType.LECTURE,
+                content="变量",
+                timestamp=datetime.now(),
+            )
+        )
+
+        def failing_summary_fn(p):
+            raise RuntimeError("LLM 调用失败")
+
+        manager = MemoryManager(session_memory=session_mem, summary_fn=failing_summary_fn)
+
+        with pytest.raises(RuntimeError, match="LLM 调用失败"):
+            manager.summarize_checkpoint()
+
+        # 即使异常，消息历史已被清除（try/finally）
+        assert session_mem.checkpoint_summaries == []
+
+    def test_summarize_checkpoint_accumulates_multiple_summaries(self):
+        """测试多次调用 summarize_checkpoint 累积摘要."""
+        from agents.memories.memory_manager import MemoryManager, SessionMemory
+
+        session_mem = SessionMemory(session_id=1, topic="Python基础")
+        call_count = 0
+
+        def mock_fn(p):
+            nonlocal call_count
+            call_count += 1
+            return f"检查点{call_count}摘要"
+
+        manager = MemoryManager(session_memory=session_mem, summary_fn=mock_fn)
+
+        # 第一个检查点
+        session_mem.add_message(
+            Message(
+                sender="teacher",
+                message_type=MessageType.LECTURE,
+                content="变量",
+                timestamp=datetime.now(),
+            )
+        )
+        manager.summarize_checkpoint()
+
+        # 第二个检查点
+        session_mem.add_message(
+            Message(
+                sender="teacher",
+                message_type=MessageType.LECTURE,
+                content="列表",
+                timestamp=datetime.now(),
+            )
+        )
+        manager.summarize_checkpoint()
+
+        assert session_mem.checkpoint_summaries == [
+            "检查点1摘要",
+            "检查点2摘要",
+        ]

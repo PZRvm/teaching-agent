@@ -115,6 +115,41 @@ class MemoryManager:
         self.session_memory.teaching_summary = self.summary_fn(prompt)
         self.session_memory.mark_summary_updated()
 
+    def summarize_checkpoint(self) -> str | None:
+        """生成当前检查点的摘要并重置消息历史.
+
+        使用 try/finally 确保 message_history 无论摘要成功与否都会被清除。
+        摘要失败时只丢失叙事上下文，TeacherAgentMemory 的结构化状态不受影响。
+
+        Returns:
+            生成的检查点摘要，如果无法生成则返回 None
+        """
+        messages = self.session_memory.message_history
+        if not messages:
+            return None
+
+        if self.summary_fn is None:
+            self.session_memory.clear_message_history()
+            return None
+
+        summary = None
+        try:
+            prompt = (
+                "请将以下课堂对话摘要为一段简洁的教学总结（100字以内）。\n"
+                "重点包括：讲授了什么知识点、学生理解情况、发现的误解。\n\n"
+                + "\n".join(
+                    f"[{m.sender}]: {m.content}" for m in messages
+                )
+            )
+            summary = self.summary_fn(prompt)
+            if summary:
+                self.session_memory.checkpoint_summaries.append(summary)
+        finally:
+            # 无论摘要是否成功生成，都清除消息历史
+            self.session_memory.clear_message_history()
+
+        return summary
+
 
 __all__ = [
     "SessionMemory",
