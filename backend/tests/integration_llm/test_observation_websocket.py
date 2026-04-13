@@ -6,6 +6,9 @@
 3. 接收 connected 事件（ready=False）
 4. 等待 session_state:running 事件
 5. 接收消息和检查点状态更新
+
+注意：这些测试使用 TestClient（进程内），但后台任务使用真实数据库会话，
+因此需要真实数据库已建表才能通过。标记为 @pytest.mark.integration。
 """
 
 import pytest
@@ -14,6 +17,35 @@ from fastapi.testclient import TestClient
 from main import app
 
 
+def _db_tables_exist() -> bool:
+    """检查真实数据库是否已建表."""
+    from pathlib import Path
+
+    db_path = Path(__file__).parents[2] / "datas" / "database.db"
+    if not db_path.exists():
+        return False
+    import sqlite3
+
+    try:
+        conn = sqlite3.connect(str(db_path))
+        cursor = conn.execute(
+            "SELECT name FROM sqlite_master WHERE type='table' AND name='teaching_sessions'"
+        )
+        result = cursor.fetchone()
+        conn.close()
+        return result is not None
+    except Exception:
+        return False
+
+
+needs_real_db = pytest.mark.skipif(
+    not _db_tables_exist(),
+    reason="需要真实数据库已建表 (运行 alembic upgrade head)",
+)
+
+
+@needs_real_db
+@pytest.mark.integration
 @pytest.mark.asyncio
 async def test_observation_websocket_connection_timing():
     """测试 WebSocket 连接时机：立即连接时 orchestrator 未就绪.
@@ -57,8 +89,6 @@ async def test_observation_websocket_connection_timing():
             # 这是正常的，前端应该显示加载状态而不是报错
             if "ready" in data:
                 assert isinstance(data["ready"], bool)
-                # 如果 ready=False，前端应该显示"正在准备课堂..."
-                # 如果 ready=True，说明后台初始化很快完成了
 
             # 4. 发送 ping 保持连接
             websocket.send_json({"type": "ping"})
@@ -66,6 +96,8 @@ async def test_observation_websocket_connection_timing():
             assert pong["type"] == "pong"
 
 
+@needs_real_db
+@pytest.mark.integration
 @pytest.mark.asyncio
 async def test_observation_websocket_session_not_found():
     """测试连接到不存在的 session.
@@ -83,10 +115,12 @@ async def test_observation_websocket_session_not_found():
         assert "99999" in str(exc_info.value) or "disconnect" in str(exc_info.value).lower()
 
 
+@needs_real_db
+@pytest.mark.integration
 def test_observation_start_returns_immediately():
     """测试观察模式启动接口立即返回.
 
-    这是一个关键性能测试：/observation/start 应该在 < 100ms 内返回，
+    这是一个关键性能测试：/observation/start 应该在 < 500ms 内返回，
     而不是等待 LLM 生成检查点计划（需要 10-30 秒）。
     """
     import time
@@ -117,13 +151,15 @@ def test_observation_start_returns_immediately():
         assert "session_id" in data
         assert data["status"] == "initializing"
 
-        # 关键断言：接口应该在 100ms 内返回
+        # 关键断言：接口应该在 500ms 内返回
         # 如果超过这个时间，说明在等待 LLM 调用，这是 bug
         assert (
             elapsed_ms < 500
         ), f"/observation/start 耗时 {elapsed_ms:.0f}ms，应该立即返回（< 500ms）"
 
 
+@needs_real_db
+@pytest.mark.integration
 @pytest.mark.asyncio
 async def test_obsession_websocket_receives_session_state():
     """测试 WebSocket 接收 session_state 事件.

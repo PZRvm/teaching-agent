@@ -1,11 +1,18 @@
 """观察模式 WebSocket 流程集成测试.
 
-测试完整的端到端流程：
+测试完整的端到端流程（需要运行中的后端服务器）：
 1. 调用 /observation/start 创建会话
 2. 立即连接 WebSocket（orchestrator 可能未就绪）
 3. 接收 connected 事件
 4. 验证 ready 字段
 5. （可选）等待 session_state:running 事件
+
+运行方式：
+    # 先启动后端
+    python main.py
+
+    # 然后运行测试
+    pytest tests/integration_llm/test_observation_websocket_flow.py -v -s
 """
 
 import asyncio
@@ -20,6 +27,21 @@ os.environ["no_proxy"] = "localhost,127.0.0.1"
 import websockets
 
 
+def _server_is_running() -> bool:
+    """检查后端服务器是否在运行."""
+    import socket
+
+    with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
+        return s.connect_ex(("localhost", 8000)) == 0
+
+
+server_not_running = pytest.mark.skipif(
+    not _server_is_running(),
+    reason="需要运行中的后端服务器 (python main.py)",
+)
+
+
+@server_not_running
 @pytest.mark.asyncio
 async def test_observation_websocket_flow():
     """测试完整的观察模式 WebSocket 流程.
@@ -57,21 +79,13 @@ async def test_observation_websocket_flow():
         assert session_id is not None
         assert data.get("status") == "initializing"
 
-        # 2. 立即连接 WebSocket
-        # 注意：在 TestClient 中，我们需要使用 ws://localhost:8000
-        # 但 TestClient 不会真正启动服务器，所以需要使用真实的服务器
 
-        # 这个测试需要真实的服务器运行，所以我们需要单独的测试方法
-
-
+@server_not_running
 def test_observation_websocket_with_real_server():
     """使用真实服务器测试 WebSocket 流程.
 
     注意：此测试需要在运行测试前启动后端服务器：
     python main.py
-
-    然后运行：
-    pytest tests/integration/test_observation_websocket_flow.py::test_observation_websocket_with_real_server -v -s
     """
     import json
     import time
@@ -159,6 +173,7 @@ def test_observation_websocket_with_real_server():
     asyncio.run(connect_websocket())
 
 
+@server_not_running
 def test_observation_websocket_session_not_found():
     """测试连接到不存在的 session.
 
