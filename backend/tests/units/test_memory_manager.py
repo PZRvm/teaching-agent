@@ -676,3 +676,125 @@ class TestMemoryManagerSummary:
         assert captured_prompt is not None
         assert "Python基础" in captured_prompt
         assert "内容2" in captured_prompt  # 最近的对话
+
+    def test_init_checkpoint_summaries_default(self):
+        """测试 checkpoint_summaries 默认为空列表."""
+        from agents.memories.memory_manager import SessionMemory
+
+        memory = SessionMemory(session_id=1, topic="Python基础")
+
+        assert hasattr(memory, "checkpoint_summaries")
+        assert memory.checkpoint_summaries == []
+
+
+class TestSessionMemoryClearHistory:
+    """SessionMemory.clear_message_history() 测试."""
+
+    def test_clear_message_history_empties_list(self):
+        """测试 clear_message_history 清空消息列表."""
+        from agents.memories.memory_manager import SessionMemory
+
+        memory = SessionMemory(session_id=1, topic="Python基础")
+        msg = Message(
+            sender="teacher",
+            message_type=MessageType.LECTURE,
+            content="变量是存储数据的容器",
+            timestamp=datetime.now(),
+        )
+        memory.add_message(msg)
+
+        assert len(memory.message_history) == 1
+
+        memory.clear_message_history()
+
+        assert memory.message_history == []
+
+    def test_clear_message_history_resets_last_summary_update(self):
+        """测试 clear_message_history 重置 last_summary_update."""
+        from agents.memories.memory_manager import SessionMemory
+
+        memory = SessionMemory(session_id=1, topic="Python基础")
+        memory.last_summary_update = 5
+
+        memory.clear_message_history()
+
+        assert memory.last_summary_update == 0
+
+    def test_clear_message_history_preserves_checkpoint_summaries(self):
+        """测试 clear_message_history 不影响 checkpoint_summaries."""
+        from agents.memories.memory_manager import SessionMemory
+
+        memory = SessionMemory(session_id=1, topic="Python基础")
+        memory.checkpoint_summaries = ["检查点1摘要"]
+
+        memory.clear_message_history()
+
+        assert memory.checkpoint_summaries == ["检查点1摘要"]
+
+
+class TestSessionMemoryGetFullContext:
+    """SessionMemory.get_full_context() 测试."""
+
+    def test_get_full_context_includes_topic(self):
+        """测试 get_full_context 包含教学主题."""
+        from agents.memories.memory_manager import SessionMemory
+
+        memory = SessionMemory(session_id=1, topic="Python变量")
+
+        context = memory.get_full_context()
+
+        assert "Python变量" in context
+
+    def test_get_full_context_includes_checkpoint_summaries(self):
+        """测试 get_full_context 包含检查点摘要."""
+        from agents.memories.memory_manager import SessionMemory
+
+        memory = SessionMemory(session_id=1, topic="Python变量")
+        memory.checkpoint_summaries = [
+            "讲授了变量和类型，学生理解良好",
+            "讲授了列表和元组，部分学生困惑",
+        ]
+
+        context = memory.get_full_context()
+
+        assert "讲授了变量和类型" in context
+        assert "讲授了列表和元组" in context
+
+    def test_get_full_context_includes_teaching_summary(self):
+        """测试 get_full_context 包含教学摘要."""
+        from agents.memories.memory_manager import SessionMemory
+
+        memory = SessionMemory(session_id=1, topic="Python变量")
+        memory.teaching_summary = "已讲授变量、列表"
+
+        context = memory.get_full_context()
+
+        assert "已讲授变量、列表" in context
+
+    def test_get_full_context_includes_recent_messages(self):
+        """测试 get_full_context 包含最近消息."""
+        from agents.memories.memory_manager import SessionMemory
+
+        memory = SessionMemory(session_id=1, topic="Python变量")
+        msg = Message(
+            sender="teacher",
+            message_type=MessageType.LECTURE,
+            content="变量是存储数据的容器",
+            timestamp=datetime.now(),
+        )
+        memory.add_message(msg)
+
+        context = memory.get_full_context()
+
+        assert "变量是存储数据的容器" in context
+
+    def test_get_full_context_empty_state(self):
+        """测试空状态下的 get_full_context."""
+        from agents.memories.memory_manager import SessionMemory
+
+        memory = SessionMemory(session_id=1, topic="Python变量")
+
+        context = memory.get_full_context()
+
+        assert "教学主题: Python变量" in context
+        assert "最近的对话:" in context
