@@ -5,6 +5,21 @@ from sqlalchemy import select
 
 from models.checkpoint.schemas import CheckpointPlan
 from orm.checkpoint_plan import CheckpointPlanModel
+from orm.teaching_session import TeachingSessionModel
+
+
+async def _create_teaching_session(db_session, session_id: int = 1):
+    """创建一个 teaching_sessions 父记录（满足外键约束）."""
+    session = TeachingSessionModel(
+        id=session_id,
+        teaching_mode="heuristic",
+        topic="测试主题",
+        students_config={"mode": "random", "count": 5},
+        status="running",
+    )
+    db_session.add(session)
+    await db_session.flush()
+    return session
 
 
 @pytest.mark.asyncio
@@ -14,6 +29,8 @@ class TestCheckpointPlanPersistence:
     async def test_save_plan_creates_new_record(self, db_session):
         """保存新计划到数据库."""
         from models.checkpoint.services.persistence_service import CheckpointPlanPersistence
+
+        await _create_teaching_session(db_session, session_id=1)
 
         plan = CheckpointPlan(
             topic="Python 基础",
@@ -44,6 +61,8 @@ class TestCheckpointPlanPersistence:
     async def test_load_plan_by_session_id(self, db_session):
         """根据 session_id 加载计划."""
         from models.checkpoint.services.persistence_service import CheckpointPlanPersistence
+
+        await _create_teaching_session(db_session, session_id=42)
 
         # 先保存一个计划
         plan = CheckpointPlan(
@@ -77,6 +96,8 @@ class TestCheckpointPlanPersistence:
         from models.checkpoint.schemas import CheckpointState
         from models.checkpoint.services.persistence_service import CheckpointPlanPersistence
 
+        await _create_teaching_session(db_session, session_id=1)
+
         plan = CheckpointPlan(
             topic="状态测试",
             teaching_mode="heuristic",
@@ -104,6 +125,8 @@ class TestCheckpointPlanPersistence:
         from models.checkpoint.schemas import CheckpointState
         from models.checkpoint.services.persistence_service import CheckpointPlanPersistence
 
+        await _create_teaching_session(db_session, session_id=1)
+
         plan = CheckpointPlan(
             topic="推进测试",
             teaching_mode="heuristic",
@@ -127,6 +150,8 @@ class TestCheckpointPlanPersistence:
     async def test_delete_plan_by_session_id(self, db_session):
         """删除计划."""
         from models.checkpoint.services.persistence_service import CheckpointPlanPersistence
+
+        await _create_teaching_session(db_session, session_id=1)
 
         plan = CheckpointPlan(
             topic="删除测试",

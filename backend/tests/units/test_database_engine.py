@@ -75,9 +75,10 @@ class TestDatabaseEngine:
             asyncio.run(database.async_engine.dispose())
 
     def test_empty_database_url_raises_error(self):
-        """测试空 DATABASE_URL 抛出 ValueError."""
+        """测试空 DATABASE_URL 在访问引擎时抛出 ValueError."""
+        database = _clear_and_reload_database("")
         with pytest.raises(ValueError, match="DATABASE_URL"):
-            _clear_and_reload_database("")
+            _ = database.async_engine
 
     def teardown_class(self):
         """测试类结束后恢复默认状态."""

@@ -1,6 +1,6 @@
 """Checkpoint 持久化 ORM 模型"""
 
-from sqlalchemy import JSON, Integer
+from sqlalchemy import JSON, ForeignKey
 from sqlalchemy.ext.asyncio import AsyncAttrs
 from sqlalchemy.orm import Mapped, mapped_column
 
@@ -13,7 +13,9 @@ class CheckpointPlanModel(Base, AsyncAttrs):
     __tablename__ = "checkpoint_plans"
 
     id: Mapped[int] = mapped_column(primary_key=True, autoincrement=True)
-    session_id: Mapped[int] = mapped_column(Integer, nullable=False)
+    session_id: Mapped[int] = mapped_column(
+        ForeignKey("teaching_sessions.id", ondelete="CASCADE")
+    )
     plan_data: Mapped[dict] = mapped_column(JSON)
 
     def update_plan_data(self, new_data: dict) -> None:

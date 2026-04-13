@@ -1,6 +1,7 @@
 """学生记忆 ORM 模型."""
 
 from datetime import datetime
+from zoneinfo import ZoneInfo
 
 import sqlalchemy as sa
 from sqlalchemy.orm import Mapped, mapped_column
@@ -32,7 +33,9 @@ class StudentMemoryModel(Base):
     learning_rate: Mapped[float] = mapped_column(sa.Float, default=0.05)
 
     last_updated: Mapped[datetime] = mapped_column(
-        sa.DateTime(timezone=True), default=datetime.now, onupdate=datetime.now
+        sa.DateTime(timezone=True),
+        default=lambda: datetime.now(ZoneInfo("Asia/Shanghai")),
+        onupdate=lambda: datetime.now(ZoneInfo("Asia/Shanghai")),
     )
 
     __table_args__ = (
