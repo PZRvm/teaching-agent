@@ -97,6 +97,7 @@ class MemoryPersistence:
 
         def update_fn(existing: SessionMemoryModel) -> None:
             existing.teaching_summary = memory.teaching_summary
+            existing.checkpoint_summaries = memory.checkpoint_summaries
             existing.message_history = [m.model_dump(mode="json") for m in memory.message_history]
             existing.last_updated = datetime.now(TIMEZONE)
 
@@ -105,6 +106,7 @@ class MemoryPersistence:
                 "session_id": memory.session_id,
                 "message_history": [m.model_dump(mode="json") for m in memory.message_history],
                 "teaching_summary": memory.teaching_summary or None,
+                "checkpoint_summaries": memory.checkpoint_summaries,
                 "last_updated": datetime.now(TIMEZONE),
             }
 
@@ -233,6 +235,7 @@ class MemoryPersistence:
             session_id=session_id,
             topic=topic,
             teaching_summary=record.teaching_summary or "",
+            checkpoint_summaries=record.checkpoint_summaries or [],
             message_history=message_history,
         )
 

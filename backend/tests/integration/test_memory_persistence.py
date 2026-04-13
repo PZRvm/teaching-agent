@@ -491,3 +491,25 @@ class TestMemoryIntegration:
         assert loaded_teacher.covered_topics == []
         assert loaded_student is not None
         assert loaded_student.learned_concepts == []
+
+
+@pytest.mark.asyncio
+async def test_save_and_load_checkpoint_summaries(db_session: AsyncSession):
+    """测试 checkpoint_summaries 的保存和加载."""
+    from agents.memories.memory_persistence import MemoryPersistence
+
+    session_id = await _create_teaching_session(db_session)
+    persistence = MemoryPersistence(db_session)
+
+    memory = SessionMemory(
+        session_id=session_id,
+        topic="Python基础",
+        checkpoint_summaries=["检查点1摘要", "检查点2摘要"],
+    )
+
+    await persistence.save_session_memory(memory)
+
+    loaded = await persistence.load_session_memory(session_id)
+
+    assert loaded is not None
+    assert loaded.checkpoint_summaries == ["检查点1摘要", "检查点2摘要"]
