@@ -109,84 +109,83 @@ async def _run_background_task(
     cm = get_connection_manager()
     registry = get_session_registry()
 
-    # 创建新的数据库 session（后台任务独立于请求的 session）
-    async with async_session_maker() as db:
-        try:
-            # 1. 推送初始化中状态
-            await cm.broadcast(
-                session_id,
-                {
-                    "type": "session_state",
-                    "session_id": session_id,
-                    "teaching_mode": teaching_mode,
-                    "status": "initializing",
-                },
-            )
+    try:
+        # 1. 推送初始化中状态
+        await cm.broadcast(
+            session_id,
+            {
+                "type": "session_state",
+                "session_id": session_id,
+                "teaching_mode": teaching_mode,
+                "status": "initializing",
+            },
+        )
 
-            # 2. 初始化 LLM、agents、memory manager
-            # 教师使用 72B 模型（更大上下文窗口，方便课后总结）
-            teacher_llm = _create_llm_client(model_key="teacher_model")
-            # 学生使用 7B 模型
-            student_llm = _create_llm_client(model_key="model")
-            memory_manager = _create_memory_manager(session_id, topic)
-            teacher_agent = _create_teacher_agent(teacher_llm, memory_manager, teaching_mode)
-            student_agents = _create_student_agents(students_config, student_llm, memory_manager)
+        # 2. 初始化 LLM、agents、memory manager
+        # 教师使用 72B 模型（更大上下文窗口，方便课后总结）
+        teacher_llm = _create_llm_client(model_key="teacher_model")
+        # 学生使用 7B 模型
+        student_llm = _create_llm_client(model_key="model")
+        memory_manager = _create_memory_manager(session_id, topic)
+        teacher_agent = _create_teacher_agent(teacher_llm, memory_manager, teaching_mode)
+        student_agents = _create_student_agents(students_config, student_llm, memory_manager)
 
-            # 3. 生成检查点计划（慢 LLM 调用，使用教师模型保证质量）
-            checkpoint_plan = await _generate_checkpoint_plan(
-                topic, teaching_mode, teacher_llm
-            )
+        # 3. 生成检查点计划（慢 LLM 调用，使用教师模型保证质量）
+        checkpoint_plan = await _generate_checkpoint_plan(
+            topic, teaching_mode, teacher_llm
+        )
 
-            # 4. 持久化
+        # 4. 持久化检查点计划（用完即释放连接，不长期占用）
+        async with async_session_maker() as db:
             persistence = CheckpointPlanPersistence(db)
             await persistence.save_plan(session_id, checkpoint_plan)
 
-            # 5. 创建并注册 orchestrator
-            orchestrator = SessionOrchestrator(
-                teacher_agent=teacher_agent,
-                student_agents=student_agents,
-                checkpoint_plan=checkpoint_plan,
-                memory_manager=memory_manager,
-            )
-            registry.register_orchestrator(session_id, orchestrator)
+        # 5. 创建并注册 orchestrator
+        orchestrator = SessionOrchestrator(
+            teacher_agent=teacher_agent,
+            student_agents=student_agents,
+            checkpoint_plan=checkpoint_plan,
+            memory_manager=memory_manager,
+        )
+        registry.register_orchestrator(session_id, orchestrator)
 
-            # 6. 推送就绪状态
+        # 6. 推送就绪状态
+        await cm.broadcast(
+            session_id,
+            {
+                "type": "session_state",
+                "session_id": session_id,
+                "teaching_mode": teaching_mode,
+                "status": "running",
+            },
+        )
+
+        # 7. 运行教学流程
+        await orchestrator.run_autonomous_session()
+
+    except Exception as e:
+        logger.error(
+            "观察模式后台任务失败 (session_id=%d): %s",
+            session_id,
+            e,
+            exc_info=True,
+        )
+        # 推送错误状态
+        with contextlib.suppress(Exception):
             await cm.broadcast(
                 session_id,
                 {
                     "type": "session_state",
                     "session_id": session_id,
-                    "teaching_mode": teaching_mode,
-                    "status": "running",
+                    "status": "error",
+                    "message": "Session initialization failed",
                 },
             )
 
-            # 7. 运行教学流程
-            await orchestrator.run_autonomous_session()
-
-        except Exception as e:
-            logger.error(
-                "观察模式后台任务失败 (session_id=%d): %s",
-                session_id,
-                e,
-                exc_info=True,
-            )
-            # 推送错误状态
-            with contextlib.suppress(Exception):
-                await cm.broadcast(
-                    session_id,
-                    {
-                        "type": "session_state",
-                        "session_id": session_id,
-                        "status": "error",
-                        "message": "Session initialization failed",
-                    },
-                )
-
-        finally:
-            # 8. 清理资源
-            orchestrator = registry.get_orchestrator(session_id)
-            if orchestrator is not None:
-                await orchestrator.stop()
-            registry.unregister(session_id)
-            logger.info("观察模式会话已清理 (session_id=%d)", session_id)
+    finally:
+        # 8. 清理资源
+        orchestrator = registry.get_orchestrator(session_id)
+        if orchestrator is not None:
+            await orchestrator.stop()
+        registry.unregister(session_id)
+        logger.info("观察模式会话已清理 (session_id=%d)", session_id)
