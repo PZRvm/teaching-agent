@@ -480,6 +480,34 @@ class TestHandleAdvanceCheckpoint:
         # Assert - 旁听学习不被触发（因为没有对话）
         mock_student.update_knowledge.assert_not_called()
 
+    def test_handle_advance_checkpoint_calls_summarize(self):
+        """测试推进检查点时调用 summarize_checkpoint."""
+        profile = StudentProfile(name="张三", level=StudentLevel.AVERAGE, attitude=StudentAttitude.ACTIVE, learning_ability=7)
+        mock_student = Mock()
+        mock_student.profile = profile
+
+        mock_checkpoint_plan = Mock()
+        mock_checkpoint_plan.checkpoints = [
+            Mock(title="检查点1", state=CheckpointState.COMPLETE),
+            Mock(title="检查点2", state=CheckpointState.TEACHING),
+        ]
+
+        mock_memory_manager = Mock()
+        mock_memory_manager.session_memory = Mock()
+        mock_memory_manager.session_memory.message_history = []
+
+        controller = TeacherSessionController(
+            student_agents=[mock_student],
+            memory_manager=mock_memory_manager,
+            checkpoint_plan=mock_checkpoint_plan,
+            ws_push_callback=None,
+            message_service=Mock(),
+        )
+
+        controller.handle_advance_checkpoint()
+
+        mock_memory_manager.summarize_checkpoint.assert_called_once()
+
 
 class TestHandleAssignHomework:
     """handle_assign_homework 方法测试"""
