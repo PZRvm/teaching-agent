@@ -22,6 +22,6 @@ class TeachingSessionModel(Base, AsyncAttrs):
     duration_seconds: Mapped[int | None] = mapped_column(Integer, nullable=True)
     status: Mapped[str] = mapped_column(String(20), default="running")
     start_time: Mapped[datetime] = mapped_column(
-        DateTime, default=lambda: datetime.now(ZoneInfo("Asia/Shanghai"))
+        DateTime(timezone=True), default=lambda: datetime.now(ZoneInfo("Asia/Shanghai"))
     )
-    end_time: Mapped[datetime | None] = mapped_column(DateTime, nullable=True)
+    end_time: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)

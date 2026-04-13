@@ -32,7 +32,7 @@ class StudentMemoryModel(Base):
     learning_rate: Mapped[float] = mapped_column(sa.Float, default=0.05)
 
     last_updated: Mapped[datetime] = mapped_column(
-        sa.DateTime, default=datetime.now, onupdate=datetime.now
+        sa.DateTime(timezone=True), default=datetime.now, onupdate=datetime.now
     )
 
     __table_args__ = (

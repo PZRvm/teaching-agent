@@ -20,5 +20,5 @@ class SessionMemoryModel(Base, AsyncAttrs):
     message_history: Mapped[list] = mapped_column(JSON)
     teaching_summary: Mapped[str | None] = mapped_column(Text, nullable=True)
     last_updated: Mapped[datetime] = mapped_column(
-        DateTime, default=lambda: datetime.now(ZoneInfo("Asia/Shanghai"))
+        DateTime(timezone=True), default=lambda: datetime.now(ZoneInfo("Asia/Shanghai"))
     )
