@@ -99,7 +99,7 @@ export default function ObservationView() {
         </div>
       )}
 
-      {(sessionReady && connectionState === 'connected') || messages.length > 0 && (
+      {(sessionReady && connectionState === 'connected' || messages.length > 0) && (
       <div className="content-layout">
         <aside className="sidebar">
           <div className="sidebar-card">
@@ -115,14 +115,14 @@ export default function ObservationView() {
                     ? checkpointPlan.checkpoints.map((cp, i) => (
                         <div
                           key={i}
-                          className={`checkpoint-item ${i === effectiveCheckpointState.index ? 'current' : ''} ${i < effectiveCheckpointState.progress.current ? 'completed' : ''}`}
+                          className={`checkpoint-item ${i === effectiveCheckpointState.index ? 'current' : ''} ${cp.state === 'complete' ? 'completed' : ''}`}
                         >
                           <span className="checkpoint-number">{i + 1}</span>
                           <span className="checkpoint-name">{cp.title}</span>
                           {i === effectiveCheckpointState.index && (
                             <span className="checkpoint-label">进行中</span>
                           )}
-                          {i < effectiveCheckpointState.progress.current && (
+                          {cp.state === 'complete' && (
                             <span className="checkpoint-label">已完成</span>
                           )}
                         </div>
@@ -130,13 +130,13 @@ export default function ObservationView() {
                     : Array.from({ length: effectiveCheckpointState.progress.total }, (_, i) => (
                         <div
                           key={i}
-                          className={`checkpoint-item ${i === effectiveCheckpointState.index ? 'current' : ''} ${i < effectiveCheckpointState.progress.current ? 'completed' : ''}`}
+                          className={`checkpoint-item ${i === effectiveCheckpointState.index ? 'current' : ''} ${i < effectiveCheckpointState.index ? 'completed' : ''}`}
                         >
                           <span className="checkpoint-number">{i + 1}</span>
                           {i === effectiveCheckpointState.index && (
                             <span className="checkpoint-label">进行中</span>
                           )}
-                          {i < effectiveCheckpointState.progress.current && (
+                          {i < effectiveCheckpointState.index && (
                             <span className="checkpoint-label">已完成</span>
                           )}
                         </div>

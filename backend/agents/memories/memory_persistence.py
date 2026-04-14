@@ -159,6 +159,7 @@ class MemoryPersistence:
             sender=message.sender,
             message_type=message.message_type.value,
             content=message.content,
+            receiver=message.receiver or "all",
             timestamp=message.timestamp
             if message.timestamp is not None
             else datetime.now(TIMEZONE),
@@ -286,6 +287,7 @@ class MemoryPersistence:
                 sender=record.sender,
                 message_type=MessageType(record.message_type),
                 content=record.content,
+                receiver=record.receiver or "all",
                 timestamp=record.timestamp,
             )
             for record in records

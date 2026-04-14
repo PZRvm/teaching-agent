@@ -102,8 +102,8 @@ def downgrade() -> None:
     op.drop_table('student_memories')
     op.drop_table('session_memories')
     op.drop_table('messages')
-    op.drop_table('teaching_sessions')
     op.drop_table('checkpoint_plans')
+    op.drop_table('teaching_sessions')
     # PostgreSQL ENUM 类型需要显式删除（Alembic 不会自动生成 DROP TYPE）
     op.execute("DROP TYPE IF EXISTS studentlevel")
     op.execute("DROP TYPE IF EXISTS studentattitude")
