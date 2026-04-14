@@ -77,13 +77,15 @@ describe('LandingPage', () => {
     expect(screen.getByRole('button', { name: '开始教学 →' })).toBeDisabled()
   })
 
-  it('教学历史按钮已禁用（功能未实现）', () => {
+  it('教学历史按钮导航到历史页面', async () => {
+    const user = userEvent.setup()
     render(
       <MemoryRouter>
         <LandingPage />
       </MemoryRouter>,
     )
-    expect(screen.getByLabelText('教学历史')).toBeDisabled()
+    await user.click(screen.getByLabelText('教学历史'))
+    expect(mockNavigate).toHaveBeenCalledWith('/history')
   })
 
   it('uses rough design elements like tape, decorations, and footer tags', () => {

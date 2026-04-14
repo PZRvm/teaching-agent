@@ -20,7 +20,7 @@ export default function LandingPage() {
           <span className="brand-subtitle">教学智能体</span>
         </div>
         <div className="top-nav-right">
-          <button className="nav-icon" aria-label="教学历史" disabled>
+          <button className="nav-icon" aria-label="教学历史" onClick={() => navigate('/history')}>
             <span className="material-symbols-outlined">history</span>
           </button>
           <button className="nav-icon" aria-label="设置" disabled>
