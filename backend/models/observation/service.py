@@ -112,6 +112,7 @@ async def _run_background_task(
     """
     cm = get_connection_manager()
     registry = get_session_registry()
+    finalized = False
 
     try:
         # 1. 推送初始化中状态
@@ -186,7 +187,8 @@ async def _run_background_task(
                 },
             )
         # 标记会话为中断
-        with contextlib.suppress(Exception):
+        finalized = True
+        try:
             async with async_session_maker() as db:
                 await finalize_session(
                     db=db,
@@ -194,6 +196,10 @@ async def _run_background_task(
                     status="interrupted",
                 )
                 await db.commit()
+        except Exception:
+            logger.exception(
+                "标记会话中断状态失败 (session_id=%d)", session_id
+            )
 
     finally:
         # 8. 清理资源
@@ -202,15 +208,20 @@ async def _run_background_task(
             await orchestrator.stop()
         registry.unregister(session_id)
 
-        # 9. 更新会话生命周期状态
-        with contextlib.suppress(Exception):
-            async with async_session_maker() as db:
-                await finalize_session(
-                    db=db,
-                    session_id=session_id,
-                    status="completed",
+        # 9. 正常结束时更新会话状态（except 已处理的情况跳过）
+        if not finalized:
+            try:
+                async with async_session_maker() as db:
+                    await finalize_session(
+                        db=db,
+                        session_id=session_id,
+                        status="completed",
+                    )
+                    await db.commit()
+            except Exception:
+                logger.exception(
+                    "标记会话完成状态失败 (session_id=%d)", session_id
                 )
-                await db.commit()
 
         logger.info("观察模式会话已清理 (session_id=%d)", session_id)
 
@@ -238,17 +249,16 @@ async def finalize_session(
     session.status = status
     session.end_time = datetime.now(ZoneInfo("Asia/Shanghai"))
     if session.start_time and session.end_time:
-        try:
+        if session.start_time.tzinfo is None:
+            # start_time 是 naive datetime，添加时区后计算
+            start_aware = session.start_time.replace(
+                tzinfo=ZoneInfo("Asia/Shanghai")
+            )
+            session.duration_seconds = int(
+                (session.end_time - start_aware).total_seconds()
+            )
+        else:
             session.duration_seconds = int(
                 (session.end_time - session.start_time).total_seconds()
             )
-        except TypeError:
-            # start_time 可能是 naive datetime，添加时区后重试
-            if session.start_time.tzinfo is None:
-                start_aware = session.start_time.replace(
-                    tzinfo=ZoneInfo("Asia/Shanghai")
-                )
-                session.duration_seconds = int(
-                    (session.end_time - start_aware).total_seconds()
-                )
     await db.flush()

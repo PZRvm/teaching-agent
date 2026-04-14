@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import logging
 import random
 from collections.abc import Callable
 
@@ -10,6 +11,8 @@ from core.connection_manager import get_connection_manager
 from models.checkpoint.schemas import Checkpoint, CheckpointState
 from models.session.schemas import Message, MessageType
 from models.session.services.message_service import MessageService
+
+logger = logging.getLogger(__name__)
 
 
 class SessionOrchestrator:
@@ -124,6 +127,7 @@ class SessionOrchestrator:
         # TEACHING 状态
         checkpoint.state = CheckpointState.TEACHING
         await self._ws_push_checkpoint_state(checkpoint)
+        await self._persist_checkpoint_state()
 
         # 传授知识点
         await self._deliver_checkpoint_lecture(checkpoint)
@@ -135,6 +139,7 @@ class SessionOrchestrator:
             # QUESTIONS 状态
             checkpoint.state = CheckpointState.QUESTIONS
             await self._ws_push_checkpoint_state(checkpoint)
+            await self._persist_checkpoint_state()
 
             # 处理学生互动
             await self._handle_checkpoint_questions(checkpoint)
@@ -142,6 +147,7 @@ class SessionOrchestrator:
         # COMPLETE 状态
         checkpoint.state = CheckpointState.COMPLETE
         await self._ws_push_checkpoint_state(checkpoint)
+        await self._persist_checkpoint_state()
 
         # 检查点完成后生成摘要并重置上下文
         # 在 observer learning 之前调用，因为 observer learning 不依赖 message_history
@@ -458,3 +464,31 @@ class SessionOrchestrator:
                     },
                 }
                 await cm.broadcast(session_id, broadcast_message)
+
+    async def _persist_checkpoint_state(self) -> None:
+        """将当前检查点状态持久化到数据库.
+
+        使用短生命周期的 DB session，用完即释放，不长期占用连接。
+        持久化失败只记录日志，不影响教学流程。
+        """
+        try:
+            from core.database import async_session_maker
+            from models.checkpoint.services.persistence_service import (
+                CheckpointPlanPersistence,
+            )
+
+            session_id = self.memory_manager.session_memory.session_id
+            checkpoint_index = self.checkpoint_plan.current_index
+            checkpoint = self.checkpoint_plan.checkpoints[checkpoint_index]
+
+            async with async_session_maker() as db:
+                persistence = CheckpointPlanPersistence(db)
+                await persistence.update_checkpoint_state(
+                    session_id, checkpoint_index, checkpoint.state
+                )
+        except Exception:
+            logger.exception(
+                "持久化检查点状态失败 (session_id=%d, index=%d)",
+                self.memory_manager.session_memory.session_id,
+                self.checkpoint_plan.current_index,
+            )

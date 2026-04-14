@@ -147,3 +147,22 @@ class TestSessionListAPI:
             assert data[1]["topic"] == "早期课"
         finally:
             app.dependency_overrides.clear()
+
+
+class TestSessionDetailAPI:
+    """GET /sessions/{session_id} 接口测试."""
+
+    async def test_session_detail_not_found(self, override_get_db):
+        """不存在的 session_id 返回 404."""
+        from httpx import ASGITransport, AsyncClient
+
+        from main import app
+
+        async with AsyncClient(
+            transport=ASGITransport(app=app),
+            base_url="http://test",
+        ) as client:
+            resp = await client.get("/sessions/99999")
+
+        assert resp.status_code == 404
+        assert resp.json()["detail"] == "会话不存在"

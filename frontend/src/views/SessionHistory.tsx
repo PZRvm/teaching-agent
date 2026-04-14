@@ -7,43 +7,8 @@ import RoughButton from '../components/RoughButton'
 import Footer from '../components/Footer'
 import { getSessionList } from '../apis/session'
 import type { SessionSummary } from '../apis/session'
-
-const TEACHING_MODE_LABELS: Record<string, string> = {
-  didactic: '灌输式',
-  heuristic: '启发式',
-  discussion: '讨论式',
-}
-
-const MODE_BADGE_VARIANT: Record<string, 'yellow' | 'blue' | 'green'> = {
-  didactic: 'yellow',
-  heuristic: 'blue',
-  discussion: 'green',
-}
-
-const STATUS_LABELS: Record<string, string> = {
-  running: '进行中',
-  completed: '已完成',
-  interrupted: '已中断',
-}
-
-function formatDuration(seconds: number | null): string {
-  if (seconds === null || seconds === undefined) return ''
-  const mins = Math.floor(seconds / 60)
-  if (mins < 60) return `${mins}分钟`
-  const hours = Math.floor(mins / 60)
-  const remainMins = mins % 60
-  return `${hours}小时${remainMins}分钟`
-}
-
-function formatDate(isoString: string): string {
-  const d = new Date(isoString)
-  return d.toLocaleDateString('zh-CN', {
-    month: '2-digit',
-    day: '2-digit',
-    hour: '2-digit',
-    minute: '2-digit',
-  })
-}
+import { formatDuration, formatDate } from '../utils/format'
+import { TEACHING_MODE_LABELS, MODE_BADGE_VARIANT, STATUS_LABELS } from '../types/observation'
 
 export default function SessionHistory() {
   const navigate = useNavigate()

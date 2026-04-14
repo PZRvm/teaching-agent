@@ -10,6 +10,20 @@ export const TEACHING_MODE_LABELS: Record<TeachingMode, string> = {
   discussion: '讨论式',
 }
 
+/** 教学模式 Badge 颜色变体 */
+export const MODE_BADGE_VARIANT: Record<TeachingMode, 'yellow' | 'blue' | 'green'> = {
+  didactic: 'yellow',
+  heuristic: 'blue',
+  discussion: 'green',
+}
+
+/** 会话状态中文名映射 */
+export const STATUS_LABELS: Record<string, string> = {
+  running: '进行中',
+  completed: '已完成',
+  interrupted: '已中断',
+}
+
 /** 学生水平 */
 export type StudentLevel = 'excellent' | 'average' | 'basic'
 
@@ -172,9 +186,10 @@ export interface CheckpointProgress {
   completed: number
 }
 
-/** 检查点状态数据（从 WebSocket 提取） */
+/** 检查点状态数据（从 WebSocket 提取或 HTTP API 获取） */
 export interface CheckpointStateData {
   index: number
   checkpoint: CheckpointInfo
   progress: CheckpointProgress
+  checkpoints?: CheckpointInfo[]
 }

@@ -47,3 +47,11 @@ export async function getSessionList(): Promise<SessionSummary[]> {
   const { data } = await api.get<SessionSummary[]>('/sessions/')
   return data
 }
+
+/** 获取单个会话详情 */
+export async function getSessionDetail(
+  sessionId: number,
+): Promise<SessionSummary> {
+  const { data } = await api.get<SessionSummary>(`/sessions/${sessionId}`)
+  return data
+}

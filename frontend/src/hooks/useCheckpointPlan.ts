@@ -31,16 +31,16 @@ function planReducer(state: PlanState, action: PlanAction): PlanState {
 /**
  * 获取会话的检查点计划（包含所有检查点标题）.
  *
- * 当 sessionReady 变为 true 时自动拉取，用于侧边栏渲染完整检查点列表。
+ * 当 enabled 变为 true 时自动拉取，用于侧边栏渲染完整检查点列表。
  * 如果拉取失败，保留 error 信息但不会重试。
  *
  * @param sessionId 会话 ID
- * @param sessionReady 会话是否已就绪（orchestrator 已创建）
+ * @param enabled 是否拉取（实时模式等 sessionReady，回顾模式直接启用）
  * @returns 包含 plan、loading、error 的状态对象
  */
 export function useCheckpointPlan(
   sessionId: number,
-  sessionReady: boolean,
+  enabled: boolean,
 ) {
   const [state, dispatch] = useReducer(planReducer, {
     plan: null,
@@ -49,7 +49,7 @@ export function useCheckpointPlan(
   })
 
   useEffect(() => {
-    if (!sessionReady || sessionId <= 0) return
+    if (!enabled || sessionId <= 0) return
 
     let cancelled = false
     dispatch({ type: 'fetch' })
@@ -70,7 +70,7 @@ export function useCheckpointPlan(
     return () => {
       cancelled = true
     }
-  }, [sessionId, sessionReady])
+  }, [sessionId, enabled])
 
   return state
 }

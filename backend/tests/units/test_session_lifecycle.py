@@ -75,18 +75,24 @@ class TestSessionLifecycle:
         db_session.add(session)
         await db_session.flush()
 
-        from models.observation.service import finalize_session
+        from unittest.mock import patch
 
-        await finalize_session(
-            db=db_session,
-            session_id=session.id,
-            status="completed",
-        )
+        fake_end = datetime(2026, 4, 12, 15, 30, 0, tzinfo=ZoneInfo("Asia/Shanghai"))
+
+        with patch("models.observation.service.datetime") as mock_dt:
+            mock_dt.now.return_value = fake_end
+            from models.observation.service import finalize_session
+
+            await finalize_session(
+                db=db_session,
+                session_id=session.id,
+                status="completed",
+            )
+
         await db_session.commit()
 
         await db_session.refresh(session)
-        assert session.duration_seconds is not None
-        assert session.duration_seconds >= 0
+        assert session.duration_seconds == 5400
 
     async def test_finalize_session_nonexistent_id_raises(self, db_session, test_engine):
         """finalize_session 对不存在的 session_id 应抛出 ValueError."""

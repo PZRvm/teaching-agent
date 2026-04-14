@@ -1,6 +1,6 @@
 // frontend/src/views/ObservationView.tsx
 import { useParams, useNavigate } from 'react-router-dom'
-import { useRef, useEffect } from 'react'
+import { useState, useRef, useEffect } from 'react'
 import styled from 'styled-components'
 import PageNav from '../components/PageNav'
 import RoughBadge from '../components/RoughBadge'
@@ -10,6 +10,7 @@ import { useElapsedTime } from '../hooks/useElapsedTime'
 import { useSessionMessages } from '../hooks/useSessionMessages'
 import { useCheckpointPlan } from '../hooks/useCheckpointPlan'
 import { useCheckpointProgress } from '../hooks/useCheckpointProgress'
+import { getSessionDetail } from '../apis/session'
 import { TEACHING_MODE_LABELS } from '../types/observation'
 import ReactMarkdown from 'react-markdown'
 import remarkGfm from 'remark-gfm'
@@ -17,31 +18,47 @@ import remarkGfm from 'remark-gfm'
 export default function ObservationView() {
   const { sessionId } = useParams<{ sessionId: string }>()
   const navigate = useNavigate()
-  // 如果没有 sessionId，导航回首页
   const sessionIdNum = sessionId ? Number(sessionId) : 0
 
-  // 如果 sessionId 无效，不连接 WebSocket
-  const shouldConnect = sessionIdNum > 0
+  // 先获取会话状态，判断是否已完成
+  const [sessionStatus, setSessionStatus] = useState<string | null>(null)
+  const [statusLoading, setStatusLoading] = useState(sessionIdNum > 0)
+
+  useEffect(() => {
+    if (sessionIdNum <= 0) return
+    getSessionDetail(sessionIdNum)
+      .then((detail) => setSessionStatus(detail.status))
+      .catch(() => setSessionStatus(null))
+      .finally(() => setStatusLoading(false))
+  }, [sessionIdNum])
+
+  const isCompleted = sessionStatus === 'completed'
+
+  // 已完成的会话不连接 WebSocket，使用 HTTP-only 模式
+  const wsSessionId = isCompleted ? -1 : (sessionIdNum > 0 ? sessionIdNum : -1)
   const { connectionState, messages: wsMessages, checkpointState, sessionEnded, teachingMode, sessionReady } =
-    useWebSocketBase(shouldConnect ? sessionIdNum : -1)
+    useWebSocketBase(wsSessionId)
   const { messages, loading: historyLoading } = useSessionMessages(
-    shouldConnect ? sessionIdNum : -1,
+    sessionIdNum > 0 ? sessionIdNum : -1,
     wsMessages,
   )
-  const elapsedTime = useElapsedTime(connectionState === 'connected')
+  const elapsedTime = useElapsedTime(connectionState === 'connected' && !isCompleted)
   const { plan: checkpointPlan } = useCheckpointPlan(
-    shouldConnect ? sessionIdNum : -1,
-    sessionReady,
+    sessionIdNum > 0 ? sessionIdNum : -1,
+    sessionReady || isCompleted,
   )
   const { progress: httpProgress, loading: progressLoading } = useCheckpointProgress(
-    shouldConnect ? sessionIdNum : -1,
+    sessionIdNum > 0 ? sessionIdNum : -1,
   )
 
   // WebSocket 实时状态优先，HTTP 请求作为初始值
   const effectiveCheckpointState = checkpointState ?? httpProgress
-  const initialLoading = (historyLoading || progressLoading) && messages.length === 0 && !effectiveCheckpointState
+  const initialLoading = (statusLoading || historyLoading || progressLoading) && messages.length === 0 && !effectiveCheckpointState
 
-  const teachingModeLabel = teachingMode ? TEACHING_MODE_LABELS[teachingMode] : null
+  // 教学模式：WebSocket 实时值优先，否则从 session detail 获取
+  const teachingModeLabel = teachingMode
+    ? TEACHING_MODE_LABELS[teachingMode]
+    : null
 
   // 自动滚动到最新消息
   const messageAreaRef = useRef<HTMLDivElement>(null)
@@ -54,18 +71,19 @@ export default function ObservationView() {
   return (
     <Wrapper>
       <PageNav
-        title="观察模式 - 实时观察"
+        title={isCompleted ? '观察模式 - 课程回顾' : '观察模式 - 实时观察'}
         onBack={() => navigate('/')}
         right={
           <>
-            {teachingModeLabel && <RoughBadge variant="blue" rotation={-1}>{teachingModeLabel}</RoughBadge>}
+            {isCompleted && <RoughBadge variant="green" rotation={-1}>课程已结束</RoughBadge>}
+            {teachingModeLabel && !isCompleted && <RoughBadge variant="blue" rotation={-1}>{teachingModeLabel}</RoughBadge>}
             {effectiveCheckpointState && (
               <RoughBadge variant="yellow" rotation={2}>
                 检查点 {effectiveCheckpointState.progress.current}/{effectiveCheckpointState.progress.total}
               </RoughBadge>
             )}
-            <span className="elapsed-label">已进行</span>
-            <span className="elapsed-time">{elapsedTime}</span>
+            {!isCompleted && <span className="elapsed-label">已进行</span>}
+            {!isCompleted && <span className="elapsed-time">{elapsedTime}</span>}
             <span className="message-count">消息：{messages.length}</span>
           </>
         }
@@ -75,13 +93,13 @@ export default function ObservationView() {
       {initialLoading && (
         <div className="loading-container">
           <div className="loading-card">
-            <p className="loading-text">正在加载课堂数据...</p>
+            <p className="loading-text">{isCompleted ? '正在加载课程记录...' : '正在加载课堂数据...'}</p>
           </div>
         </div>
       )}
 
-      {/* 加载历史消息时显示提示 */}
-      {historyLoading && connectionState === 'connected' && sessionReady && (
+      {/* 加载历史消息时显示提示（仅实时观察模式） */}
+      {historyLoading && !isCompleted && connectionState === 'connected' && sessionReady && (
         <div className="loading-container">
           <div className="loading-card">
             <p className="loading-text">正在加载历史消息...</p>
@@ -89,8 +107,8 @@ export default function ObservationView() {
         </div>
       )}
 
-      {/* 会话未就绪时显示加载状态 */}
-      {!sessionReady && connectionState === 'connected' && (
+      {/* 会话未就绪时显示加载状态（仅实时观察模式） */}
+      {!sessionReady && !isCompleted && connectionState === 'connected' && (
         <div className="loading-container">
           <div className="loading-card">
             <p className="loading-text">正在准备课堂...</p>
@@ -99,7 +117,8 @@ export default function ObservationView() {
         </div>
       )}
 
-      {(sessionReady && connectionState === 'connected' || messages.length > 0) && (
+      {/* 内容区域：实时观察需要 sessionReady 或有消息，课程回顾只需有数据 */}
+      {(isCompleted || (sessionReady && connectionState === 'connected') || messages.length > 0) && (
       <div className="content-layout">
         <aside className="sidebar">
           <div className="sidebar-card">
@@ -111,22 +130,26 @@ export default function ObservationView() {
                   <p className="checkpoint-progress-text">{effectiveCheckpointState.progress.current}/{effectiveCheckpointState.progress.total}</p>
                 </div>
                 <div className="checkpoint-list">
-                  {checkpointPlan
-                    ? checkpointPlan.checkpoints.map((cp, i) => (
-                        <div
-                          key={i}
-                          className={`checkpoint-item ${i === effectiveCheckpointState.index ? 'current' : ''} ${cp.state === 'complete' ? 'completed' : ''}`}
-                        >
-                          <span className="checkpoint-number">{i + 1}</span>
-                          <span className="checkpoint-name">{cp.title}</span>
-                          {i === effectiveCheckpointState.index && (
-                            <span className="checkpoint-label">进行中</span>
-                          )}
-                          {cp.state === 'complete' && (
-                            <span className="checkpoint-label">已完成</span>
-                          )}
-                        </div>
-                      ))
+                  {(checkpointPlan ?? effectiveCheckpointState).checkpoints
+                    ? (checkpointPlan ?? effectiveCheckpointState).checkpoints!.map((cp, i) => {
+                        const isCurrent = i === effectiveCheckpointState.index
+                        const state = cp.state as string
+                        return (
+                          <div
+                            key={i}
+                            className={`checkpoint-item state-${state} ${isCurrent ? 'current' : ''}`}
+                          >
+                            <span className="checkpoint-number">{i + 1}</span>
+                            <span className="checkpoint-name">{cp.title}</span>
+                            <span className="checkpoint-label">
+                              {state === 'teaching' && '讲授中'}
+                              {state === 'questions' && '提问中'}
+                              {state === 'complete' && '已完成'}
+                              {state === 'pending' && !isCurrent && '待开始'}
+                            </span>
+                          </div>
+                        )
+                      })
                     : Array.from({ length: effectiveCheckpointState.progress.total }, (_, i) => (
                         <div
                           key={i}
@@ -151,12 +174,12 @@ export default function ObservationView() {
 
         {/* 右侧：消息流 */}
         <div className="message-column">
-          {connectionState === 'disconnected' && (
+          {connectionState === 'disconnected' && !isCompleted && !sessionEnded && (
             <div className="session-ended-banner">连接已断开，请刷新页面重新连接</div>
           )}
 
           <main className="message-area" ref={messageAreaRef}>
-            {sessionEnded && (
+            {sessionEnded && !isCompleted && (
               <div className="session-ended-banner">会话已结束</div>
             )}
 
@@ -373,8 +396,26 @@ const Wrapper = styled.div`
     white-space: nowrap;
   }
 
-  .checkpoint-item.completed .checkpoint-number {
+  .checkpoint-item.state-complete .checkpoint-number {
     background: #27e0a9;
+  }
+
+  .checkpoint-item.state-teaching,
+  .checkpoint-item.state-questions {
+    font-weight: 700;
+  }
+
+  .checkpoint-item.state-teaching .checkpoint-number {
+    background: #2e5cff;
+    color: #fff;
+  }
+
+  .checkpoint-item.state-questions .checkpoint-number {
+    background: #fff9c4;
+  }
+
+  .checkpoint-item.state-pending .checkpoint-number {
+    background: #e5e5e5;
   }
 
   .checkpoint-item.current .checkpoint-number {
@@ -385,6 +426,7 @@ const Wrapper = styled.div`
   .checkpoint-label {
     font-size: 12px;
     margin-left: auto;
+    white-space: nowrap;
   }
 
   /* ===== 消息列（包含 banner + 消息区） ===== */

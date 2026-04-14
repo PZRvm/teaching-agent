@@ -7,15 +7,10 @@ llm:
   base_url: https://api.siliconflow.cn/v1
 
   # 模型名称（学生 agent 使用）
-  # 7B 模型：适合快速开发测试，上下文窗口 32K
-  # 72B 模型：更强的理解能力，上下文窗口 128K，适合长对话场景
-  # 切换到 72B：将 model 改为 Qwen/Qwen2.5-72B-Instruct 即可
-  model: Qwen/Qwen2.5-7B-Instruct
+  model: Qwen/Qwen3.5-27B
 
   # 教师 agent 模型（观察模式使用，需要更大上下文窗口用于课后总结）
-  # 7B 模型：适合快速开发测试，上下文窗口 32K
-  # 72B 模型：128K 上下文窗口，可保留 50 条消息历史
-  model: Qwen/Qwen2.5-7B-Instruct
+  teacher_model: Qwen/Qwen3.5-27B
 
   # 其他参数
   temperature: 0.7

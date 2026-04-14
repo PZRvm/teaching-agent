@@ -4,28 +4,14 @@ import styled from 'styled-components'
 import PageNav from '../components/PageNav'
 import RoughBadge from '../components/RoughBadge'
 import Footer from '../components/Footer'
-import { getSessionMessages, getSessionList } from '../apis/session'
+import { getSessionMessages, getSessionDetail } from '../apis/session'
 import { getCheckpointPlan } from '../apis/observation'
 import type { SessionSummary, SessionMessage } from '../apis/session'
 import type { CheckpointItem } from '../apis/observation'
-
-const TEACHING_MODE_LABELS: Record<string, string> = {
-  didactic: '灌输式',
-  heuristic: '启发式',
-  discussion: '讨论式',
-}
-
-const MODE_BADGE_VARIANT: Record<string, 'yellow' | 'blue' | 'green'> = {
-  didactic: 'yellow',
-  heuristic: 'blue',
-  discussion: 'green',
-}
-
-const STATUS_LABELS: Record<string, string> = {
-  running: '进行中',
-  completed: '已完成',
-  interrupted: '已中断',
-}
+import { formatDuration, formatDate, formatTime } from '../utils/format'
+import { TEACHING_MODE_LABELS, MODE_BADGE_VARIANT, STATUS_LABELS } from '../types/observation'
+import ReactMarkdown from 'react-markdown'
+import remarkGfm from 'remark-gfm'
 
 const MESSAGE_TYPE_LABELS: Record<string, string> = {
   LECTURE: '讲授',
@@ -54,37 +40,7 @@ const MESSAGE_TAG_BG: Record<string, string> = {
 const TEACHER_SENDERS = ['教师', 'teacher', 'Teacher']
 
 function isTeacher(sender: string): boolean {
-  return TEACHER_SENDERS.some((t) => sender.includes(t))
-}
-
-function formatTime(isoString: string | null | undefined): string {
-  if (!isoString) return ''
-  const d = new Date(isoString)
-  return d.toLocaleTimeString('zh-CN', {
-    hour: '2-digit',
-    minute: '2-digit',
-    second: '2-digit',
-  })
-}
-
-function formatDuration(seconds: number | null): string {
-  if (seconds === null || seconds === undefined) return ''
-  const mins = Math.floor(seconds / 60)
-  if (mins < 60) return `${mins}分钟`
-  const hours = Math.floor(mins / 60)
-  const remainMins = mins % 60
-  return `${hours}小时${remainMins}分钟`
-}
-
-function formatDate(isoString: string): string {
-  const d = new Date(isoString)
-  return d.toLocaleDateString('zh-CN', {
-    year: 'numeric',
-    month: '2-digit',
-    day: '2-digit',
-    hour: '2-digit',
-    minute: '2-digit',
-  })
+  return TEACHER_SENDERS.some((t) => sender === t)
 }
 
 export default function SessionDetail() {
@@ -103,12 +59,12 @@ export default function SessionDetail() {
     setError(null)
 
     try {
-      const [list, msgs, plan] = await Promise.all([
-        getSessionList().then((l) => l.find((s) => s.id === sid) ?? null),
+      const [detail, msgs, plan] = await Promise.all([
+        getSessionDetail(sid),
         getSessionMessages(sid),
         getCheckpointPlan(sid).catch(() => null),
       ])
-      setSession(list)
+      setSession(detail)
       setMessages(msgs)
       if (plan) setCheckpoints(plan.checkpoints)
     } catch (err: unknown) {
@@ -174,7 +130,26 @@ export default function SessionDetail() {
                       </span>
                       <span className="message-time">{formatTime(msg.timestamp)}</span>
                     </div>
-                    <div className="message-content">{msg.content}</div>
+                    <div className="message-content">
+                      <ReactMarkdown
+                        remarkPlugins={[remarkGfm]}
+                        components={{
+                          p: ({ children }) => <p className="md-p">{children}</p>,
+                          ul: ({ children }) => <ul className="md-list">{children}</ul>,
+                          ol: ({ children }) => <ol className="md-list">{children}</ol>,
+                          li: ({ children }) => <li className="md-item">{children}</li>,
+                          code({ className, children }: { className?: string; children?: React.ReactNode }) {
+                            const isBlock = typeof className === 'string' && className.includes('language-')
+                            const cls = isBlock ? 'md-code-block' : 'md-inline-code'
+                            return <code className={cls}>{children}</code>
+                          },
+                          strong: ({ children }) => <strong>{children}</strong>,
+                          em: ({ children }) => <em>{children}</em>,
+                        }}
+                      >
+                        {msg.content}
+                      </ReactMarkdown>
+                    </div>
                   </div>
                 </div>
               )
@@ -361,8 +336,107 @@ const Wrapper = styled.div`
     font-size: 15px;
     line-height: 1.6;
     color: #404040;
-    white-space: pre-wrap;
     word-break: break-word;
+
+    .md-p {
+      margin: 0 0 12px 0;
+
+      &:last-child {
+        margin-bottom: 0;
+      }
+    }
+
+    .md-list {
+      margin: 0 0 12px 20px;
+      padding-left: 20px;
+
+      &:last-child {
+        margin-bottom: 0;
+      }
+    }
+
+    .md-item {
+      margin-bottom: 4px;
+    }
+
+    .md-inline-code {
+      background: #f4f4f4;
+      padding: 2px 6px;
+      border-radius: 4px;
+      font-family: 'Courier New', monospace;
+      font-size: 0.9em;
+      color: #e83e8c;
+    }
+
+    .md-code-block {
+      display: block;
+      background: #2d2d2d;
+      color: #f8f8f2;
+      padding: 12px;
+      border-radius: 6px;
+      margin: 12px 0;
+      overflow-x: auto;
+      font-family: 'Courier New', monospace;
+      font-size: 0.9em;
+
+      &:last-child {
+        margin-bottom: 0;
+      }
+    }
+
+    h1, h2, h3, h4, h5, h6 {
+      margin-top: 16px;
+      margin-bottom: 12px;
+      font-weight: 700;
+
+      &:first-child {
+        margin-top: 0;
+      }
+    }
+
+    h1 { font-size: 1.5em; }
+    h2 { font-size: 1.3em; }
+    h3 { font-size: 1.1em; }
+
+    blockquote {
+      border-left: 4px solid #1a1a1a;
+      padding-left: 16px;
+      margin: 12px 0;
+      color: #6c757d;
+      font-style: italic;
+    }
+
+    hr {
+      border: none;
+      border-top: 1px solid #e5e5e5;
+      margin: 16px 0;
+    }
+
+    a {
+      color: #2e5cff;
+      text-decoration: underline;
+
+      &:hover {
+        color: #1a4adb;
+      }
+    }
+
+    table {
+      border-collapse: collapse;
+      width: 100%;
+      margin: 12px 0;
+
+      th, td {
+        border: 1px solid #e5e5e5;
+        padding: 8px;
+        text-align: left;
+      }
+
+      th {
+        background: #f8f9fa;
+        font-weight: 700;
+      }
+    }
   }
 
   .checkpoint-panel {
@@ -372,7 +446,6 @@ const Wrapper = styled.div`
     box-shadow: 4px 4px 0px 0px #1a1a1a;
     padding: 24px;
     position: relative;
-    transform: rotate(0.5deg);
 
     @media (min-width: 768px) {
       width: 280px;
@@ -443,10 +516,6 @@ const Wrapper = styled.div`
   @media (max-width: 768px) {
     .session-topic {
       font-size: 24px;
-    }
-
-    .checkpoint-panel {
-      transform: none;
     }
   }
 `

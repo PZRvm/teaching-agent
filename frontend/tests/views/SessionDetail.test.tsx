@@ -5,7 +5,7 @@ import { MemoryRouter, Route, Routes } from 'react-router-dom'
 import SessionDetail from '../../src/views/SessionDetail'
 
 const mockNavigate = vi.fn()
-const mockGetSessionList = vi.fn()
+const mockGetSessionDetail = vi.fn()
 const mockGetSessionMessages = vi.fn()
 const mockGetCheckpointPlan = vi.fn()
 
@@ -15,7 +15,7 @@ vi.mock('react-router-dom', async () => {
 })
 
 vi.mock('../../src/apis/session', () => ({
-  getSessionList: (...args: unknown[]) => mockGetSessionList(...args),
+  getSessionDetail: (...args: unknown[]) => mockGetSessionDetail(...args),
   getSessionMessages: (...args: unknown[]) => mockGetSessionMessages(...args),
 }))
 
@@ -70,7 +70,7 @@ const mockCheckpointPlan = {
 
 beforeEach(() => {
   mockNavigate.mockClear()
-  mockGetSessionList.mockResolvedValue([mockSession])
+  mockGetSessionDetail.mockResolvedValue(mockSession)
   mockGetSessionMessages.mockResolvedValue(mockMessages)
   mockGetCheckpointPlan.mockResolvedValue(mockCheckpointPlan)
 })
@@ -88,7 +88,7 @@ function renderDetail(sessionId = '1') {
 describe('SessionDetail', () => {
   describe('Basic rendering', () => {
     it('shows loading state initially', () => {
-      mockGetSessionList.mockReturnValue(new Promise(() => {}))
+      mockGetSessionDetail.mockReturnValue(new Promise(() => {}))
       renderDetail()
       expect(screen.getByText('加载中...')).toBeInTheDocument()
     })
@@ -166,7 +166,7 @@ describe('SessionDetail', () => {
 
   describe('Error handling', () => {
     it('shows error when session not found', async () => {
-      mockGetSessionList.mockResolvedValue([])
+      mockGetSessionDetail.mockRejectedValue(new Error('会话不存在'))
       renderDetail('999')
       await waitFor(() => {
         expect(screen.getByText('会话不存在')).toBeInTheDocument()
@@ -174,7 +174,7 @@ describe('SessionDetail', () => {
     })
 
     it('shows error message on API failure', async () => {
-      mockGetSessionList.mockRejectedValue(new Error('网络错误'))
+      mockGetSessionDetail.mockRejectedValue(new Error('网络错误'))
       renderDetail()
       await waitFor(() => {
         expect(screen.getByText('网络错误')).toBeInTheDocument()
