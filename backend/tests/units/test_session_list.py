@@ -1,8 +1,9 @@
 """会话列表 API 单元测试."""
 
-import pytest
 from datetime import datetime
 from zoneinfo import ZoneInfo
+
+import pytest
 
 from orm.checkpoint_plan import CheckpointPlanModel
 from orm.teaching_session import TeachingSessionModel
