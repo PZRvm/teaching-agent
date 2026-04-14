@@ -3,14 +3,73 @@
 from typing import Annotated
 
 from fastapi import APIRouter, Depends, HTTPException
-from sqlalchemy import select
+from sqlalchemy import outerjoin, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from core.database import get_db
+from orm.checkpoint_plan import CheckpointPlanModel
 from orm.message import MessageModel
 from orm.teaching_session import TeachingSessionModel
 
 router = APIRouter(prefix="/sessions", tags=["sessions"])
+
+
+@router.get("/", summary="获取会话列表")
+async def get_session_list(
+    db: Annotated[AsyncSession, Depends(get_db)],
+) -> list[dict]:
+    """获取所有会话列表，按开始时间倒序.
+
+    Returns:
+        会话列表，包含基本信息和检查点进度
+    """
+    stmt = (
+        select(TeachingSessionModel, CheckpointPlanModel.plan_data)
+        .outerjoin(
+            CheckpointPlanModel,
+            TeachingSessionModel.id == CheckpointPlanModel.session_id,
+        )
+        .order_by(TeachingSessionModel.start_time.desc())
+    )
+    result = await db.execute(stmt)
+    rows = result.all()
+
+    items = []
+    for session, plan_data in rows:
+        student_count = len(session.students_config) if session.students_config else 0
+
+        checkpoint_progress = None
+        if plan_data is not None:
+            checkpoints = plan_data.get("checkpoints", [])
+            total = len(checkpoints)
+            completed = sum(
+                1 for cp in checkpoints if cp.get("state") == "complete"
+            )
+            checkpoint_progress = {
+                "total": total,
+                "completed": completed,
+                "current_index": plan_data.get("current_index", 0),
+            }
+
+        items.append(
+            {
+                "id": session.id,
+                "topic": session.topic,
+                "teaching_mode": session.teaching_mode,
+                "status": session.status,
+                "start_time": (
+                    session.start_time.isoformat() if session.start_time else None
+                ),
+                "end_time": (
+                    session.end_time.isoformat() if session.end_time else None
+                ),
+                "duration_seconds": session.duration_seconds,
+                "student_count": student_count,
+                "checkpoint_progress": checkpoint_progress,
+            }
+        )
+
+    return items
 
 
 @router.get("/{session_id}/messages", summary="获取会话消息列表")
