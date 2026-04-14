@@ -4,9 +4,12 @@ from __future__ import annotations
 
 import contextlib
 import logging
+from datetime import datetime
 from pathlib import Path
+from zoneinfo import ZoneInfo
 
 import yaml
+from sqlalchemy import select
 
 from agents.memories.memory_manager import MemoryManager
 from agents.student_agent import StudentAgent
@@ -17,6 +20,7 @@ from core.session_registry import get_session_registry
 from models.checkpoint.services.persistence_service import CheckpointPlanPersistence
 from models.checkpoint.services.plan_service import CheckpointPlanService
 from models.session.services.observation_service import SessionOrchestrator
+from orm.teaching_session import TeachingSessionModel
 
 logger = logging.getLogger(__name__)
 
@@ -181,6 +185,15 @@ async def _run_background_task(
                     "message": "Session initialization failed",
                 },
             )
+        # 标记会话为中断
+        with contextlib.suppress(Exception):
+            async with async_session_maker() as db:
+                await finalize_session(
+                    db=db,
+                    session_id=session_id,
+                    status="interrupted",
+                )
+                await db.commit()
 
     finally:
         # 8. 清理资源
@@ -188,4 +201,54 @@ async def _run_background_task(
         if orchestrator is not None:
             await orchestrator.stop()
         registry.unregister(session_id)
+
+        # 9. 更新会话生命周期状态
+        with contextlib.suppress(Exception):
+            async with async_session_maker() as db:
+                await finalize_session(
+                    db=db,
+                    session_id=session_id,
+                    status="completed",
+                )
+                await db.commit()
+
         logger.info("观察模式会话已清理 (session_id=%d)", session_id)
+
+
+async def finalize_session(
+    *,
+    db,
+    session_id: int,
+    status: str,
+) -> None:
+    """更新会话的结束状态.
+
+    Args:
+        db: 数据库会话
+        session_id: 会话 ID
+        status: 结束状态（"completed" 或 "interrupted"）
+    """
+    result = await db.execute(
+        select(TeachingSessionModel).where(TeachingSessionModel.id == session_id)
+    )
+    session = result.scalar_one_or_none()
+    if session is None:
+        raise ValueError(f"会话不存在 (session_id={session_id})")
+
+    session.status = status
+    session.end_time = datetime.now(ZoneInfo("Asia/Shanghai"))
+    if session.start_time and session.end_time:
+        try:
+            session.duration_seconds = int(
+                (session.end_time - session.start_time).total_seconds()
+            )
+        except TypeError:
+            # start_time 可能是 naive datetime，添加时区后重试
+            if session.start_time.tzinfo is None:
+                start_aware = session.start_time.replace(
+                    tzinfo=ZoneInfo("Asia/Shanghai")
+                )
+                session.duration_seconds = int(
+                    (session.end_time - start_aware).total_seconds()
+                )
+    await db.flush()
