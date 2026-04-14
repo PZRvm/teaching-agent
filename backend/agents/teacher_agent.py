@@ -455,6 +455,27 @@ class TeacherAgent:
         self._record_message(content, MessageType.HOMEWORK_FEEDBACK)
         return content
 
+    def _build_end_feedback_context(self) -> str:
+        """构建最终总结的轻量级上下文.
+
+        使用累积的检查点摘要 + 教师记忆，而非原始消息历史。
+        注意：此方法故意不包含教学模式指令（_MODE_INSTRUCTIONS），
+        因为最终总结不需要区分灌输式/启发式/讨论式。
+        """
+        topic = self.session_memory.topic
+        teacher_context = self.memory_manager.teacher_memory.get_end_feedback_context(topic=topic)
+        full_context = self.session_memory.get_full_context()
+
+        return f"""你是教师，正在对本次课程进行最终总结。
+
+## 基本信息
+- 教学主题: {topic}
+
+{teacher_context}
+
+{full_context}
+"""
+
     def end_feedback(self) -> str:
         """生成课程结束总结和反馈.
 
@@ -464,7 +485,7 @@ class TeacherAgent:
         Raises:
             RuntimeError: LLM 调用失败或返回空内容时
         """
-        system_prompt = self._build_system_prompt()
+        system_prompt = self._build_end_feedback_context()
 
         user_prompt = (
             f"课程即将结束，请对本次教学进行总结。\n\n"

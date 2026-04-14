@@ -1,26 +1,12 @@
 """Checkpoint API 集成测试."""
 
 import pytest
-import pytest_asyncio
 from httpx import ASGITransport, AsyncClient
 from sqlalchemy import select
 
 from main import app
 from orm.checkpoint_plan import CheckpointPlanModel
 from orm.teaching_session import TeachingSessionModel
-
-
-@pytest_asyncio.fixture
-async def override_get_db(db_session):
-    """Override get_db dependency for tests."""
-    from core.database import get_db
-
-    async def override_get_db_test():
-        yield db_session
-
-    app.dependency_overrides[get_db] = override_get_db_test
-    yield
-    app.dependency_overrides.clear()
 
 
 @pytest.mark.asyncio

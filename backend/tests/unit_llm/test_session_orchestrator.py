@@ -145,3 +145,111 @@ class TestRunAutonomousSession:
 
             # 验证最后一次调用了 _assign_homework
             mock_hw.assert_called_once()
+
+
+class TestCheckpointContextIsolation:
+    """测试检查点完成后上下文隔离."""
+
+    @pytest.mark.asyncio
+    async def test_teach_checkpoint_clears_message_history(self):
+        """测试 _teach_checkpoint 完成后清除消息历史."""
+        from unittest.mock import AsyncMock, MagicMock
+
+        session_mem = SessionMemory(session_id=1, topic="Python基础")
+        teacher_mem = TeacherAgentMemory()
+        student_mem = StudentAgentMemory.from_profile(
+            StudentProfile(name="Alice", level=StudentLevel.EXCELLENT, learning_ability=8)
+        )
+
+        mock_teacher = MagicMock()
+        mock_teacher.deliver_lecture.return_value = "变量是存储数据的容器"
+
+        mock_student = MagicMock()
+        mock_student.profile.name = "Alice"
+        mock_student.should_respond.return_value = False
+
+        plan = CheckpointPlan(
+            topic="Python基础",
+            teaching_mode="didactic",
+            checkpoints=[
+                Checkpoint(
+                    title="变量",
+                    key_point="变量是存储数据的容器",
+                    checkpoint_question="什么是变量？",
+                )
+            ],
+        )
+
+        manager = MemoryManager(
+            session_memory=session_mem,
+            teacher_memory=teacher_mem,
+            student_memories={"Alice": student_mem},
+            summary_fn=lambda p: "检查点1摘要",
+        )
+
+        from models.session.services.observation_service import SessionOrchestrator
+
+        orchestrator = SessionOrchestrator(
+            teacher_agent=mock_teacher,
+            student_agents=[mock_student],
+            checkpoint_plan=plan,
+            memory_manager=manager,
+            message_service=AsyncMock(),
+        )
+
+        await orchestrator._teach_checkpoint(plan.checkpoints[0])
+
+        assert session_mem.message_history == []
+        assert session_mem.checkpoint_summaries == ["检查点1摘要"]
+
+    @pytest.mark.asyncio
+    async def test_multiple_checkpoints_accumulate_summaries(self):
+        """测试多个检查点累积摘要."""
+        from unittest.mock import AsyncMock, MagicMock
+
+        session_mem = SessionMemory(session_id=1, topic="Python基础")
+        teacher_mem = TeacherAgentMemory()
+
+        mock_teacher = MagicMock()
+        mock_teacher.deliver_lecture.return_value = "讲授内容"
+
+        mock_student = MagicMock()
+        mock_student.profile.name = "Alice"
+        mock_student.should_respond.return_value = False
+
+        plan = CheckpointPlan(
+            topic="Python基础",
+            teaching_mode="didactic",
+            checkpoints=[
+                Checkpoint(title="变量", key_point="变量", checkpoint_question="什么是变量？"),
+                Checkpoint(title="列表", key_point="列表", checkpoint_question="什么是列表？"),
+            ],
+        )
+
+        call_count = 0
+
+        def mock_summary(p):
+            nonlocal call_count
+            call_count += 1
+            return f"摘要{call_count}"
+
+        manager = MemoryManager(
+            session_memory=session_mem,
+            teacher_memory=teacher_mem,
+            summary_fn=mock_summary,
+        )
+
+        from models.session.services.observation_service import SessionOrchestrator
+
+        orchestrator = SessionOrchestrator(
+            teacher_agent=mock_teacher,
+            student_agents=[mock_student],
+            checkpoint_plan=plan,
+            memory_manager=manager,
+            message_service=AsyncMock(),
+        )
+
+        await orchestrator._teach_checkpoint(plan.checkpoints[0])
+        await orchestrator._teach_checkpoint(plan.checkpoints[1])
+
+        assert session_mem.checkpoint_summaries == ["摘要1", "摘要2"]

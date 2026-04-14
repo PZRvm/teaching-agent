@@ -223,6 +223,9 @@ class TeacherSessionController:
         if self._dialogue_round_count > 0 and self._active_dialogue is not None:
             self.handle_end_dialogue()
 
+        # 检查点推进后生成摘要并重置上下文
+        self.memory_manager.summarize_checkpoint()
+
     def handle_assign_homework(self, content: str) -> None:
         """布置作业.
 

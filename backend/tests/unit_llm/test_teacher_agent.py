@@ -719,6 +719,102 @@ class TestTeacherAgentGradeHomework:
         assert agent.session_memory.message_history[0].message_type == MessageType.HOMEWORK_FEEDBACK
 
 
+class TestEndFeedbackWithContextIsolation:
+    """测试 end_feedback 使用检查点摘要上下文."""
+
+    def _make_agent(self):
+        """辅助方法：创建 TeacherAgent."""
+        from agents.memories import SessionMemory, TeacherAgentMemory
+        from agents.memories.memory_manager import MemoryManager
+        from agents.teacher_agent import TeacherAgent
+
+        session_mem = SessionMemory(session_id=1, topic="Python基础")
+        teacher_mem = TeacherAgentMemory()
+        mm = MemoryManager(session_memory=session_mem, teacher_memory=teacher_mem)
+        mock_llm = MagicMock()
+        mock_llm.invoke.return_value = "课程总结完毕"
+        return TeacherAgent(
+            session_memory=session_mem,
+            llm=mock_llm,
+            teaching_mode="didactic",
+            memory_manager=mm,
+        )
+
+    def test_end_feedback_uses_full_context_not_agent_context(self):
+        """测试 end_feedback 使用 get_full_context 而非 get_agent_context."""
+        agent = self._make_agent()
+        agent.session_memory.checkpoint_summaries = [
+            "检查点1：讲授了变量和类型",
+            "检查点2：讲授了列表和字典",
+        ]
+
+        agent.end_feedback()
+
+        # 验证 system prompt 包含检查点摘要
+        call_args = agent.llm.invoke.call_args[0][0]
+        system_prompt = call_args[0]["content"]
+
+        assert "检查点1：讲授了变量和类型" in system_prompt
+        assert "检查点2：讲授了列表和字典" in system_prompt
+
+    def test_end_feedback_uses_lightweight_context(self):
+        """测试 end_feedback 优先使用检查点摘要而非大量历史消息.
+
+        在生产环境中，end_feedback 在最后一个检查点的 summarize_checkpoint() 之后调用，
+        此时 message_history 已被清空，只有检查点摘要提供历史上下文。
+        """
+        from schemas import Message
+
+        agent = self._make_agent()
+        # 模拟生产环境：检查点摘要已累积，message_history 已被清空
+        agent.session_memory.checkpoint_summaries = [
+            "检查点1：讲授了变量和类型",
+            "检查点2：讲授了列表和字典",
+        ]
+        # 只保留少量最近消息（模拟检查点重置后的状态）
+        agent.session_memory.add_message(
+            Message(
+                sender="teacher",
+                message_type=MessageType.LECTURE,
+                content="本节课总结",
+                timestamp=None,
+            )
+        )
+
+        agent.end_feedback()
+
+        call_args = agent.llm.invoke.call_args[0][0]
+        system_prompt = call_args[0]["content"]
+
+        # 验证包含检查点摘要
+        assert "检查点1：讲授了变量和类型" in system_prompt
+        assert "检查点2：讲授了列表和字典" in system_prompt
+        # 验证包含少量最近消息
+        assert "本节课总结" in system_prompt
+        # 验证不包含旧的大量消息（因为 message_history 已被清空）
+        assert "讲授内容0" not in system_prompt
+
+    def test_build_end_feedback_context(self):
+        """测试 _build_end_feedback_context 方法存在且返回字符串."""
+        agent = self._make_agent()
+
+        context = agent._build_end_feedback_context()
+
+        assert isinstance(context, str)
+        assert "Python基础" in context  # topic
+
+    def test_end_feedback_records_message_to_history(self):
+        """回归测试：end_feedback 调用后 message_history 包含 END_FEEDBACK 消息."""
+        agent = self._make_agent()
+
+        agent.end_feedback()
+
+        # 验证 END_FEEDBACK 消息被记录到 message_history
+        assert len(agent.session_memory.message_history) == 1
+        assert agent.session_memory.message_history[0].message_type == MessageType.END_FEEDBACK
+        assert agent.session_memory.message_history[0].content == "课程总结完毕"
+
+
 class TestTeacherAgentEndFeedback:
     """TeacherAgent end_feedback 测试."""
 

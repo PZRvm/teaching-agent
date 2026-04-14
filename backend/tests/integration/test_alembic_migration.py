@@ -5,16 +5,27 @@ from pathlib import Path
 import pytest
 
 
+def _find_initial_migration(versions_dir: Path) -> Path:
+    """找到初始迁移文件（down_revision 为 None 的文件）."""
+    for migration in sorted(versions_dir.glob("*.py")):
+        content = migration.read_text()
+        # 初始迁移的 down_revision 为 None
+        if "down_revision: str | Sequence[str] | None = None" in content:
+            return migration
+        # 兼容旧格式
+        if "down_revision = None" in content:
+            return migration
+    raise FileNotFoundError("未找到初始迁移文件（down_revision 为 None）")
+
+
 class TestAlembicMigrationFile:
     """验证 Alembic 迁移文件存在且包含正确的表定义."""
 
     @pytest.fixture
     def migration_path(self):
-        """获取迁移文件路径."""
+        """获取初始迁移文件路径."""
         versions_dir = Path(__file__).parents[2] / "alembic" / "versions"
-        migrations = sorted(versions_dir.glob("*.py"))
-        assert len(migrations) >= 1, "未找到 Alembic 迁移文件"
-        return migrations[0]
+        return _find_initial_migration(versions_dir)
 
     def test_migration_file_exists(self, migration_path):
         """测试迁移文件存在."""
@@ -88,10 +99,8 @@ class TestMigrationMatchesORM:
         orm_tables = set(base.metadata.tables.keys())
 
         versions_dir = Path(__file__).parents[2] / "alembic" / "versions"
-        migrations = sorted(versions_dir.glob("*.py"))
-        assert len(migrations) >= 1
-
-        content = migrations[0].read_text()
+        migration_path = _find_initial_migration(versions_dir)
+        content = migration_path.read_text()
 
         for table_name in orm_tables:
             assert f"op.create_table('{table_name}'" in content, (

@@ -196,3 +196,17 @@ def mock_llm_json_parse_fails():
     mock = MagicMock()
     mock.ainvoke = AsyncMock()
     return mock
+
+
+@pytest_asyncio.fixture
+async def override_get_db(db_session):
+    """Override get_db dependency for ASGI transport tests."""
+    from core.database import get_db
+    from main import app
+
+    async def override_get_db_test():
+        yield db_session
+
+    app.dependency_overrides[get_db] = override_get_db_test
+    yield
+    app.dependency_overrides.clear()

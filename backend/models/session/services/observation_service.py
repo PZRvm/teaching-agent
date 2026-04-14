@@ -143,6 +143,10 @@ class SessionOrchestrator:
         checkpoint.state = CheckpointState.COMPLETE
         await self._ws_push_checkpoint_state(checkpoint)
 
+        # 检查点完成后生成摘要并重置上下文
+        # 在 observer learning 之前调用，因为 observer learning 不依赖 message_history
+        self.memory_manager.summarize_checkpoint()
+
         # 记录知识点到 MemoryManager
         await self._trigger_observer_learning_for_checkpoint(checkpoint)
 

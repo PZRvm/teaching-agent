@@ -33,28 +33,32 @@ backend/tests/
 │   ├── test_teacher_agent.py # TeacherAgent 单元测试
 │   ├── test_teacher_controller.py # TeacherSessionController 单元测试
 │   └── test_teacher_controller_ws_push.py # TeacherController WebSocket 推送测试
-└── integration/              # 集成测试
-    ├── test_alembic_migration.py    # Alembic 数据库迁移测试
-    ├── test_checkpoint_api.py       # Checkpoint API 集成测试
-    ├── test_checkpoint_service_real.py # 真实 LLM checkpoint 生成测试
-    ├── test_database.py             # 数据库集成测试
-    ├── test_memory_persistence.py   # 记忆持久化集成测试
-    ├── test_observation_api.py      # 观察模式 API 集成测试
-    ├── test_session_api.py          # 会话管理 API 集成测试
-    ├── test_student_memory_migration.py # 学生记忆迁移测试
-    ├── test_teacher_agent_real.py  # 教师 Agent 真实 LLM 测试
-    ├── test_teacher_controller_api.py # TeacherController REST API 集成测试
-    ├── test_teacher_controller_full_classroom.py # TeacherSessionController 全课堂流程集成测试
-    └── test_websocket.py            # WebSocket 端点集成测试
+├── integration/              # 集成测试
+│   ├── test_alembic_migration.py    # Alembic 数据库迁移测试
+│   ├── test_checkpoint_api.py       # Checkpoint API 集成测试
+│   ├── test_checkpoint_service_real.py # 真实 LLM checkpoint 生成测试
+│   ├── test_database.py             # 数据库集成测试
+│   ├── test_memory_persistence.py   # 记忆持久化集成测试
+│   ├── test_observation_api.py      # 观察模式 API 集成测试
+│   ├── test_session_api.py          # 会话管理 API 集成测试
+│   ├── test_student_memory_migration.py # 学生记忆迁移测试
+│   ├── test_teacher_agent_real.py  # 教师 Agent 真实 LLM 测试
+│   ├── test_teacher_controller_api.py # TeacherController REST API 集成测试
+│   ├── test_teacher_controller_full_classroom.py # TeacherSessionController 全课堂流程集成测试
+│   └── test_websocket.py            # WebSocket 端点集成测试
+├── unit_llm/                 # 带 Mock LLM 的单元测试
+│   ├── test_session_orchestrator.py # SessionOrchestrator 上下文隔离测试
+│   └── test_teacher_agent.py       # TeacherAgent Mock LLM 测试
 ```
 
 ## 测试统计概览
 
 | 分类 | 文件数 | 测试类数 | 测试方法数 |
 |------|--------|---------|-----------|
-| **单元测试** | 18 | 66 | 165+ |
-| **集成测试** | 11 | 20 | 55+ |
-| **总计** | 29 | 86 | 220+ |
+| **单元测试** | 18 | 69 | 180+ |
+| **Mock LLM 单元测试** | 2 | 3 | 6+ |
+| **集成测试** | 11 | 20 | 56+ |
+| **总计** | 31 | 92 | 242+ |
 
 ---
 
@@ -614,16 +618,31 @@ pytest tests/units/test_checkpoint_persistence_service.py -v
 
 ### test_memory_manager.py - MemoryManager 单元测试
 
-**测试类**: 5 个测试类，32 个测试
+**测试类**: 8 个测试类，47 个测试
 
-#### TestSessionMemory (7 个测试)
-- `test_init_default_values` - 默认值初始化
+#### TestSessionMemory (10 个测试)
+- `test_init_default_values` - 默认值初始化（含 checkpoint_summaries 空列表）
 - `test_add_message` - 添加消息
 - `test_get_recent_messages` - 获取最近消息
 - `test_should_update_summary_no_messages` - 无消息不更新摘要
 - `test_should_update_summary_interval_passed` - 间隔过更新摘要
 - `test_should_update_summary_interval_not_passed` - 间隔未到不更新
 - `test_get_agent_context` - 获取 agent 上下文
+- `test_clear_message_history_empties_list` - clear_message_history 清空消息列表
+- `test_clear_message_history_resets_last_summary_update` - clear_message_history 重置摘要更新计数
+- `test_clear_message_history_preserves_checkpoint_summaries` - clear_message_history 保留检查点摘要
+
+#### TestSessionMemoryClearHistory (3 个测试)
+- `test_clear_message_history_empties_list` - 清空消息历史列表
+- `test_clear_message_history_resets_last_summary_update` - 重置 last_summary_update 为 0
+- `test_clear_message_history_preserves_checkpoint_summaries` - 清空时保留 checkpoint_summaries
+
+#### TestSessionMemoryGetFullContext (5 个测试)
+- `test_get_full_context_includes_topic` - 包含教学主题
+- `test_get_full_context_includes_checkpoint_summaries` - 包含各检查点摘要
+- `test_get_full_context_includes_teaching_summary` - 包含教学摘要
+- `test_get_full_context_includes_recent_messages` - 包含最近消息
+- `test_get_full_context_empty_state` - 空状态返回基本结构
 
 #### TestTeacherAgentMemory (5 个测试)
 - `test_init_default_values` - 默认值初始化
@@ -657,6 +676,15 @@ pytest tests/units/test_checkpoint_persistence_service.py -v
 - `test_should_update_summary_false` - 不应更新摘要
 - `test_update_summary_if_needed` - 按需更新摘要
 - `test_get_teaching_progress` - 获取教学进度
+
+#### TestMemoryManagerSummarizeCheckpoint (7 个测试)
+- `test_summarize_checkpoint_appends_summary` - 摘要追加到 checkpoint_summaries
+- `test_summarize_checkpoint_clears_message_history` - 摘要后清空消息历史
+- `test_summarize_checkpoint_resets_last_summary_update` - 重置摘要更新计数
+- `test_summarize_checkpoint_empty_history_returns_none` - 空历史返回 None
+- `test_summarize_checkpoint_no_summary_fn_returns_none` - 无摘要函数返回 None
+- `test_summarize_checkpoint_summary_failure_still_clears_history` - 摘要失败仍清空历史（try/finally）
+- `test_summarize_checkpoint_accumulates_multiple_summaries` - 多次调用累积摘要
 
 ### test_name_pool.py - NamePool 服务测试
 
@@ -808,7 +836,7 @@ pytest tests/units/test_checkpoint_persistence_service.py -v
 
 ### test_teacher_agent.py - TeacherAgent 单元测试
 
-**测试类**: 11 个测试类，33 个测试
+**测试类**: 13 个测试类，37 个测试
 
 #### TestTeacherAgentInit (1 个测试)
 - `test_init_with_required_params` - 必需参数初始化
@@ -859,6 +887,12 @@ pytest tests/units/test_checkpoint_persistence_service.py -v
 - `test_end_feedback_calls_llm` - 调用 LLM
 - `test_end_feedback_includes_summary` - 包含摘要
 - `test_end_feedback_records_message` - 记录消息
+
+#### TestEndFeedbackWithContextIsolation (4 个测试)
+- `test_end_feedback_uses_full_context_not_agent_context` - end_feedback 使用 get_full_context 而非完整 system prompt
+- `test_end_feedback_uses_lightweight_context` - end_feedback 使用轻量级上下文（检查点摘要 + 最近消息）
+- `test_build_end_feedback_context` - _build_end_feedback_context 构建正确的上下文
+- `test_end_feedback_records_message_to_history` - end_feedback 消息记录到 message_history（回归测试）
 
 #### TestTeacherAgentNewMethodsErrors (7 个测试)
 - `test_answer_checkpoint_empty_question_error` - 空问题错误
@@ -1024,6 +1058,22 @@ pytest tests/units/test_ws_command_router.py -v
 pytest tests/units/test_orchestrator_ws_push.py -v
 ```
 
+### test_session_orchestrator.py (unit_llm) - SessionOrchestrator 单元测试（Mock LLM）
+
+**测试类**: `TestCheckpointContextIsolation` (2 个测试)
+
+测试 SessionOrchestrator 检查点完成后的上下文隔离机制。
+
+| 测试名称 | 验证内容 |
+|---------|---------|
+| `test_teach_checkpoint_clears_message_history` | _teach_checkpoint 完成后清除消息历史并保存摘要 |
+| `test_multiple_checkpoints_accumulate_summaries` | 多个检查点依次推进时累积所有摘要 |
+
+**运行命令**:
+```bash
+pytest tests/unit_llm/test_session_orchestrator.py -v
+```
+
 ### test_teacher_controller_ws_push.py - TeacherSessionController WebSocket 推送测试
 
 **测试类**: `TestTeacherControllerWsPush` (2 个测试)
@@ -1123,19 +1173,32 @@ pytest tests/integration/test_checkpoint_service_real.py -v -s -m integration
 
 ### test_memory_persistence.py - 记忆持久化集成测试
 
-**测试类**: 3 个测试类，6 个测试
+**测试类**: 4 个测试类，17 个测试
 
-#### TestMemoryPersistenceSave (2 个测试)
-- `test_save_session_memory` - 保存会话记忆
-- `test_save_teacher_memory` - 保存教师记忆
+#### TestMemoryPersistenceSave (7 个测试)
+- `test_save_session_memory_create` - 首次保存会话记忆（创建）
+- `test_save_session_memory_update` - 更新已有的会话记忆
+- `test_save_teacher_memory_create` - 首次保存教师记忆
+- `test_save_teacher_memory_update` - 更新已有的教师记忆
+- `test_save_student_memory_create` - 首次保存学生记忆
+- `test_save_student_memory_update` - 更新已有的学生记忆
+- `test_save_message` - 保存单条消息
 
-#### TestMemoryPersistenceLoad (2 个测试)
-- `test_load_session_memory` - 加载会话记忆
-- `test_load_teacher_memory` - 加载教师记忆
+#### TestMemoryPersistenceLoad (7 个测试)
+- `test_load_session_memory_exists` - 加载已存在的会话记忆
+- `test_load_session_memory_not_exists` - 加载不存在的会话记忆返回 None
+- `test_load_session_memory_with_messages` - 加载会话记忆包含消息历史
+- `test_load_teacher_memory_exists` - 加载已存在的教师记忆
+- `test_load_teacher_memory_not_exists` - 加载不存在的教师记忆返回 None
+- `test_load_student_memory_exists` - 加载已存在的学生记忆
+- `test_load_student_memory_not_exists` - 加载不存在的学生记忆返回 None
 
 #### TestMemoryIntegration (2 个测试)
 - `test_end_to_end_memory_workflow` - 端到端记忆工作流
 - `test_cascade_delete_session` - 级联删除会话
+
+#### TestCheckpointSummariesPersistence (1 个测试)
+- `test_save_and_load_checkpoint_summaries` - checkpoint_summaries 的保存和加载
 
 ### test_student_memory_migration.py - 学生记忆迁移测试
 

@@ -1,30 +1,32 @@
 """观察模式 API 集成测试."""
 
 import pytest
+from httpx import ASGITransport, AsyncClient
+
+from main import app
 
 
-def test_start_observation_creates_session():
+@pytest.mark.asyncio
+async def test_start_observation_creates_session(override_get_db):
     """启动观察模式创建 teaching_session 记录."""
-    from fastapi.testclient import TestClient
+    async with AsyncClient(
+        transport=ASGITransport(app=app),
+        base_url="http://test",
+    ) as client:
+        payload = {
+            "topic": "Python Basics",
+            "teaching_mode": "heuristic",
+            "students": [
+                {
+                    "name": "Student1",
+                    "level": "average",
+                    "attitude": "neutral",
+                    "learning_ability": 5,
+                },
+            ],
+        }
 
-    from main import app
-
-    client = TestClient(app)
-
-    payload = {
-        "topic": "Python Basics",
-        "teaching_mode": "heuristic",
-        "students": [
-            {
-                "name": "Student1",
-                "level": "average",
-                "attitude": "neutral",
-                "learning_ability": 5,
-            },
-        ],
-    }
-
-    response = client.post("/observation/start", json=payload)
+        response = await client.post("/observation/start", json=payload)
 
     assert response.status_code == 200
     data = response.json()
@@ -34,38 +36,36 @@ def test_start_observation_creates_session():
     assert data["session_id"] > 0
 
 
-def test_start_observation_missing_topic():
+@pytest.mark.asyncio
+async def test_start_observation_missing_topic(override_get_db):
     """缺少 topic 参数返回 422."""
-    from fastapi.testclient import TestClient
-
-    from main import app
-
-    client = TestClient(app)
-
-    payload = {
-        "teaching_mode": "heuristic",
-        "students": [
-            {"name": "Student1", "level": "average", "attitude": "neutral", "learning_ability": 5}
-        ],
-    }
-    response = client.post("/observation/start", json=payload)
+    async with AsyncClient(
+        transport=ASGITransport(app=app),
+        base_url="http://test",
+    ) as client:
+        payload = {
+            "teaching_mode": "heuristic",
+            "students": [
+                {"name": "Student1", "level": "average", "attitude": "neutral", "learning_ability": 5}
+            ],
+        }
+        response = await client.post("/observation/start", json=payload)
     assert response.status_code == 422
 
 
-def test_start_observation_empty_students():
+@pytest.mark.asyncio
+async def test_start_observation_empty_students(override_get_db):
     """空学生列表返回 422."""
-    from fastapi.testclient import TestClient
-
-    from main import app
-
-    client = TestClient(app)
-
-    payload = {
-        "topic": "Python Basics",
-        "teaching_mode": "heuristic",
-        "students": [],
-    }
-    response = client.post("/observation/start", json=payload)
+    async with AsyncClient(
+        transport=ASGITransport(app=app),
+        base_url="http://test",
+    ) as client:
+        payload = {
+            "topic": "Python Basics",
+            "teaching_mode": "heuristic",
+            "students": [],
+        }
+        response = await client.post("/observation/start", json=payload)
     assert response.status_code == 422
 
 
@@ -76,22 +76,22 @@ class TestObservationApiRegistration:
     后台任务负责延迟注册 orchestrator。
     """
 
+    @pytest.mark.integration
     @pytest.mark.asyncio
-    async def test_start_observation_registers_mode_only(self):
+    async def test_start_observation_registers_mode_only(self, override_get_db):
         """POST /observation/start 应立即注册 mode 到 SessionRegistry.
 
         验证请求立即返回（不等待 LLM），且 mode 已注册。
         orchestrator 由后台任务延迟注册。
         """
-        from httpx import ASGITransport, AsyncClient
-
         from core.session_registry import SessionRegistry, set_session_registry
-        from main import app
 
         # 重置全局 SessionRegistry
         set_session_registry(SessionRegistry())
 
-        async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as client:
+        async with AsyncClient(
+            transport=ASGITransport(app=app), base_url="http://test"
+        ) as client:
             response = await client.post(
                 "/observation/start",
                 json={

@@ -1,5 +1,6 @@
 """Agent 记忆管理系统 - 统一导出模块."""
 
+import logging
 import random
 from collections.abc import Callable
 from dataclasses import dataclass, field
@@ -9,6 +10,8 @@ from agents.memories.student_memory import StudentAgentMemory
 from agents.memories.teacher_memory import TeacherAgentMemory
 from models.session.schemas import Message, MessageType
 from schemas.student import StudentProfile
+
+logger = logging.getLogger(__name__)
 
 
 @dataclass
@@ -114,6 +117,44 @@ class MemoryManager:
 
         self.session_memory.teaching_summary = self.summary_fn(prompt)
         self.session_memory.mark_summary_updated()
+
+    def summarize_checkpoint(self) -> str | None:
+        """生成当前检查点的摘要并重置消息历史.
+
+        摘要失败时只丢失叙事上下文，TeacherAgentMemory 的结构化状态不受影响。
+        异常不会向上传播，仅记录日志。
+
+        Returns:
+            生成的检查点摘要，如果无法生成则返回 None
+        """
+        messages = self.session_memory.get_recent_messages()
+        if not messages:
+            self.session_memory.clear_message_history()
+            return None
+
+        if self.summary_fn is None:
+            self.session_memory.clear_message_history()
+            return None
+
+        summary = None
+        try:
+            prompt = (
+                "请将以下课堂对话摘要为一段简洁的教学总结（100字以内）。\n"
+                "重点包括：讲授了什么知识点、学生理解情况、发现的误解。\n\n"
+                + "\n".join(
+                    f"[{m.sender}]: {m.content}" for m in messages
+                )
+            )
+            summary = self.summary_fn(prompt)
+            if summary:
+                self.session_memory.checkpoint_summaries.append(summary)
+        except Exception:
+            logger.warning("检查点摘要生成失败，跳过此检查点的摘要", exc_info=True)
+        finally:
+            # 无论摘要是否成功生成，都清除消息历史
+            self.session_memory.clear_message_history()
+
+        return summary
 
 
 __all__ = [
