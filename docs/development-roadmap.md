@@ -554,37 +554,45 @@
 
 ---
 
-### Phase 10: 观察模式前端（核心UI）
+### Phase 10: 观察模式前端（核心UI）✓
 
 **目标**: 实现观察模式的完整UI流程
 
 **任务列表**:
 1. WebSocket hook
-   - [ ] `frontend/src/hooks/useWebSocket.ts`
-   - [ ] 连接管理
-   - [ ] 消息接收
-   - [ ] 断线重连
+   - [✓] `frontend/src/hooks/useWebSocketBase.ts`（useWebSocketBase，非 useWebSocket）
+   - [✓] 连接管理
+   - [✓] 消息接收
+   - [✓] 心跳机制（30秒 ping）
+   - [ ] 断线重连（未实现，sessionId 变更时重新连接）
 
 2. ObservationConfig组件
-   - [ ] 教学主题输入
-   - [ ] 教学模式选择（灌输式/启发式/讨论式）
-   - [ ] 学生配置（StudentFactory三种模式切换UI）
-   - [ ] "开始观察"按钮
+   - [✓] 教学主题输入
+   - [✓] 教学模式选择（灌输式/启发式/讨论式）
+   - [✓] 学生配置（三种模式切换UI：手动/随机/JSON导入）
+   - [✓] "开始观察"按钮
 
 3. ObservationView组件
-   - [ ] 实时消息列表显示
-   - [ ] 当前模式徽章显示
-   - [ ] 已进行时间显示
-   - [ ] 消息数量统计
+   - [✓] 实时消息列表显示
+   - [✓] 当前模式徽章显示
+   - [✓] 已进行时间显示
+   - [✓] 消息数量统计
+   - [✓] 检查点进度侧边栏
+
+4. 辅助 hooks
+   - [✓] `frontend/src/hooks/useSessionMessages.ts` — 消息历史加载 + 实时合并
+   - [✓] `frontend/src/hooks/useElapsedTime.ts` — 计时器
+   - [✓] `frontend/src/hooks/useCheckpointPlan.ts` — 检查点数据
+   - [✓] `frontend/src/hooks/useCheckpointProgress.ts` — 进度追踪
 
 **验收标准**:
-- [ ] 能配置主题、模式、学生
-- [ ] 能点击"开始观察"
-- [ ] 能实时看到agent对话（WebSocket更新）
-- [ ] 会话结束后自动跳转到报告页面
-- [ ] 验证：完整体验一次观察模式流程
+- [✓] 能配置主题、模式、学生
+- [✓] 能点击"开始观察"
+- [✓] 能实时看到agent对话（WebSocket更新）
+- [ ] 会话结束后自动跳转到报告页面（待 Phase 11）
+- [ ] 验证：完整体验一次观察模式流程（待端到端测试）
 
-**预计时间**: 4-5小时
+**完成时间**: 2026-04-13
 
 ---
 
@@ -713,7 +721,7 @@ Phase 13 (测试)
 
 ## 快速开始
 
-**当前进度**: Phase 8-9 已完成，下一步 Phase 10（观察模式前端）
+**当前进度**: Phase 1-10 已完成，下一步 Phase 11（分析报告）
 
 ✅ **已完成**:
 - Phase 1: 基础设施与数据层
@@ -786,7 +794,6 @@ Phase 13 (测试)
   - 完整的检查点系统设计文档（由 /office-hours 生成）
 
 📋 **下一步**:
-- Phase 10 - 观察模式前端（WebSocket hook、ObservationConfig、ObservationView）
 - Phase 11 - 分析报告（ObservationAnalyzer、量化指标）
 - Phase 12 - 教师模式前端（TeacherConfig、TeacherView）
 
