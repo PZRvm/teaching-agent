@@ -797,7 +797,7 @@ class TestSessionMemoryGetFullContext:
         context = memory.get_full_context()
 
         assert "教学主题: Python变量" in context
-        assert "最近的对话:" in context
+        assert "最近的对话:" not in context
 
 
 class TestMemoryManagerSummarizeCheckpoint:
@@ -913,9 +913,7 @@ class TestMemoryManagerSummarizeCheckpoint:
         assert session_mem.message_history == []
 
     def test_summarize_checkpoint_summary_failure_still_clears_history(self):
-        """测试摘要生成失败时仍然清除消息历史."""
-        import pytest
-
+        """测试摘要生成失败时仍然清除消息历史（异常不传播）."""
         from agents.memories.memory_manager import MemoryManager, SessionMemory
 
         session_mem = SessionMemory(session_id=1, topic="Python基础")
@@ -933,10 +931,12 @@ class TestMemoryManagerSummarizeCheckpoint:
 
         manager = MemoryManager(session_memory=session_mem, summary_fn=failing_summary_fn)
 
-        with pytest.raises(RuntimeError, match="LLM 调用失败"):
-            manager.summarize_checkpoint()
+        # 异常被内部捕获，不会传播
+        result = manager.summarize_checkpoint()
+        assert result is None
 
-        # 即使异常，消息历史已被清除（try/finally）
+        # 消息历史已被清除
+        assert session_mem.message_history == []
         assert session_mem.checkpoint_summaries == []
 
     def test_summarize_checkpoint_accumulates_multiple_summaries(self):

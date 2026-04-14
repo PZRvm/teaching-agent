@@ -60,10 +60,8 @@ class SessionMemory:
         parts = [
             f"教学主题: {self.topic}",
             f"教学摘要: {self.teaching_summary}",
-            "最近的对话:",
         ]
-        for msg in recent:
-            parts.append(f"[{msg.sender}] ({msg.message_type.value}): {msg.content}")
+        self._append_recent_messages(parts, recent)
         return "\n".join(parts)
 
     def get_full_context(self) -> str:
@@ -79,7 +77,12 @@ class SessionMemory:
             parts.append("各检查点教学摘要:")
             for i, summary in enumerate(self.checkpoint_summaries, 1):
                 parts.append(f"  检查点{i}: {summary}")
-        parts.append("最近的对话:")
-        for msg in self.message_history[-self.max_history_messages:]:
-            parts.append(f"[{msg.sender}] ({msg.message_type.value}): {msg.content}")
+        self._append_recent_messages(parts, self.get_recent_messages())
         return "\n".join(parts)
+
+    def _append_recent_messages(self, parts: list[str], messages: list[Message]) -> None:
+        """将最近消息追加到 parts 列表（仅在消息非空时添加标题行）."""
+        if messages:
+            parts.append("最近的对话:")
+            for msg in messages:
+                parts.append(f"[{msg.sender}] ({msg.message_type.value}): {msg.content}")

@@ -56,3 +56,30 @@ class TeacherAgentMemory:
             f"2. 根据学生的参与度和理解程度调整教学节奏\n"
             f"3. 对于困惑的学生，提供更详细的解释\n"
         )
+
+    def get_end_feedback_context(self, topic: str) -> str:
+        """生成最终总结的结构化上下文（不含角色声明）.
+
+        与 get_system_prompt_addition 不同，此方法不包含
+        "你是教师 agent" 的角色声明，适合嵌入到 end_feedback 的
+        专用 system prompt 中。
+        """
+        status_lines = []
+        for name, count in self.student_participation.items():
+            status_lines.append(f"- {name}: 发言{count}次")
+
+        student_status = "\n".join(status_lines) if status_lines else "暂无学生发言记录"
+
+        misconception_lines = []
+        for name, items in self.student_misconceptions.items():
+            for item in items:
+                misconception_lines.append(f"- {name}: {item}")
+        misconceptions = "\n".join(misconception_lines) if misconception_lines else "无"
+
+        return (
+            f"教学主题: {topic}\n"
+            f"已讲授内容: {', '.join(self.covered_topics) if self.covered_topics else '暂无'}\n"
+            f"教学进度: {self.teaching_progress * 100:.0f}%\n\n"
+            f"学生参与情况:\n{student_status}\n\n"
+            f"学生常见误解:\n{misconceptions}\n"
+        )

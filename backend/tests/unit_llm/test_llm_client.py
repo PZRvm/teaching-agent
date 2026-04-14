@@ -33,7 +33,7 @@ class TestLLMClient:
 
         assert client.api_key == "test-env-key"
         assert client.base_url == "https://api.siliconflow.cn/v1"
-        assert client.model == "Qwen/Qwen2.5-7B-Instruct"
+        assert client.model == "Qwen/Qwen3.5-27B"
 
     def test_init_from_config_raises_without_api_key(self):
         """测试 from_config() 在无 API key 时抛出 ValueError."""

@@ -463,7 +463,7 @@ class TeacherAgent:
         因为最终总结不需要区分灌输式/启发式/讨论式。
         """
         topic = self.session_memory.topic
-        teacher_context = self.memory_manager.teacher_memory.get_system_prompt_addition(topic=topic)
+        teacher_context = self.memory_manager.teacher_memory.get_end_feedback_context(topic=topic)
         full_context = self.session_memory.get_full_context()
 
         return f"""你是教师，正在对本次课程进行最终总结。
