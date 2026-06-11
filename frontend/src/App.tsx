@@ -4,6 +4,7 @@ import ObservationConfig from './views/ObservationConfig'
 import ObservationView from './views/ObservationView'
 import SessionHistory from './views/SessionHistory'
 import SessionDetail from './views/SessionDetail'
+import AnalyticsDashboard from './views/AnalyticsDashboard'
 import NotFoundPage from './views/NotFoundPage'
 
 export default function App() {
@@ -14,6 +15,7 @@ export default function App() {
       <Route path="/history/:sessionId" element={<SessionDetail />} />
       <Route path="/observation/config" element={<ObservationConfig />} />
       <Route path="/observation/session/:sessionId" element={<ObservationView />} />
+      <Route path="/analytics" element={<AnalyticsDashboard />} />
       <Route path="*" element={<NotFoundPage />} />
     </Routes>
   )
