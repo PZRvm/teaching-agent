@@ -1,12 +1,4 @@
-import ReactEChartsCore from 'echarts-for-react/lib/core'
-import * as echarts from 'echarts/core'
-import { BarChart, LineChart, PieChart } from 'echarts/charts'
-import {
-  GridComponent,
-  TooltipComponent,
-  LegendComponent,
-} from 'echarts/components'
-import { CanvasRenderer } from 'echarts/renderers'
+import ReactECharts from 'echarts-for-react'
 import styled from 'styled-components'
 import {
   COLORS,
@@ -16,15 +8,9 @@ import {
   participationTrend,
 } from './mockData'
 
-echarts.use([
-  BarChart, LineChart, PieChart,
-  GridComponent, TooltipComponent, LegendComponent,
-  CanvasRenderer,
-])
-
 const ChartGrid = styled.div`
   display: grid;
-  grid-template-columns: 1fr 1fr;
+  grid-template-columns: 1fr;
   gap: 16px;
 
   .chart-card {
@@ -85,12 +71,14 @@ const qaOption = {
       name: '提问次数',
       type: 'bar' as const,
       data: participationQA.questions,
+      label: { show: true, position: 'top' },
       itemStyle: { color: '#3B82F6', borderRadius: [4, 4, 0, 0] },
     },
     {
       name: '回答次数',
       type: 'bar' as const,
       data: participationQA.answers,
+      label: { show: true, position: 'top' },
       itemStyle: { color: '#A855F7', borderRadius: [4, 4, 0, 0] },
     },
   ],
@@ -106,6 +94,7 @@ const trendOption = {
     type: 'line' as const,
     data: participationTrend[m],
     smooth: true,
+    label: { show: true },
     lineStyle: { color: COLORS[m], width: 2 },
     itemStyle: { color: COLORS[m] },
   })),
@@ -149,7 +138,7 @@ export default function ParticipationTab() {
     <ChartGrid>
       <div className="chart-card">
         <div className="chart-title">主动提问次数 & 回答次数</div>
-        <ReactEChartsCore echarts={echarts} option={qaOption} style={{ height: 300 }} />
+        <ReactECharts option={qaOption} style={{ height: 300 }} />
       </div>
       <div className="chart-card">
         <div className="chart-title">学生参与类型分布</div>
@@ -159,10 +148,9 @@ export default function ParticipationTab() {
               <div className="pie-label" style={{ color: COLORS[m] }}>
                 {MODE_LABELS[m]}
               </div>
-              <ReactEChartsCore
-                echarts={echarts}
-                option={makeTypePieOption(m)}
-                style={{ height: 200 }}
+              <ReactECharts
+option={makeTypePieOption(m)}
+                style={{ height: 280 }}
               />
             </div>
           ))}
@@ -170,7 +158,7 @@ export default function ParticipationTab() {
       </div>
       <div className="chart-card-full">
         <div className="chart-title">各检查点参与度变化</div>
-        <ReactEChartsCore echarts={echarts} option={trendOption} style={{ height: 300 }} />
+        <ReactECharts option={trendOption} style={{ height: 300 }} />
       </div>
     </ChartGrid>
   )

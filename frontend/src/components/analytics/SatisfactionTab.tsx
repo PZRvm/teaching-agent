@@ -1,13 +1,4 @@
-import ReactEChartsCore from 'echarts-for-react/lib/core'
-import * as echarts from 'echarts/core'
-import { BarChart, RadarChart, PieChart } from 'echarts/charts'
-import {
-  GridComponent,
-  TooltipComponent,
-  LegendComponent,
-  RadarComponent,
-} from 'echarts/components'
-import { CanvasRenderer } from 'echarts/renderers'
+import ReactECharts from 'echarts-for-react'
 import styled from 'styled-components'
 import {
   COLORS,
@@ -17,15 +8,9 @@ import {
   satisfactionNPS,
 } from './mockData'
 
-echarts.use([
-  BarChart, RadarChart, PieChart,
-  GridComponent, TooltipComponent, LegendComponent, RadarComponent,
-  CanvasRenderer,
-])
-
 const ChartGrid = styled.div`
   display: grid;
-  grid-template-columns: 1fr 1fr;
+  grid-template-columns: 1fr;
   gap: 16px;
 
   .chart-card {
@@ -146,6 +131,7 @@ const npsOption = {
       type: 'bar' as const,
       data: modes.map((m) => ({
         value: satisfactionNPS.scores[modes.indexOf(m) as 0 | 1 | 2],
+        label: { show: true, position: 'top' },
         itemStyle: {
           color: COLORS[m],
           borderRadius: [4, 4, 0, 0],
@@ -167,10 +153,9 @@ export default function SatisfactionTab() {
               <div className="pie-label" style={{ color: COLORS[m] }}>
                 {MODE_LABELS[m]}
               </div>
-              <ReactEChartsCore
-                echarts={echarts}
-                option={makeLevelPieOption(m)}
-                style={{ height: 200 }}
+              <ReactECharts
+option={makeLevelPieOption(m)}
+                style={{ height: 280 }}
               />
             </div>
           ))}
@@ -178,11 +163,11 @@ export default function SatisfactionTab() {
       </div>
       <div className="chart-card">
         <div className="chart-title">满意度细分维度</div>
-        <ReactEChartsCore echarts={echarts} option={radarOption} style={{ height: 300 }} />
+        <ReactECharts option={radarOption} style={{ height: 300 }} />
       </div>
       <div className="chart-card-full">
         <div className="chart-title">NPS 净推荐值对比</div>
-        <ReactEChartsCore echarts={echarts} option={npsOption} style={{ height: 300 }} />
+        <ReactECharts option={npsOption} style={{ height: 300 }} />
       </div>
     </ChartGrid>
   )

@@ -1,13 +1,4 @@
-import ReactEChartsCore from 'echarts-for-react/lib/core'
-import * as echarts from 'echarts/core'
-import { BarChart, LineChart, RadarChart } from 'echarts/charts'
-import {
-  GridComponent,
-  TooltipComponent,
-  LegendComponent,
-  RadarComponent,
-} from 'echarts/components'
-import { CanvasRenderer } from 'echarts/renderers'
+import ReactECharts from 'echarts-for-react'
 import styled from 'styled-components'
 import {
   COLORS,
@@ -17,15 +8,9 @@ import {
   overviewTrend,
 } from './mockData'
 
-echarts.use([
-  BarChart, LineChart, RadarChart,
-  GridComponent, TooltipComponent, LegendComponent, RadarComponent,
-  CanvasRenderer,
-])
-
 const ChartGrid = styled.div`
   display: grid;
-  grid-template-columns: 1fr 1fr;
+  grid-template-columns: 1fr;
   gap: 16px;
 
   .chart-card {
@@ -77,6 +62,7 @@ const barOption = {
       overviewScores[m].participation * 0.9,
       overviewScores[m].satisfaction,
     ],
+    label: { show: true, position: 'top' },
     itemStyle: { color: COLORS[m], borderRadius: [4, 4, 0, 0] },
   })),
 }
@@ -111,6 +97,7 @@ const lineOption = {
     type: 'line' as const,
     data: overviewTrend[m],
     smooth: true,
+    label: { show: true },
     lineStyle: { color: COLORS[m], width: 2 },
     itemStyle: { color: COLORS[m] },
   })),
@@ -121,24 +108,21 @@ export default function OverviewTab() {
     <ChartGrid>
       <div className="chart-card">
         <div className="chart-title">四维度均分对比</div>
-        <ReactEChartsCore
-          echarts={echarts}
+        <ReactECharts
           option={barOption}
           style={{ height: 300 }}
         />
       </div>
       <div className="chart-card">
         <div className="chart-title">综合能力画像</div>
-        <ReactEChartsCore
-          echarts={echarts}
+        <ReactECharts
           option={radarOption}
           style={{ height: 300 }}
         />
       </div>
       <div className="chart-card-full">
         <div className="chart-title">各检查点阶段效果趋势</div>
-        <ReactEChartsCore
-          echarts={echarts}
+        <ReactECharts
           option={lineOption}
           style={{ height: 300 }}
         />

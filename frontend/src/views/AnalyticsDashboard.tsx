@@ -24,7 +24,7 @@ export default function AnalyticsDashboard() {
     <Wrapper>
       <div className="page-header">
         <h1 className="page-title">教学智能体效果分析</h1>
-        <p className="page-subtitle">三种教学模式的教学效果对比（模拟数据，30名学生）</p>
+        <p className="page-subtitle">三种教学模式的教学效果对比</p>
       </div>
 
       {/* 指标卡片 */}
@@ -92,7 +92,7 @@ const Wrapper = styled.div`
     display: grid;
     grid-template-columns: 1fr 1fr 1fr;
     gap: 16px;
-    max-width: 960px;
+    max-width: 1200px;
     margin: 0 auto 24px;
   }
 
@@ -128,7 +128,7 @@ const Wrapper = styled.div`
   .tab-bar {
     display: flex;
     gap: 0;
-    max-width: 960px;
+    max-width: 1200px;
     margin: 0 auto 24px;
     background: #fff;
     border-radius: 8px;
@@ -159,11 +159,11 @@ const Wrapper = styled.div`
   }
 
   .tab-content {
-    max-width: 960px;
+    max-width: 1200px;
     margin: 0 auto;
   }
 
-  @media (max-width: 768px) {
+  @media (max-width: 1200px) {
     padding: 16px 12px;
 
     .score-cards {

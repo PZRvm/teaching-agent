@@ -1,12 +1,4 @@
-import ReactEChartsCore from 'echarts-for-react/lib/core'
-import * as echarts from 'echarts/core'
-import { BarChart, LineChart, PieChart } from 'echarts/charts'
-import {
-  GridComponent,
-  TooltipComponent,
-  LegendComponent,
-} from 'echarts/components'
-import { CanvasRenderer } from 'echarts/renderers'
+import ReactECharts from 'echarts-for-react'
 import styled from 'styled-components'
 import {
   COLORS,
@@ -16,15 +8,9 @@ import {
   learningEffectMastery,
 } from './mockData'
 
-echarts.use([
-  BarChart, LineChart, PieChart,
-  GridComponent, TooltipComponent, LegendComponent,
-  CanvasRenderer,
-])
-
 const ChartGrid = styled.div`
   display: grid;
-  grid-template-columns: 1fr 1fr;
+  grid-template-columns: 1fr;
   gap: 16px;
 
   .chart-card {
@@ -84,6 +70,7 @@ const accuracyOption = {
     name: MODE_LABELS[m],
     type: 'bar' as const,
     data: learningEffectAccuracy[m],
+    label: { show: true, position: 'top' },
     itemStyle: { color: COLORS[m], borderRadius: [4, 4, 0, 0] },
   })),
 }
@@ -98,6 +85,7 @@ const masteryOption = {
     type: 'line' as const,
     data: learningEffectMastery[m],
     smooth: true,
+    label: { show: true },
     areaStyle: { color: COLORS[m], opacity: 0.15 },
     lineStyle: { color: COLORS[m], width: 2 },
     itemStyle: { color: COLORS[m] },
@@ -138,7 +126,7 @@ export default function LearningEffectTab() {
     <ChartGrid>
       <div className="chart-card">
         <div className="chart-title">各检查点正确率对比</div>
-        <ReactEChartsCore echarts={echarts} option={accuracyOption} style={{ height: 300 }} />
+        <ReactECharts option={accuracyOption} style={{ height: 300 }} />
       </div>
       <div className="chart-card">
         <div className="chart-title">作业评级分布</div>
@@ -148,10 +136,9 @@ export default function LearningEffectTab() {
               <div className="pie-label" style={{ color: COLORS[m] }}>
                 {MODE_LABELS[m]}
               </div>
-              <ReactEChartsCore
-                echarts={echarts}
-                option={makeGradePieOption(m)}
-                style={{ height: 200 }}
+              <ReactECharts
+option={makeGradePieOption(m)}
+                style={{ height: 280 }}
               />
             </div>
           ))}
@@ -159,7 +146,7 @@ export default function LearningEffectTab() {
       </div>
       <div className="chart-card-full">
         <div className="chart-title">知识掌握度变化趋势</div>
-        <ReactEChartsCore echarts={echarts} option={masteryOption} style={{ height: 300 }} />
+        <ReactECharts option={masteryOption} style={{ height: 300 }} />
       </div>
     </ChartGrid>
   )
